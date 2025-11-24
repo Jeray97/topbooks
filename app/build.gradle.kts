@@ -77,6 +77,6 @@ dependencies {
     // --- FIREBASE (BoM - Bill of Materials) ---
     implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
     implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth-ktx") // Autenticación
-    implementation("com.google.firebase:firebase-firestore-ktx") // Base de datos
+    implementation("com.google.firebase:firebase-auth") // Autenticación
+    implementation("com.google.firebase:firebase-firestore") // Base de datos
 }
