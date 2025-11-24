@@ -57,4 +57,26 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // --- ARQUITECTURA (ViewModel & LiveData) ---
+    val lifecycle_version = "2.6.2"
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version")
+    implementation("androidx.activity:activity-ktx:1.8.0") // Para delegados de viewModels()
+
+    // --- NAVEGACIÓN (Navigation Component) ---
+    val nav_version = "2.7.5"
+    implementation("androidx.navigation:navigation-fragment-ktx:$nav_version")
+    implementation("androidx.navigation:navigation-ui-ktx:$nav_version")
+
+    // --- DISEÑO ---
+    implementation("com.google.android.material:material:1.10.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+
+    // --- FIREBASE (BoM - Bill of Materials) ---
+    // Importante: Al usar la BoM, no necesitas especificar versiones para las librerías de Firebase
+    implementation(platform("com.google.firebase:firebase-bom:32.6.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth-ktx") // Autenticación
+    implementation("com.google.firebase:firebase-firestore-ktx") // Base de datos (para más adelante)
 }
