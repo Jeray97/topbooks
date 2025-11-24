@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1092175350542",
+    "project_id": "topbooks-f546d",
+    "storage_bucket": "topbooks-f546d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1092175350542:android:94cd810024721b2aac655f",
+        "android_client_info": {
+          "package_name": "com.example.topbooks"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiLHV3Ia_ST5Wice2Y6t_mKT6aohYjSEI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
