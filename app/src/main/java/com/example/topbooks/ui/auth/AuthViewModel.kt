@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.repository.AuthRepository
 import com.example.topbooks.data.repository.AuthRepositoryImpl
 import com.example.topbooks.utils.Resource
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +21,8 @@ class AuthViewModel : ViewModel() {
     private val _authState = MutableStateFlow<Resource<Boolean>>(Resource.Idle)
     val authState: StateFlow<Resource<Boolean>> = _authState.asStateFlow()
 
+    val currentUser: FirebaseUser?
+        get() = repository.currentUser
     /**
      * Intenta iniciar sesión con email y contraseña
      */
@@ -58,6 +61,15 @@ class AuthViewModel : ViewModel() {
 
     // Método para resetear el estado (útil si navegamos fuera y volvemos)
     fun clearState() {
+        _authState.value = Resource.Idle
+    }
+
+    /**
+     * Cierra la sesión en Firebase y resetea el estado local.
+     * Es vital llamar a esto desde el botón de Logout en la Home.
+     */
+    fun signOut() {
+        repository.logout()
         _authState.value = Resource.Idle
     }
 }

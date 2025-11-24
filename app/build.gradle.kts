@@ -67,12 +67,13 @@ dependencies {
 
     // --- NAVEGACIÓN (Navigation Component) ---
     val nav_version = "2.7.5"
-    implementation("androidx.navigation:navigation-fragment-ktx:$nav_version")
-    implementation("androidx.navigation:navigation-ui-ktx:$nav_version")
+    implementation("androidx.navigation:navigation-compose:2.7.5")
 
     // --- DISEÑO ---
     implementation("com.google.android.material:material:1.10.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
 
     // --- FIREBASE (BoM - Bill of Materials) ---
     implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
