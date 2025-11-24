@@ -75,9 +75,8 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
     // --- FIREBASE (BoM - Bill of Materials) ---
-    // Importante: Al usar la BoM, no necesitas especificar versiones para las librerías de Firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.6.0"))
+    implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth-ktx") // Autenticación
-    implementation("com.google.firebase:firebase-firestore-ktx") // Base de datos (para más adelante)
+    implementation("com.google.firebase:firebase-firestore-ktx") // Base de datos
 }
