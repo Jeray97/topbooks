@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,6 +17,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.topbooks.ui.home.HomeScreen
 import com.example.topbooks.ui.navigation.BottomNavItem
+import com.example.topbooks.ui.theme.*
 
 @Composable
 fun MainScreen(
@@ -34,16 +37,31 @@ fun MainScreen(
 
     // 3. Estructura visual: Barra abajo + Contenido
     Scaffold(
+
+        containerColor = ColorBackGroundGeneral,
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = ColorSectionBackground,
+            ) {
                 val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
                 items.forEach { item ->
                     NavigationBarItem(
-                        icon = { Icon(item.icon, contentDescription = item.title) },
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = item.icon),
+                                contentDescription = item.title,
+                                tint = Color.Unspecified
+                            )
+                        },
                         label = { Text(item.title) },
                         selected = currentRoute == item.route,
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = ColorSectionBackground.copy(alpha = 0.2f), // Color de la "burbuja" al seleccionar
+                            selectedTextColor = ColorBackGroundCategorySection,
+                            unselectedTextColor = ColorTextPrimary
+                        ),
                         onClick = {
                             bottomNavController.navigate(item.route) {
                                 // Configuración para que la navegación sea fluida

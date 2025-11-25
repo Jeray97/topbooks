@@ -1,3 +1,22 @@
 <resources>
-    <string name="app_name">TopBooks</string>
+    <string name="app_name" translatable="false">TopBooks</string>
+
+    <!-- PANTALLA DE INICIO -->
+    <string name="welcome_title" translatable="false">TopBooks</string>
+    <string name="search_hint">Buscar libro...</string>
+
+    <!-- SECCIONES -->
+    <string name="category_romance">Romance</string>
+    <string name="category_mystery">Misterio</string>
+    <string name="category_horror">Horror</string>
+    <string name="category_fantasy">Fantasia</string>
+
+    <string name="section_categories">Categorias</string>
+    <string name="section_recommended">Recomendados</string>
+    <string name="section_friends_favorites">Favoritos de tus amigos</string>
+
+    <!-- ACCESIBILIDAD -->
+    <string name="desc_search_icon">Buscar</string>
+    <string name="desc_scan_icon">Escanear código</string>
+    <string name="desc_arrow_forward">Ver más</string>
 </resources>
