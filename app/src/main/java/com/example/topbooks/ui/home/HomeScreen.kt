@@ -1,7 +1,7 @@
 package com.example.topbooks.ui.home
 
-
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -21,71 +21,133 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.topbooks.ui.theme.*
+import androidx.lifecycle.viewmodel.compose.viewModel // Importante para inyectar el ViewModel
 import com.example.topbooks.R
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import com.example.topbooks.data.model.Book
+import com.example.topbooks.ui.components.BookItem // Tu componente de la carta con foto
+import com.example.topbooks.ui.theme.*
+import com.example.topbooks.utils.Resource
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    // Inyectamos el ViewModel automáticamente
+    viewModel: HomeViewModel = viewModel()
+) {
+    // 1. Observamos (escuchamos) los 3 canales de datos
+    val categoryState by viewModel.categoryBooks.collectAsState()
+    val recommendedState by viewModel.recommendedBooks.collectAsState()
+    val friendsState by viewModel.friendsBooks.collectAsState()
 
-    //Estructura principal con Scroll vertical
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ColorBackGroundGeneral) // Usamos tu color del tema
+            .background(ColorBackGroundGeneral)
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        //1. Titulo del header
+        // HEADER
         Text(
-            text = "TopBooks",
+            text = stringResource(id = R.string.welcome_title),
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            color = ColorTextPrimary, // Usamos tu color del tema
+            color = ColorTextPrimary,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        //2. Barra de búsqueda
         SearchBarCustom()
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        //3. Seccion de categorias
+        // --- SECCIÓN 1: CATEGORÍAS ---
         SectionContainer(
-            title = stringResource(R.string.section_categories),
-            backgroundColor = ColorBackGroundCategorySection // Color específico
+            title = stringResource(id = R.string.section_categories),
+            backgroundColor = ColorBackGroundCategorySection
         ) {
-            CategoryRow()
+            // Fila de botones redondos
+            CategoryRow(
+                onCategoryClick = { categoryQuery ->
+                    // Al hacer click, le pedimos al ViewModel que cambie los libros
+                    viewModel.onCategorySelected(categoryQuery)
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Fila de libros de esa categoría (Debajo de los botones)
+            BookListRow(resource = categoryState)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        //4. Sección Recomendados
+        // --- SECCIÓN 2: RECOMENDADOS ---
         SectionContainer(
-            title = stringResource(R.string.section_recommended),
-            backgroundColor = ColorBackGroundRecommendedSection // Color específico
+            title = stringResource(id = R.string.section_recommended),
+            backgroundColor = ColorBackGroundRecommendedSection
         ) {
-            BookPlaceholderRow()
+            BookListRow(resource = recommendedState)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        //5. Sección Favoritos
+        // --- SECCIÓN 3: FAVORITOS AMIGOS ---
         SectionContainer(
-            title = stringResource(R.string.section_friends_favorites),
-            backgroundColor = ColorBackGroundFavoritesSection // Color específico
+            title = stringResource(id = R.string.section_friends_favorites),
+            backgroundColor = ColorBackGroundFavoritesSection
         ) {
-            BookPlaceholderRow()
+            BookListRow(resource = friendsState)
         }
 
-        Spacer(modifier = Modifier.height(80.dp)) // Espacio para el BottomNav
+        Spacer(modifier = Modifier.height(80.dp))
     }
+}
 
+// --- COMPONENTE INTELIGENTE: Lista de Libros ---
+// Decide qué pintar según el estado (Cargando, Error o Lista)
+@Composable
+fun BookListRow(
+    resource: Resource<List<Book>>
+) {
+    when (resource) {
+        is Resource.Loading -> {
+            // Mientras carga, mostramos tus círculos blancos
+            BookPlaceholderRow()
+        }
+        is Resource.Success -> {
+            val books = resource.data
+            if (books.isEmpty()) {
+                Text("No se encontraron libros.", color = Color.White, fontSize = 12.sp)
+            } else {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    items(books) { book ->
+                        // Aquí usamos tu componente BookItem (el de la portada real)
+                        BookItem(
+                            book = book,
+                            onClick = { /* Aquí navegaremos al detalle en la Fase 3 */ }
+                        )
+                    }
+                }
+            }
+        }
+        is Resource.Error -> {
+            // CAMBIO: Ahora mostramos el mensaje real de la excepción para saber qué pasa
+            Text(
+                text = "Error: ${resource.exception.message}",
+                color = Color.White,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+        else -> {} // Idle
+    }
 }
 
 @Composable
@@ -99,7 +161,7 @@ fun SearchBarCustom() {
         TextField(
             value = text,
             onValueChange = { text = it },
-            placeholder = {Text(stringResource(R.string.search_hint), color = Color.Gray)},
+            placeholder = { Text(stringResource(id = R.string.search_hint), color = Color.Gray) },
             modifier = Modifier
                 .weight(1f)
                 .height(56.dp)
@@ -111,7 +173,7 @@ fun SearchBarCustom() {
                 unfocusedIndicatorColor = Color.Transparent,
             ),
             trailingIcon = {
-                Icon(Icons.Default.Search, contentDescription = stringResource(R.string.desc_search_icon), tint = Color.Gray)
+                Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color.Gray)
             }
         )
 
@@ -119,12 +181,16 @@ fun SearchBarCustom() {
 
         Box(
             modifier = Modifier
-                .width(56.dp)
-                .height(56.dp) // Aseguramos altura cuadrada
+                .size(56.dp)
                 .background(Color.White, RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center
-        ){
-            Icon(painter = painterResource(R.drawable.icon_codigodebarras), contentDescription = stringResource(R.string.desc_scan_icon), tint = Color.Unspecified)
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.icon_codigodebarras),
+                contentDescription = stringResource(id = R.string.desc_scan_icon),
+                modifier = Modifier.size(24.dp),
+                tint = Color.Gray
+            )
         }
     }
 }
@@ -152,10 +218,9 @@ fun SectionContainer(
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                // Usamos el icono con su ruta correcta
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = stringResource(R.string.desc_arrow_forward),
+                    contentDescription = stringResource(id = R.string.desc_arrow_forward),
                     tint = Color.White
                 )
             }
@@ -166,19 +231,26 @@ fun SectionContainer(
 }
 
 @Composable
-fun CategoryRow() {
+fun CategoryRow(
+    onCategoryClick: (String) -> Unit // Callback para avisar al padre
+) {
+    // Definimos: (String Resource, Icono, Texto para la API)
     val categories = listOf(
-        stringResource(R.string.category_romance) to Icons.Default.Favorite,
-        stringResource(R.string.category_mystery) to Icons.Default.Search,
-        stringResource(R.string.category_horror) to Icons.Default.Warning,
-        stringResource(R.string.category_fantasy) to Icons.Default.Star
+        Triple(R.string.category_romance, Icons.Default.Favorite, "romance"),
+        Triple(R.string.category_mystery, Icons.Default.Search, "mystery"),
+        Triple(R.string.category_horror, Icons.Default.Warning, "horror"),
+        Triple(R.string.category_fantasy, Icons.Default.Star, "fantasy")
     )
 
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(categories) { (name, icon) ->
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        items(categories) { (nameRes, icon, apiQuery) ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                // Al hacer click, enviamos el 'apiQuery' (ej: "mystery")
+                modifier = Modifier.clickable { onCategoryClick(apiQuery) }
+            ) {
                 Box(
                     modifier = Modifier
                         .size(70.dp)
@@ -188,8 +260,8 @@ fun CategoryRow() {
                 ) {
                     Icon(
                         imageVector = icon,
-                        contentDescription = name,
-                        tint = ColorBackGroundCategorySection, // Usamos el color de la sección
+                        contentDescription = null,
+                        tint = ColorBackGroundCategorySection,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -199,9 +271,9 @@ fun CategoryRow() {
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = name,
+                        text = stringResource(id = nameRes),
                         fontSize = 12.sp,
-                        color = ColorBackGroundCategorySection, // Usamos el color de la sección
+                        color = ColorBackGroundCategorySection,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
@@ -218,9 +290,10 @@ fun BookPlaceholderRow() {
         items(5) {
             Box(
                 modifier = Modifier
-                    .size(90.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
+                    .size(90.dp) // Tamaño similar al de las cartas
+                    .height(130.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.5f))
             )
         }
     }
@@ -229,7 +302,10 @@ fun BookPlaceholderRow() {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun HomeScreenPreview() {
+    // Nota: La preview puede fallar si intenta inyectar el ViewModel real.
+    // Para previews complejas, se suele crear un ViewModel falso, pero
+    // por ahora puedes comentar los parámetros del HomeScreen para ver el diseño básico.
     MaterialTheme {
-        HomeScreen()
+        // HomeScreen()
     }
 }
