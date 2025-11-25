@@ -1,9 +1,21 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
 }
+
+// Obtener properties para poder ver la clave API escondida
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+// Guardamos la clave en una variable segura
+val googleBooksApiKey: String = localProperties.getProperty("GOOGLE_BOOKS_API_KEY") ?: ""
 
 android {
     namespace = "com.example.topbooks"
@@ -39,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -80,4 +93,11 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth") // Autenticación
     implementation("com.google.firebase:firebase-firestore") // Base de datos
+
+    // --- CONEXIÓN A INTERNET Y DATOS ---
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // --- IMÁGENES ---
+    implementation("io.coil-kt:coil-compose:2.5.0")
 }
