@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -51,11 +52,11 @@ fun MainScreen(
                         icon = {
                             Icon(
                                 painter = painterResource(id = item.icon),
-                                contentDescription = item.title,
+                                contentDescription = stringResource(id = item.title),
                                 tint = Color.Unspecified
                             )
                         },
-                        label = { Text(item.title) },
+                        label = { Text(stringResource(id = item.title)) },
                         selected = currentRoute == item.route,
                         colors = NavigationBarItemDefaults.colors(
                             indicatorColor = ColorSectionBackground.copy(alpha = 0.2f), // Color de la "burbuja" al seleccionar

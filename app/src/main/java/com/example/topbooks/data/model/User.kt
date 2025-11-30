@@ -8,11 +8,15 @@ import java.util.Date
  * Coincide con los campos que guardaremos en Firestore.
  */
 data class User (
-    val id: String = "",
-    val name: String = "",
+    val uid: String = "",
+    val displayName: String = "",
     val email: String = "",
+    val photoURL: String = "",
+    val role: String? = "user",
+    val preferences: Map<String, Boolean> = emptyMap(),
+    val lastLogin: Date = Date()
+)
 
     // Esta anotación permite que Firestore ponga la fecha del servidor automáticamente
     @ServerTimestamp
-    val date_created: Date? = null
-)
+    val createAt: Date? = null

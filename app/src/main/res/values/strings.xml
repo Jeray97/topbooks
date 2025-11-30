@@ -19,4 +19,11 @@
     <string name="desc_search_icon">Buscar</string>
     <string name="desc_scan_icon">Escanear código</string>
     <string name="desc_arrow_forward">Ver más</string>
+
+    <!-- BOTONES DE NAVEGACIÓN -->
+    <string name="home_bottom">Inicio</string>
+    <string name="progress_bottom">Progreso</string>
+    <string name="social_bottom">Social</string>
+    <string name="reviews_bottom">Reseñas</string>
+    <string name="profile_bottom">Perfil</string>
 </resources>

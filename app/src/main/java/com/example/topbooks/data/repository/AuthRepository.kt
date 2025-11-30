@@ -44,9 +44,12 @@ class AuthRepositoryImpl : AuthRepository {
             if (firebaseUser != null) {
                 //2. Creamos un objeto User propio para Firestore
                 val newUser = User(
-                    id = firebaseUser.uid,
-                    name = name,
-                    email = email
+                    uid = firebaseUser.uid,
+                    displayName = name,
+                    email = email,
+                    photoURL = "",
+                    role = "user",
+                    preferences = emptyMap()
                 )
 
                 //3. Guardamos en la coleccion "users"

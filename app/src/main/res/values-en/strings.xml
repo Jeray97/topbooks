@@ -11,4 +11,9 @@
     <string name="desc_search_icon">Search</string>
     <string name="desc_scan_icon">Scan code</string>
     <string name="desc_arrow_forward">See more</string>
+    <string name="home_bottom">Home</string>
+    <string name="progress_bottom">Progress</string>
+    <string name="social_bottom">Social</string>
+    <string name="reviews_bottom">Reviews</string>
+    <string name="profile_bottom">Profile</string>
 </resources>
