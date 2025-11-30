@@ -10,9 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class HomeViewModel : ViewModel() {
-
-    private val repository = BooksRepository()
+class HomeViewModel(private val repository: BooksRepository = BooksRepository()) : ViewModel() {
 
     // --- ESTADOS DE LAS 3 SECCIONES ---
     // Cada una tiene su propio estado (Cargando, Éxito con libros, o Error)

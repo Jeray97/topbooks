@@ -25,6 +25,9 @@ import com.example.topbooks.R
 import com.example.topbooks.utils.Resource
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 
 // --- 1. COMPONENTE CON LÓGICA (Stateful) ---
 @Composable
@@ -69,6 +72,18 @@ fun RegisterContent(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
+
+    //Lógica para validación en tiempo real
+    val hasUpperCase = remember(password) { password.any {it.isUpperCase() } }
+    val hasNumber = remember(password) { password.any { it.isDigit() } }
+    val hasSpecialChar = remember(password) { password.any { !it.isLetterOrDigit() } }
+    val isLengthValid = remember(password) { password.length >= 6 }
+
+    //Si cumple to-do, la contraseña es válida
+    val isPasswordValid = hasUpperCase && hasNumber && hasSpecialChar && isLengthValid
+
+
+    // Usamos un Box para superponer elementos
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -139,6 +154,23 @@ fun RegisterContent(
                 singleLine = true,
                 isError = password.isNotEmpty() && confirmPassword.isNotEmpty() && password != confirmPassword
             )
+
+            // Solo los mostramos si ha empezado a escribir
+            if (password.isNotEmpty() || confirmPassword.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text("La contraseña debe contener:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    PasswordRequirementItem(text = "Mínimo 6 caracteres", isMet = isLengthValid)
+                    PasswordRequirementItem(text = "Al menos 1 mayúscula", isMet = hasUpperCase)
+                    PasswordRequirementItem(text = "Al menos 1 número", isMet = hasNumber)
+                    PasswordRequirementItem(text = "Al menos 1 carácter especial (@#$%)", isMet = hasSpecialChar)
+                }
+            }
+
+
             if (password.isNotEmpty() && confirmPassword.isNotEmpty() && password != confirmPassword) {
                 Text("Las contraseñas no coinciden", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
             }
@@ -151,7 +183,7 @@ fun RegisterContent(
                 Button(
                     onClick = { onRegisterClick(name, email, password) },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && password == confirmPassword
+                    enabled = name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && password == confirmPassword && isPasswordValid
                 ) {
                     Text("Registrarse")
                 }
@@ -172,6 +204,32 @@ fun RegisterContent(
     }
 }
 
+//Auxiliar para comprobar requisitos password
+@Composable
+fun PasswordRequirementItem(text: String, isMet: Boolean) {
+    val color = if (isMet) Color.Green else Color.Gray //Verde si cumple, gris si no
+    val icon = if (isMet) Icons.Default.Check else Icons.Default.Close
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 2.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(16.dp)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = text,
+            color = color,
+            fontSize = 12.sp
+        )
+    }
+}
 // --- 3. PREVISUALIZACIÓN ---
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

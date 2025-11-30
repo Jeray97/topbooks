@@ -11,10 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class AuthViewModel : ViewModel() {
-
-    //Instanciamos el repositorio
-    private val repository: AuthRepository = AuthRepositoryImpl()
+class AuthViewModel(private val repository: AuthRepository = AuthRepositoryImpl()) : ViewModel() {
 
     // _authState es mutable (nosotros lo cambiamos internamente)
     // authState es inmutable (la vista solo lo "observa")
