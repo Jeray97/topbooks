@@ -22,7 +22,8 @@ import com.example.topbooks.ui.theme.*
 
 @Composable
 fun MainScreen(
-    onLogout: () -> Unit // Este parámetro es obligatorio para el botón de salir
+    onLogout: () -> Unit, // Este parámetro es obligatorio para el botón de salir
+    onNavigateToCategory: (String, String) -> Unit
 ) {
     // 1. Configuración de la navegación interna (la de las pestañas)
     val bottomNavController = rememberNavController()
@@ -86,7 +87,7 @@ fun MainScreen(
         ) {
             // Pestaña INICIO
             composable(BottomNavItem.Home.route) {
-                HomeScreen()
+                HomeScreen(onCategoryClick = onNavigateToCategory)
             }
 
             // Pestaña PROGRESO

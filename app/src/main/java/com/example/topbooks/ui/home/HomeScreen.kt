@@ -11,10 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,10 +34,10 @@ import com.example.topbooks.utils.Resource
 @Composable
 fun HomeScreen(
     // Inyectamos el ViewModel automáticamente
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel(),
+    onCategoryClick: (String, String) -> Unit
 ) {
-    // 1. Observamos (escuchamos) los 3 canales de datos
-    val categoryState by viewModel.categoryBooks.collectAsState()
+    // 1. Observamos (escuchamos) los 2 canales de datos
     val recommendedState by viewModel.recommendedBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
 
@@ -72,10 +69,7 @@ fun HomeScreen(
         ) {
             // Fila de botones redondos
             CategoryRow(
-                onCategoryClick = { categoryQuery ->
-                    // Al hacer click, le pedimos al ViewModel que cambie los libros
-                    viewModel.onCategorySelected(categoryQuery)
-                }
+                onCategoryClick = onCategoryClick
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -230,7 +224,7 @@ fun SectionContainer(
 
 @Composable
 fun CategoryRow(
-    onCategoryClick: (String) -> Unit // Callback para avisar al padre
+    onCategoryClick: (String, String) -> Unit // Callback para avisar al padre
 ) {
     // Definimos: (String Resource, Icono, Texto para la API)
     val categories = listOf(
@@ -244,10 +238,13 @@ fun CategoryRow(
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(categories) { (nameRes, iconResId, apiQuery) ->
+
+            val categoryName = stringResource(id = nameRes)
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 // Al hacer click, enviamos el 'apiQuery' (ej: "mystery")
-                modifier = Modifier.clickable { onCategoryClick(apiQuery) }
+                modifier = Modifier.clickable { onCategoryClick(categoryName, apiQuery) }
             ) {
                 Box(
                     modifier = Modifier
@@ -269,7 +266,7 @@ fun CategoryRow(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = stringResource(id = nameRes),
+                        text = categoryName,
                         fontSize = 12.sp,
                         color = ColorBackGroundCategorySection,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
@@ -304,6 +301,8 @@ fun HomeScreenPreview() {
     // Para previews complejas, se suele crear un ViewModel falso, pero
     // por ahora puedes comentar los parámetros del HomeScreen para ver el diseño básico.
     MaterialTheme {
-        HomeScreen()
+        HomeScreen(
+            onCategoryClick = { _, _ -> }
+        )
     }
 }
