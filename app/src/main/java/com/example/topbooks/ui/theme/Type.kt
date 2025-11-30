@@ -5,7 +5,29 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.Font
+import com.example.topbooks.R
 
+
+//Fuente para APP Guardian City
+val GuardianCity = FontFamily(
+    Font(R.font.guardian_city_font, FontWeight.Normal)
+)
+
+val CenturyGotic = FontFamily(
+    Font(R.font.century_gothic_font, FontWeight.Normal)
+)
+
+val Typography = Typography(
+    bodyLarge = TextStyle(
+        fontFamily = GuardianCity,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
+    )
+)
+/*
 // Set of Material typography styles to start with
 val Typography = Typography(
     bodyLarge = TextStyle(
@@ -15,7 +37,7 @@ val Typography = Typography(
         lineHeight = 24.sp,
         letterSpacing = 0.5.sp
     )
-    /* Other default text styles to override
+     Other default text styles to override
     titleLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
@@ -31,4 +53,3 @@ val Typography = Typography(
         letterSpacing = 0.5.sp
     )
     */
-)

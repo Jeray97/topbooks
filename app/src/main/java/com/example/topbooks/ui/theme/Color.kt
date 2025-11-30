@@ -22,3 +22,4 @@ val ColorSectionBackground = Color(0xFFB29C91)
 //Textos
 val ColorTextPrimary = Color(0xFF5D4037)
 val ColorWhiteTranslucent = Color(0x99FFFFFF)
+val ColorTituloTopBooks = Color(0xFF91604B)

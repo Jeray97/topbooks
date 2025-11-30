@@ -12,13 +12,12 @@ data class GoogleBooksResponse(
 
 /**
  * 2. CLASE ITEM: Cada libro tal cual viene del JSON.
- * Fíjate que usa 'VolumeInfo' para los detalles.
  */
 data class BookItem(
     @SerializedName("id") val id: String?, // El ID también podría ser nulo a veces
     @SerializedName("volumeInfo") val volumeInfo: VolumeInfo? // Puede ser nulo
 ) {
-    // Función para convertir estos datos "feos" al modelo "bonito" (Book) que usará tu App
+    // Función para convertir estos datos "feos" al modelo "bonito" (Book)
     fun toDomain(): Book {
         return Book(
             id = id ?: "unknown_id", // Si no hay ID, ponemos uno por defecto

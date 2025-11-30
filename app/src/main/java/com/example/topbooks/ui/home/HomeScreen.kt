@@ -54,9 +54,10 @@ fun HomeScreen(
         // HEADER
         Text(
             text = stringResource(id = R.string.welcome_title),
+            fontFamily = GuardianCity,
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            color = ColorTextPrimary,
+            color = ColorTituloTopBooks,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
@@ -78,9 +79,6 @@ fun HomeScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Fila de libros de esa categoría (Debajo de los botones)
-            BookListRow(resource = categoryState)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -214,9 +212,9 @@ fun SectionContainer(
             ) {
                 Text(
                     text = title,
+                    fontFamily = CenturyGotic,
                     color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontSize = 20.sp
                 )
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -236,16 +234,16 @@ fun CategoryRow(
 ) {
     // Definimos: (String Resource, Icono, Texto para la API)
     val categories = listOf(
-        Triple(R.string.category_romance, Icons.Default.Favorite, "romance"),
-        Triple(R.string.category_mystery, Icons.Default.Search, "mystery"),
-        Triple(R.string.category_horror, Icons.Default.Warning, "horror"),
-        Triple(R.string.category_fantasy, Icons.Default.Star, "fantasy")
+        Triple(R.string.category_romance, R.drawable.cat_romance_icon, "romance"),
+        Triple(R.string.category_mystery, R.drawable.cat_misterio_icon, "mystery"),
+        Triple(R.string.category_horror, R.drawable.cat_horror_icon, "horror"),
+        Triple(R.string.category_fantasy, R.drawable.cat_fantasia_icon, "fantasy")
     )
 
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(categories) { (nameRes, icon, apiQuery) ->
+        items(categories) { (nameRes, iconResId, apiQuery) ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 // Al hacer click, enviamos el 'apiQuery' (ej: "mystery")
@@ -259,10 +257,10 @@ fun CategoryRow(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = icon,
+                        painter = painterResource(id = iconResId),
                         contentDescription = null,
-                        tint = ColorBackGroundCategorySection,
-                        modifier = Modifier.size(32.dp)
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(48.dp)
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -306,6 +304,6 @@ fun HomeScreenPreview() {
     // Para previews complejas, se suele crear un ViewModel falso, pero
     // por ahora puedes comentar los parámetros del HomeScreen para ver el diseño básico.
     MaterialTheme {
-        // HomeScreen()
+        HomeScreen()
     }
 }
