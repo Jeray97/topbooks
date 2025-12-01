@@ -25,7 +25,8 @@ data class BookItem(
             authors = volumeInfo?.authors ?: emptyList(),
             description = volumeInfo?.description ?: "Sin descripción disponible.",
             // Acceso seguro a imageLinks
-            imageUrl = volumeInfo?.imageLinks?.thumbnail?.replace("http:", "https:") ?: ""
+            imageUrl = volumeInfo?.imageLinks?.thumbnail?.replace("http:", "https:") ?: "",
+            lanzamiento = volumeInfo?.publishedDate ?: "Sin fecha"
         )
     }
 }
@@ -37,7 +38,8 @@ data class VolumeInfo(
     @SerializedName("title") val title: String?,
     @SerializedName("authors") val authors: List<String>?,
     @SerializedName("description") val description: String?,
-    @SerializedName("imageLinks") val imageLinks: ImageLinks?
+    @SerializedName("imageLinks") val imageLinks: ImageLinks?,
+    @SerializedName("publishedDate") val publishedDate: String?
 )
 
 /**

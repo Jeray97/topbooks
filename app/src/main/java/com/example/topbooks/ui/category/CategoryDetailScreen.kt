@@ -1,6 +1,5 @@
 package com.example.topbooks.ui.category
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -22,8 +21,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.ui.components.BookItem
-import com.example.topbooks.ui.theme.* // Importamos tus colores y fuentes
+import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.Resource
+import com.example.topbooks.ui.components.CategoryDetailContentBackgroundShape
+import com.example.topbooks.ui.components.SearchBarCustom
 
 // --- 1. LÓGICA (ViewModel) ---
 @Composable
@@ -54,82 +55,101 @@ fun CategoryDetailContent(
     state: Resource<List<Book>>,
     onBackClick: () -> Unit
 ) {
-    Scaffold(
-        // 1. Usamos color de fondo general
-        containerColor = ColorBackGroundGeneral,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = categoryName,
-                        // 2. Usamos fuente y color de texto
-                        fontFamily = GuardianCity, // O CenturyGotic, la que prefieras de título
-                        color = ColorTextPrimary,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = ColorTextPrimary // La flecha del color de tu texto
-                        )
-                    }
-                },
-                // Hacemos la barra transparente para que se vea el fondo general
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = ColorBackGroundGeneral
-                )
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
-            when (state) {
-                is Resource.Loading -> {
-                    // Indicador de carga blanco o de tu color primario
-                    CircularProgressIndicator(color = ColorTextPrimary)
-                }
-                is Resource.Success -> {
-                    val books = state.data
-                    if (books.isEmpty()) {
+    CategoryDetailContentBackgroundShape {
+        Scaffold(
+            // 1. Usamos color de fondo general
+            containerColor = Color.Transparent,
+
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
                         Text(
-                            "No hay libros disponibles.",
+                            text = categoryName,
+                            // 2. Usamos fuente y color de texto
+                            fontFamily = GuardianCity, // O CenturyGotic, la que prefieras de título
                             color = ColorTextPrimary,
-                            fontFamily = CenturyGotic
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                    } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(books) { book ->
-                                // Aquí usa tu BookItem, que ya tiene su propio diseño
-                                BookItem(
-                                    book = book,
-                                    onClick = { /* TODO Navegar a detalle */ }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = ColorTextPrimary // La flecha del color de tu texto
+                            )
+                        }
+                    },
+                    // Hacemos la barra transparente para que se vea el fondo general
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
+                    )
+                )
+            }
+        ) { paddingValues ->
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues) // Respetamos el espacio de la TopBar
+                    .padding(horizontal = 16.dp) // Margen lateral general
+            ) {
+
+                SearchBarCustom()
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when (state) {
+                        is Resource.Loading -> {
+                            // Indicador de carga blanco o de tu color primario
+                            CircularProgressIndicator(color = ColorTextPrimary)
+                        }
+
+                        is Resource.Success -> {
+                            val books = state.data
+                            if (books.isEmpty()) {
+                                Text(
+                                    "No hay libros disponibles.",
+                                    color = ColorTextPrimary,
+                                    fontFamily = CenturyGotic
                                 )
+                            } else {
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(2),
+                                    contentPadding = PaddingValues(16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(books) { book ->
+                                        // Aquí usa tu BookItem, que ya tiene su propio diseño
+                                        BookItem(
+                                            book = book,
+                                            onClick = { /* TODO Navegar a detalle */ }
+                                        )
+                                    }
+                                }
                             }
                         }
+
+                        is Resource.Error -> {
+                            Text(
+                                text = "Error: ${state.exception.message}",
+                                color = Color.Red,
+                                fontFamily = CenturyGotic
+                            )
+                        }
+
+                        else -> {}
                     }
                 }
-                is Resource.Error -> {
-                    Text(
-                        text = "Error: ${state.exception.message}",
-                        color = Color.Red,
-                        fontFamily = CenturyGotic
-                    )
-                }
-                else -> {}
             }
         }
     }
@@ -140,10 +160,10 @@ fun CategoryDetailContent(
 @Composable
 fun CategoryDetailScreenPreview() {
     val librosFalsos = listOf(
-        Book("1", "Libro 1", listOf("Autor"), "Desc", ""),
-        Book("2", "Libro 2", listOf("Autor"), "Desc", ""),
-        Book("3", "Libro 3", listOf("Autor"), "Desc", ""),
-        Book("4", "Libro 4", listOf("Autor"), "Desc", "")
+        Book("1", "Libro 1", listOf("Autor"), "Desc", "", "2025"),
+        Book("2", "Libro 2", listOf("Autor"), "Desc", "", "2025"),
+        Book("3", "Libro 3", listOf("Autor"), "Desc", "", "2025"),
+        Book("4", "Libro 4", listOf("Autor"), "Desc", "", "2025")
     )
 
     MaterialTheme {

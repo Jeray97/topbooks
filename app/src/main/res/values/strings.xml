@@ -3,7 +3,7 @@
 
     <!-- PANTALLA DE INICIO -->
     <string name="welcome_title" translatable="false">TopBooks</string>
-    <string name="search_hint">Buscar libro...</string>
+    <string name="search_hint">Buscar libro…</string>
 
     <!-- SECCIONES -->
     <string name="category_romance">Romance</string>

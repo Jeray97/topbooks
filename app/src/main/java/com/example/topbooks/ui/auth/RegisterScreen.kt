@@ -101,7 +101,8 @@ fun RegisterContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(24.dp)
-                .verticalScroll(rememberScrollState()), // Hacer scroll si el contenido es muy largo en pantallas pequeñas
+                .verticalScroll(rememberScrollState()) // Hacer scroll si el contenido es muy largo en pantallas pequeñas
+                .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -200,6 +201,7 @@ fun RegisterContent(
                     modifier = Modifier.clickable { onNavigateToLogin() }
                 )
             }
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

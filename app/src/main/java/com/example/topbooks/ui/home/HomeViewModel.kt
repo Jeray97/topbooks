@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class HomeViewModel(private val repository: BooksRepository = BooksRepository()) : ViewModel() {
 
@@ -30,6 +31,7 @@ class HomeViewModel(private val repository: BooksRepository = BooksRepository())
     init {
         // Al arrancar, cargamos datos automáticos
         loadInitialData()
+        fetchRecommendedBooks()
     }
 
     private fun loadInitialData() {
@@ -38,7 +40,7 @@ class HomeViewModel(private val repository: BooksRepository = BooksRepository())
         fetchBooks("subject:romance", _categoryBooks)
 
         // Recomendados: "Best Sellers"
-        fetchBooks("best sellers", _recommendedBooks)
+        //fetchBooks("best sellers", _recommendedBooks)
 
         // Amigos: "Misterio" (por poner algo)
         //TODO IMPLEMENTAR POR ESTADISTICAS
@@ -62,6 +64,27 @@ class HomeViewModel(private val repository: BooksRepository = BooksRepository())
                 state.value = Resource.Success(result.getOrDefault(emptyList()))
             } else {
                 state.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error desconocido"))
+            }
+        }
+    }
+
+    private fun fetchRecommendedBooks() {
+        viewModelScope.launch {
+            _recommendedBooks.value = Resource.Loading
+
+            val year = Calendar.getInstance().get(Calendar.YEAR)
+
+            val queryfecha = "BlackWater"
+
+            val result = repository.getBooks(
+                query = queryfecha, // Buscamos lista por preferencias de usuario TODO
+                orderBy = "newest"  // Ordenamos por fecha
+            )
+
+            if (result.isSuccess) {
+                _recommendedBooks.value = Resource.Success(result.getOrDefault(emptyList()))
+            } else {
+                _recommendedBooks.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error"))
             }
         }
     }

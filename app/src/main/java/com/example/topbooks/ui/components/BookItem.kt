@@ -24,7 +24,7 @@ import com.example.topbooks.R // Asegúrate de importar tu R
 @Composable
 fun BookItem(
     book: Book,
-    onClick: () -> Unit
+    onClick: () -> Unit //TODO
 ) {
     // Un diseño vertical: Portada arriba, Título abajo
     Column(
@@ -74,6 +74,19 @@ fun BookItem(
                 overflow = TextOverflow.Ellipsis
             )
         }
+
+        // 4. Fecha de lanzamiento
+        if(book.lanzamiento.isNotEmpty()) {
+            Text(
+                text = book.lanzamiento,
+                fontSize = 12.sp,
+                color = Color.Gray,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+
     }
 }
 
@@ -87,7 +100,8 @@ fun BookItemPreview() {
         title = "El Quijote de la Mancha Edición Especial",
         authors = listOf("Miguel de Cervantes"),
         description = "Un clásico...",
-        imageUrl = "" // Dejamos la URL vacía para ver el icono de error/placeholder
+        imageUrl = "", // Dejamos la URL vacía para ver el icono de error/placeholder
+        lanzamiento = "2025"
     )
 
     BookItem(

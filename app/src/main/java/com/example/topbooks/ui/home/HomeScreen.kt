@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,12 +23,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel // Importante para inyectar el ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topbooks.R
 import com.example.topbooks.data.model.Book
-import com.example.topbooks.ui.components.BookItem // Tu componente de la carta con foto
+import com.example.topbooks.ui.components.BookItem
+import com.example.topbooks.ui.components.SearchBarCustom
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.Resource
+
 
 @Composable
 fun HomeScreen(
@@ -139,51 +140,6 @@ fun BookListRow(
             )
         }
         else -> {} // Idle
-    }
-}
-
-@Composable
-fun SearchBarCustom() {
-    var text by remember { mutableStateOf("") }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TextField(
-            value = text,
-            onValueChange = { text = it },
-            placeholder = { Text(stringResource(id = R.string.search_hint), color = Color.Gray) },
-            modifier = Modifier
-                .weight(1f)
-                .height(56.dp)
-                .background(Color.White, RoundedCornerShape(8.dp)),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-            ),
-            trailingIcon = {
-                Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color.Gray)
-            }
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .background(Color.White, RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.icon_codigodebarras),
-                contentDescription = stringResource(id = R.string.desc_scan_icon),
-                modifier = Modifier.size(24.dp),
-                tint = Color.Gray
-            )
-        }
     }
 }
 

@@ -97,7 +97,7 @@ class TopBooksUnitTests {
     fun `category search success populates list`() = runTest {
         // GIVEN
         val viewModel = HomeViewModel(booksRepo)
-        val fakeList = listOf(Book("1", "Libro Test", listOf("Autor"), "Desc", ""))
+        val fakeList = listOf(Book("1", "Libro Test", listOf("Autor"), "Desc", "", "2025"))
 
         // Simulamos que el repo devuelve éxito cuando buscamos "subject:romance"
         coEvery { booksRepo.getBooks("subject:romance") } returns Result.success(fakeList)
@@ -138,7 +138,7 @@ class TopBooksUnitTests {
         // GIVEN
         val dirtyItem = BookItem(
             id = null,
-            volumeInfo = VolumeInfo(title = null, authors = null, description = null, imageLinks = null)
+            volumeInfo = VolumeInfo(title = null, authors = null, description = null, imageLinks = null, "")
         )
 
         // WHEN
