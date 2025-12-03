@@ -31,7 +31,7 @@ fun CategoryDetailScreen(
     categoryName: String,
     query: String,
     onBackClick: () -> Unit,
-    onBookClick: (String) -> Unit, // <--- NUEVO CALLBACK
+    onBookClick: (String) -> Unit, // <--- 1. NUEVO PARÁMETRO
     viewModel: CategoryDetailViewModel = viewModel()
 ) {
     LaunchedEffect(key1 = query) {
@@ -54,7 +54,7 @@ fun CategoryDetailContent(
     categoryName: String,
     state: Resource<List<Book>>,
     onBackClick: () -> Unit,
-    onBookClick: (String) -> Unit
+    onBookClick: (String) -> Unit // <--- Recibimos el callback
 ) {
     CategoryDetailContentBackgroundShape {
         Scaffold(
@@ -70,7 +70,10 @@ fun CategoryDetailContent(
             ) {
 
                 Spacer(modifier = Modifier.height(26.dp))
-                SearchBarCustom()
+
+                // 2. CONECTAMOS LA BARRA DE BÚSQUEDA
+                SearchBarCustom(onBookClick = onBookClick)
+
                 Spacer(modifier = Modifier.height(40.dp))
 
                 Row(
@@ -116,7 +119,7 @@ fun CategoryDetailContent(
                                     items(books) { book ->
                                         BookItem(
                                             book = book,
-                                            onClick = { onBookClick(book.id) } // <--- NAVEGAMOS
+                                            onClick = { onBookClick(book.id) } // 3. ACTIVAMOS NAVEGACIÓN
                                         )
                                     }
                                 }

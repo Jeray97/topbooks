@@ -35,7 +35,7 @@ import com.example.topbooks.utils.Resource
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onCategoryClick: (String, String) -> Unit,
-    onBookClick: (String) -> Unit // <--- NUEVO: Callback para click en libro
+    onBookClick: (String) -> Unit // <--- 1. NUEVO PARÁMETRO
 ) {
     val recommendedState by viewModel.recommendedBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
@@ -56,7 +56,8 @@ fun HomeScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        SearchBarCustom()
+        // 2. CONECTAMOS LA BARRA DE BÚSQUEDA
+        SearchBarCustom(onBookClick = onBookClick)
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -78,7 +79,7 @@ fun HomeScreen(
         ) {
             BookListRow(
                 resource = recommendedState,
-                onBookClick = onBookClick // Pasamos el click
+                onBookClick = onBookClick // 3. PASAMOS EL CLICK A LA LISTA
             )
         }
 
@@ -91,7 +92,7 @@ fun HomeScreen(
         ) {
             BookListRow(
                 resource = friendsState,
-                onBookClick = onBookClick // Pasamos el click
+                onBookClick = onBookClick // 3. PASAMOS EL CLICK A LA LISTA
             )
         }
 
@@ -99,10 +100,11 @@ fun HomeScreen(
     }
 }
 
+// COMPONENTE LISTA DE LIBROS ACTUALIZADO
 @Composable
 fun BookListRow(
     resource: Resource<List<Book>>,
-    onBookClick: (String) -> Unit // Recibimos el callback
+    onBookClick: (String) -> Unit // <--- Recibimos el callback
 ) {
     when (resource) {
         is Resource.Loading -> {
@@ -120,7 +122,7 @@ fun BookListRow(
                     items(books) { book ->
                         BookItem(
                             book = book,
-                            onClick = { onBookClick(book.id) } // <--- ¡NAVEGAMOS!
+                            onClick = { onBookClick(book.id) } // <--- ACTIVAMOS LA NAVEGACIÓN
                         )
                     }
                 }
@@ -137,8 +139,6 @@ fun BookListRow(
         else -> {}
     }
 }
-
-// ... Resto de componentes (SectionContainer, CategoryRow, BookPlaceholderRow) igual que antes ...
 
 @Composable
 fun SectionContainer(
