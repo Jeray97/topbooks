@@ -1,9 +1,11 @@
 package com.example.topbooks.data.network
 
 import com.example.topbooks.data.model.GoogleBooksResponse
+import com.example.topbooks.data.model.OpenLibrarySearchResponse
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
+import retrofit2.http.Url
 
 interface BooksApiService {
 
@@ -16,4 +18,11 @@ interface BooksApiService {
         @Query("orderBy") orderBy: String = "relevance", //Por defecto los más relevantes
         @Query("langRestrict") lang: String = "es" // Para que salgan en español (Predeterminado)
     ): Response<GoogleBooksResponse>
+
+    // --- NUEVO: Función para buscar autor en Open Library ---
+    @GET
+    suspend fun searchAuthorExternal(
+        @Url url: String
+    ): Response<OpenLibrarySearchResponse>
 }
+

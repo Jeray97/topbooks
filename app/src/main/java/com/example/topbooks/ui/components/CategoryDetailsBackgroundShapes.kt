@@ -8,9 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.topbooks.ui.theme.ColorBackGroundCategorySection
+import com.example.topbooks.ui.theme.*
 
 @Composable
 fun CategoryDetailContentBackgroundShape(
@@ -19,14 +18,14 @@ fun CategoryDetailContentBackgroundShape(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(ColorBackgorundComponente)
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val canvasWidth = size.width
             val canvasHeight = size.height
 
             drawOval(
-                color = ColorBackGroundCategorySection,
+                color = ColorCategoryDetailContentBackgroundShape,
                 size = Size(
                     width = canvasWidth * 2f,
                     // Aumentamos un poco la altura del óvalo para que la curva sea bonita

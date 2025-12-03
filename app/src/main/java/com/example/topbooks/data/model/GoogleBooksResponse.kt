@@ -48,3 +48,12 @@ data class VolumeInfo(
 data class ImageLinks(
     @SerializedName("thumbnail") val thumbnail: String?
 )
+
+data class OpenLibrarySearchResponse(
+    val docs: List<OpenLibraryAuthor>
+)
+
+data class OpenLibraryAuthor(
+    val key: String?, // Esto nos dará algo como "/authors/OL26224A"
+    val name: String?
+)

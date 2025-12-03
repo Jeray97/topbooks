@@ -16,4 +16,5 @@
     <string name="social_bottom">Social</string>
     <string name="reviews_bottom">Reviews</string>
     <string name="profile_bottom">Profile</string>
+    <string name="book_info">Book information</string>
 </resources>

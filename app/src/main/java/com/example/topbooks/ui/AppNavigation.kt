@@ -10,6 +10,7 @@ import com.example.topbooks.ui.auth.RegisterScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.example.topbooks.ui.book.BookDetailScreen
 import com.example.topbooks.ui.category.CategoryDetailScreen
 
 @Composable
@@ -49,23 +50,27 @@ fun AppNavigation(
             )
         }
 
-        // PANTALLA PRINCIPAL (CON BARRA DE NAVEGACIÓN)
+        // PANTALLA PRINCIPAL
         composable("main") {
             MainScreen(
                 onLogout = {
-                    authViewModel.signOut() // 1. Cerramos sesión en Firebase
-                    navController.navigate("login") { // 2. Navegamos al login
-                        popUpTo("main") { inclusive = true } // 3. Borramos el historial
+                    authViewModel.signOut()
+                    navController.navigate("login") {
+                        popUpTo("main") { inclusive = true }
                     }
                 },
-
+                // Navegar a categoría
                 onNavigateToCategory = { nombre, query ->
                     navController.navigate("category_detail/$nombre/$query")
+                },
+                // Navegar a detalle de libro DIRECTAMENTE
+                onNavigateToBookDetail = { bookId ->
+                    navController.navigate("book_detail/$bookId")
                 }
             )
         }
 
-        //DETALLE DE CATEGORIA
+        // DETALLE DE CATEGORIA
         composable(
             route = "category_detail/{name}/{query}",
             arguments = listOf(
@@ -73,15 +78,30 @@ fun AppNavigation(
                 navArgument("query") { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            //Recuperamos datos de URL
             val categoryName = backStackEntry.arguments?.getString("name") ?: "Categoría"
             val query = backStackEntry.arguments?.getString("query") ?: ""
 
-            //LLamamos de nuevo a la pantalla
             CategoryDetailScreen(
                 categoryName = categoryName,
                 query = query,
-                onBackClick = { navController.popBackStack() } // Para que la flecha atrás funcione
+                onBackClick = { navController.popBackStack() },
+                // Pasamos la navegación al libro aquí también
+                onBookClick = { bookId ->
+                    navController.navigate("book_detail/$bookId")
+                }
+            )
+        }
+
+        // NUEVO: PANTALLA DE DETALLE DE LIBRO (Tarjeta Marrón)
+        composable(
+            route = "book_detail/{bookId}",
+            arguments = listOf(navArgument("bookId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
+
+            BookDetailScreen(
+                bookId = bookId,
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

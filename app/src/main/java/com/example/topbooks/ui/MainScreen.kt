@@ -22,13 +22,12 @@ import com.example.topbooks.ui.theme.*
 
 @Composable
 fun MainScreen(
-    onLogout: () -> Unit, // Este parámetro es obligatorio para el botón de salir
-    onNavigateToCategory: (String, String) -> Unit
+    onLogout: () -> Unit,
+    onNavigateToCategory: (String, String) -> Unit,
+    onNavigateToBookDetail: (String) -> Unit // <--- NUEVO PARAMETRO
 ) {
-    // 1. Configuración de la navegación interna (la de las pestañas)
     val bottomNavController = rememberNavController()
 
-    // 2. Definición de las 5 pestañas
     val items = listOf(
         BottomNavItem.Home,
         BottomNavItem.Progress,
@@ -37,9 +36,7 @@ fun MainScreen(
         BottomNavItem.Profile
     )
 
-    // 3. Estructura visual: Barra abajo + Contenido
     Scaffold(
-
         containerColor = ColorBackGroundGeneral,
         bottomBar = {
             NavigationBar(
@@ -60,13 +57,12 @@ fun MainScreen(
                         label = { Text(stringResource(id = item.title)) },
                         selected = currentRoute == item.route,
                         colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = ColorSectionBackground.copy(alpha = 0.2f), // Color de la "burbuja" al seleccionar
+                            indicatorColor = ColorSectionBackground.copy(alpha = 0.2f),
                             selectedTextColor = ColorBackGroundCategorySection,
                             unselectedTextColor = ColorTextPrimary
                         ),
                         onClick = {
                             bottomNavController.navigate(item.route) {
-                                // Configuración para que la navegación sea fluida
                                 popUpTo(bottomNavController.graph.findStartDestination().id) {
                                     saveState = true
                                 }
@@ -79,7 +75,6 @@ fun MainScreen(
             }
         }
     ) { innerPadding ->
-        // 4. Aquí se muestra el contenido según la pestaña elegida
         NavHost(
             navController = bottomNavController,
             startDestination = BottomNavItem.Home.route,
@@ -87,34 +82,32 @@ fun MainScreen(
         ) {
             // Pestaña INICIO
             composable(BottomNavItem.Home.route) {
-                HomeScreen(onCategoryClick = onNavigateToCategory)
+                HomeScreen(
+                    onCategoryClick = onNavigateToCategory,
+                    onBookClick = onNavigateToBookDetail // <--- CONECTAMOS EL CLICK
+                )
             }
 
-            // Pestaña PROGRESO
             composable(BottomNavItem.Progress.route) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Pantalla de Progreso (Próximamente)")
                 }
             }
 
-            // Pestaña AMIGOS
             composable(BottomNavItem.Friends.route) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Lista de Amigos (Próximamente)")
                 }
             }
 
-            // Pestaña RESEÑAS
             composable(BottomNavItem.Reviews.route) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Tus Reseñas (Próximamente)")
                 }
             }
 
-            // Pestaña PERFIL
             composable(BottomNavItem.Profile.route) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    // Aquí usamos el 'onLogout' que recibimos desde AppNavigation
                     Button(onClick = onLogout) {
                         Text("Cerrar Sesión")
                     }

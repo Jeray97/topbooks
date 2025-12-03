@@ -31,14 +31,12 @@ import com.example.topbooks.ui.components.SearchBarCustom
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.Resource
 
-
 @Composable
 fun HomeScreen(
-    // Inyectamos el ViewModel automáticamente
     viewModel: HomeViewModel = viewModel(),
-    onCategoryClick: (String, String) -> Unit
+    onCategoryClick: (String, String) -> Unit,
+    onBookClick: (String) -> Unit // <--- NUEVO: Callback para click en libro
 ) {
-    // 1. Observamos (escuchamos) los 2 canales de datos
     val recommendedState by viewModel.recommendedBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
 
@@ -49,7 +47,6 @@ fun HomeScreen(
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // HEADER
         Text(
             text = stringResource(id = R.string.welcome_title),
             fontFamily = GuardianCity,
@@ -68,11 +65,7 @@ fun HomeScreen(
             title = stringResource(id = R.string.section_categories),
             backgroundColor = ColorBackGroundCategorySection
         ) {
-            // Fila de botones redondos
-            CategoryRow(
-                onCategoryClick = onCategoryClick
-            )
-
+            CategoryRow(onCategoryClick = onCategoryClick)
             Spacer(modifier = Modifier.height(16.dp))
         }
 
@@ -83,7 +76,10 @@ fun HomeScreen(
             title = stringResource(id = R.string.section_recommended),
             backgroundColor = ColorBackGroundRecommendedSection
         ) {
-            BookListRow(resource = recommendedState)
+            BookListRow(
+                resource = recommendedState,
+                onBookClick = onBookClick // Pasamos el click
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -93,22 +89,23 @@ fun HomeScreen(
             title = stringResource(id = R.string.section_friends_favorites),
             backgroundColor = ColorBackGroundFavoritesSection
         ) {
-            BookListRow(resource = friendsState)
+            BookListRow(
+                resource = friendsState,
+                onBookClick = onBookClick // Pasamos el click
+            )
         }
 
         Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
-// --- COMPONENTE INTELIGENTE: Lista de Libros ---
-// Decide qué pintar según el estado (Cargando, Error o Lista)
 @Composable
 fun BookListRow(
-    resource: Resource<List<Book>>
+    resource: Resource<List<Book>>,
+    onBookClick: (String) -> Unit // Recibimos el callback
 ) {
     when (resource) {
         is Resource.Loading -> {
-            // Mientras carga, mostramos tus círculos blancos
             BookPlaceholderRow()
         }
         is Resource.Success -> {
@@ -121,17 +118,15 @@ fun BookListRow(
                     contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
                     items(books) { book ->
-                        // Aquí usamos tu componente BookItem (el de la portada real)
                         BookItem(
                             book = book,
-                            onClick = { /* Aquí navegaremos al detalle en la Fase 3 */ }
+                            onClick = { onBookClick(book.id) } // <--- ¡NAVEGAMOS!
                         )
                     }
                 }
             }
         }
         is Resource.Error -> {
-            // CAMBIO: Ahora mostramos el mensaje real de la excepción para saber qué pasa
             Text(
                 text = "Error: ${resource.exception.message}",
                 color = Color.White,
@@ -139,9 +134,11 @@ fun BookListRow(
                 modifier = Modifier.padding(8.dp)
             )
         }
-        else -> {} // Idle
+        else -> {}
     }
 }
+
+// ... Resto de componentes (SectionContainer, CategoryRow, BookPlaceholderRow) igual que antes ...
 
 @Composable
 fun SectionContainer(
@@ -180,9 +177,8 @@ fun SectionContainer(
 
 @Composable
 fun CategoryRow(
-    onCategoryClick: (String, String) -> Unit // Callback para avisar al padre
+    onCategoryClick: (String, String) -> Unit
 ) {
-    // Definimos: (String Resource, Icono, Texto para la API)
     val categories = listOf(
         Triple(R.string.category_romance, R.drawable.cat_romance_icon, "romance"),
         Triple(R.string.category_mystery, R.drawable.cat_misterio_icon, "mystery"),
@@ -190,23 +186,15 @@ fun CategoryRow(
         Triple(R.string.category_fantasy, R.drawable.cat_fantasia_icon, "fantasy")
     )
 
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         items(categories) { (nameRes, iconResId, apiQuery) ->
-
             val categoryName = stringResource(id = nameRes)
-
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                // Al hacer click, enviamos el 'apiQuery' (ej: "mystery")
                 modifier = Modifier.clickable { onCategoryClick(categoryName, apiQuery) }
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(70.dp)
-                        .clip(CircleShape)
-                        .background(Color.White),
+                    modifier = Modifier.size(70.dp).clip(CircleShape).background(Color.White),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -217,10 +205,7 @@ fun CategoryRow(
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Surface(
-                    color = Color.White,
-                    shape = RoundedCornerShape(12.dp)
-                ) {
+                Surface(color = Color.White, shape = RoundedCornerShape(12.dp)) {
                     Text(
                         text = categoryName,
                         fontSize = 12.sp,
@@ -235,30 +220,22 @@ fun CategoryRow(
 
 @Composable
 fun BookPlaceholderRow() {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         items(5) {
             Box(
-                modifier = Modifier
-                    .size(90.dp) // Tamaño similar al de las cartas
-                    .height(130.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White.copy(alpha = 0.5f))
+                modifier = Modifier.size(90.dp).height(130.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.5f))
             )
         }
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
-    // Nota: La preview puede fallar si intenta inyectar el ViewModel real.
-    // Para previews complejas, se suele crear un ViewModel falso, pero
-    // por ahora puedes comentar los parámetros del HomeScreen para ver el diseño básico.
     MaterialTheme {
         HomeScreen(
-            onCategoryClick = { _, _ -> }
+            onCategoryClick = { _, _ -> },
+            onBookClick = {}
         )
     }
 }
