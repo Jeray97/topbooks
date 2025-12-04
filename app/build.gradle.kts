@@ -101,21 +101,38 @@ dependencies {
         // --- TESTING (PRUEBAS) ---
         // =======================================================
 
-        // 1. Unit Testing (Lógica pura - ViewModels, Repositorios)
+        // Unit Testing (Lógica pura - ViewModels, Repositorios)
         testImplementation(libs.junit) // JUnit 4
         testImplementation("io.mockk:mockk:1.13.8") // MockK (Para simular objetos)
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3") // Para probar corrutinas
         testImplementation("androidx.arch.core:core-testing:2.2.0") // InstantTaskExecutorRule
 
-        // 2. UI / Integration Testing (Android - Pantallas)
+        // UI / Integration Testing (Android - Pantallas)
         androidTestImplementation(libs.androidx.junit)
         androidTestImplementation(libs.androidx.espresso.core)
         androidTestImplementation(platform(libs.androidx.compose.bom))
         androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.6.0") // Testear Compose
 
-        // 3. Debugging (Necesario para ver los tests de UI)
+        // Debugging (Necesario para ver los tests de UI)
         debugImplementation(libs.androidx.compose.ui.tooling)
         debugImplementation("androidx.compose.ui:ui-test-manifest:1.6.0")
+
+        // --- QR (CAMARA) ---
+        // CAMERAX (Para la cámara)
+        val cameraxVersion = "1.3.1"
+        implementation("androidx.camera:camera-core:$cameraxVersion")
+        implementation("androidx.camera:camera-camera2:$cameraxVersion")
+        implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+        implementation("androidx.camera:camera-view:$cameraxVersion")
+
+        // ML KIT (Para leer códigos de barras/QR)
+        implementation("com.google.mlkit:barcode-scanning:17.2.0")
+
+        // ACCOMPANIST (Para pedir permisos de forma fácil en Compose)
+        implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+
+        // Lógica de Camera con Guava (A veces necesario para evitar conflictos)
+        implementation("com.google.guava:guava:31.1-android")
     }
 
 

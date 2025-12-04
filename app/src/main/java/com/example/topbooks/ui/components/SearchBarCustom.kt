@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -30,29 +29,23 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.topbooks.R
 
+//TODO USAR TEXTO DE VALUES
 @Composable
 fun SearchBarCustom(
-    onBookClick: (String) -> Unit, // Callback para navegar al detalle
+    onBookClick: (String) -> Unit,
+    onScanClick: () -> Unit, //CALLBACK
     viewModel: SearchViewModel = viewModel()
 ) {
     var text by remember { mutableStateOf("") }
-    var active by remember { mutableStateOf(false) } // Controla si mostramos el desplegable
+    var active by remember { mutableStateOf(false) }
 
     val results by viewModel.searchResults.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val focusManager = LocalFocusManager.current
-
-    val BackgroundBeige = Color(0xFFF9EAE1)
     val IconGray = Color(0xFF9E9E9E)
 
-    // Usamos Box y zIndex para que el desplegable flote sobre el contenido de abajo
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .zIndex(1f)
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().zIndex(1f)) {
         Column {
-            // --- BARRA DE BÚSQUEDA ---
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -68,9 +61,7 @@ fun SearchBarCustom(
                         viewModel.onQueryChange(it)
                     },
                     placeholder = { Text(text = "Buscar libro...", color = IconGray) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(55.dp),
+                    modifier = Modifier.weight(1f).height(55.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.White,
@@ -98,11 +89,12 @@ fun SearchBarCustom(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Botón decorativo (Scan)
+                // BOTÓN DE SCAN
                 Box(
                     modifier = Modifier
                         .size(55.dp)
-                        .background(Color.White, RoundedCornerShape(12.dp)),
+                        .background(Color.White, RoundedCornerShape(12.dp))
+                        .clickable { onScanClick() }, // Acción
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -114,24 +106,15 @@ fun SearchBarCustom(
                 }
             }
 
-            // --- DESPLEGABLE DE RESULTADOS ---
             if (active && (results.isNotEmpty() || isLoading)) {
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .heightIn(max = 250.dp), // Altura máxima para que no tape todo
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(max = 250.dp),
                     shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp),
                     shadowElevation = 8.dp,
                     color = Color.White
                 ) {
                     if (isLoading) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(modifier = Modifier.size(30.dp), color = Color(0xFFB9836B))
                         }
                     } else {
@@ -141,14 +124,13 @@ fun SearchBarCustom(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            onBookClick(book.id) // Navegamos
-                                            active = false // Cerramos desplegable
-                                            focusManager.clearFocus() // Quitamos teclado
+                                            onBookClick(book.id)
+                                            active = false
+                                            focusManager.clearFocus()
                                         }
                                         .padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Mini portada
                                     Card(shape = RoundedCornerShape(4.dp), elevation = CardDefaults.cardElevation(2.dp)) {
                                         AsyncImage(
                                             model = ImageRequest.Builder(LocalContext.current)
@@ -160,23 +142,10 @@ fun SearchBarCustom(
                                             modifier = Modifier.size(40.dp, 60.dp)
                                         )
                                     }
-
                                     Spacer(modifier = Modifier.width(12.dp))
-
                                     Column {
-                                        Text(
-                                            text = book.title,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Text(
-                                            text = book.authors.firstOrNull() ?: "Desconocido",
-                                            fontSize = 12.sp,
-                                            color = Color.Gray,
-                                            maxLines = 1
-                                        )
+                                        Text(book.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(book.authors.firstOrNull() ?: "Desconocido", fontSize = 12.sp, color = Color.Gray, maxLines = 1)
                                     }
                                 }
                                 HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))

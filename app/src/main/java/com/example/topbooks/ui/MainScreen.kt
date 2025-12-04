@@ -24,7 +24,8 @@ import com.example.topbooks.ui.theme.*
 fun MainScreen(
     onLogout: () -> Unit,
     onNavigateToCategory: (String, String) -> Unit,
-    onNavigateToBookDetail: (String) -> Unit // <--- NUEVO PARAMETRO
+    onNavigateToBookDetail: (String) -> Unit,
+    onNavigateToScanner: () -> Unit
 ) {
     val bottomNavController = rememberNavController()
 
@@ -84,7 +85,8 @@ fun MainScreen(
             composable(BottomNavItem.Home.route) {
                 HomeScreen(
                     onCategoryClick = onNavigateToCategory,
-                    onBookClick = onNavigateToBookDetail // <--- CONECTAMOS EL CLICK
+                    onBookClick = onNavigateToBookDetail,
+                    onScanClick = onNavigateToScanner // <--- Conectamos
                 )
             }
 

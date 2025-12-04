@@ -31,20 +31,21 @@ fun CategoryDetailScreen(
     categoryName: String,
     query: String,
     onBackClick: () -> Unit,
-    onBookClick: (String) -> Unit, // <--- 1. NUEVO PARÁMETRO
+    onBookClick: (String) -> Unit,
+    onScanClick: () -> Unit, // <--- NUEVO
     viewModel: CategoryDetailViewModel = viewModel()
 ) {
     LaunchedEffect(key1 = query) {
         viewModel.fetchBooksByCategory(query)
     }
-
     val state by viewModel.booksState.collectAsState()
 
     CategoryDetailContent(
         categoryName = categoryName,
         state = state,
         onBackClick = onBackClick,
-        onBookClick = onBookClick // Pasamos el callback
+        onBookClick = onBookClick,
+        onScanClick = onScanClick
     )
 }
 
@@ -54,28 +55,27 @@ fun CategoryDetailContent(
     categoryName: String,
     state: Resource<List<Book>>,
     onBackClick: () -> Unit,
-    onBookClick: (String) -> Unit // <--- Recibimos el callback
+    onBookClick: (String) -> Unit,
+    onScanClick: () -> Unit
 ) {
     CategoryDetailContentBackgroundShape {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = { TopBar(onBackClick) }
         ) { paddingValues ->
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
                     .padding(horizontal = 16.dp)
             ) {
-
                 Spacer(modifier = Modifier.height(26.dp))
 
-                // 2. CONECTAMOS LA BARRA DE BÚSQUEDA
-                SearchBarCustom(onBookClick = onBookClick)
+                // Pasamos el evento
+                SearchBarCustom(onBookClick = onBookClick, onScanClick = onScanClick)
 
                 Spacer(modifier = Modifier.height(40.dp))
-
+                // ... (El resto sigue igual) ...
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -91,23 +91,15 @@ fun CategoryDetailContent(
                 }
 
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(20.dp),
+                    modifier = Modifier.fillMaxSize().padding(20.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     when (state) {
-                        is Resource.Loading -> {
-                            CircularProgressIndicator(color = ColorTextPrimary)
-                        }
+                        is Resource.Loading -> CircularProgressIndicator(color = ColorTextPrimary)
                         is Resource.Success -> {
                             val books = state.data
                             if (books.isEmpty()) {
-                                Text(
-                                    "No hay libros disponibles.",
-                                    color = ColorTextPrimary,
-                                    fontFamily = CenturyGotic
-                                )
+                                Text("No hay libros disponibles.", color = ColorTextPrimary, fontFamily = CenturyGotic)
                             } else {
                                 LazyVerticalGrid(
                                     columns = GridCells.Fixed(2),
@@ -117,21 +109,12 @@ fun CategoryDetailContent(
                                     modifier = Modifier.fillMaxSize()
                                 ) {
                                     items(books) { book ->
-                                        BookItem(
-                                            book = book,
-                                            onClick = { onBookClick(book.id) } // 3. ACTIVAMOS NAVEGACIÓN
-                                        )
+                                        BookItem(book = book, onClick = { onBookClick(book.id) })
                                     }
                                 }
                             }
                         }
-                        is Resource.Error -> {
-                            Text(
-                                text = "Error: ${state.exception.message}",
-                                color = Color.Red,
-                                fontFamily = CenturyGotic
-                            )
-                        }
+                        is Resource.Error -> Text(text = "Error: ${state.exception.message}", color = Color.Red, fontFamily = CenturyGotic)
                         else -> {}
                     }
                 }
@@ -152,7 +135,8 @@ fun CategoryDetailScreenPreview() {
             categoryName = "Romance",
             state = Resource.Success(librosFalsos),
             onBackClick = {},
-            onBookClick = {}
+            onBookClick = {},
+            onScanClick = {}
         )
     }
 }

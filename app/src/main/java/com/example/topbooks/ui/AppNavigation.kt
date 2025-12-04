@@ -1,17 +1,18 @@
 package com.example.topbooks.ui
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.topbooks.ui.auth.AuthViewModel
 import com.example.topbooks.ui.auth.LoginScreen
 import com.example.topbooks.ui.auth.RegisterScreen
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
 import com.example.topbooks.ui.book.BookDetailScreen
 import com.example.topbooks.ui.category.CategoryDetailScreen
+import com.example.topbooks.ui.scanner.QRScannerScreen
 
 @Composable
 fun AppNavigation(
@@ -24,7 +25,7 @@ fun AppNavigation(
 
     NavHost(navController = navController, startDestination = startDestination) {
 
-        // LOGIN
+        // 1. LOGIN
         composable("login") {
             LoginScreen(
                 onLoginSuccess = {
@@ -38,7 +39,7 @@ fun AppNavigation(
             )
         }
 
-        // REGISTRO
+        // 2. REGISTRO
         composable("register") {
             RegisterScreen(
                 onRegisterSuccess = {
@@ -50,27 +51,40 @@ fun AppNavigation(
             )
         }
 
-        // PANTALLA PRINCIPAL
+        // 3. PANTALLA PRINCIPAL
         composable("main") {
             MainScreen(
                 onLogout = {
                     authViewModel.signOut()
-                    navController.navigate("login") {
-                        popUpTo("main") { inclusive = true }
-                    }
+                    navController.navigate("login") { popUpTo("main") { inclusive = true } }
                 },
-                // Navegar a categoría
                 onNavigateToCategory = { nombre, query ->
                     navController.navigate("category_detail/$nombre/$query")
                 },
-                // Navegar a detalle de libro DIRECTAMENTE
+                // NUEVO: Pasamos la navegación al detalle del libro
                 onNavigateToBookDetail = { bookId ->
                     navController.navigate("book_detail/$bookId")
+                },
+                // NUEVO: Pasamos la navegación al escáner
+                onNavigateToScanner = {
+                    navController.navigate("scanner")
                 }
             )
         }
 
-        // DETALLE DE CATEGORIA
+        // 4. ESCÁNER QR
+        composable("scanner") {
+            QRScannerScreen(
+                onBookFound = { bookId ->
+                    // Si encontramos libro, vamos al detalle y borramos el scanner del historial
+                    navController.navigate("book_detail/$bookId") {
+                        popUpTo("scanner") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // 5. DETALLE DE CATEGORÍA
         composable(
             route = "category_detail/{name}/{query}",
             arguments = listOf(
@@ -85,14 +99,13 @@ fun AppNavigation(
                 categoryName = categoryName,
                 query = query,
                 onBackClick = { navController.popBackStack() },
-                // Pasamos la navegación al libro aquí también
-                onBookClick = { bookId ->
-                    navController.navigate("book_detail/$bookId")
-                }
+                // NUEVO: Pasamos los callbacks que faltaban
+                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") },
+                onScanClick = { navController.navigate("scanner") }
             )
         }
 
-        // NUEVO: PANTALLA DE DETALLE DE LIBRO (Tarjeta Marrón)
+        // 6. DETALLE DE LIBRO (Tarjeta Marrón)
         composable(
             route = "book_detail/{bookId}",
             arguments = listOf(navArgument("bookId") { type = NavType.StringType })

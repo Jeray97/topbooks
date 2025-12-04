@@ -35,7 +35,8 @@ import com.example.topbooks.utils.Resource
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onCategoryClick: (String, String) -> Unit,
-    onBookClick: (String) -> Unit // <--- 1. NUEVO PARÁMETRO
+    onBookClick: (String) -> Unit,
+    onScanClick: () -> Unit
 ) {
     val recommendedState by viewModel.recommendedBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
@@ -56,12 +57,11 @@ fun HomeScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // 2. CONECTAMOS LA BARRA DE BÚSQUEDA
-        SearchBarCustom(onBookClick = onBookClick)
+        // Pasamos el evento de escaneo
+        SearchBarCustom(onBookClick = onBookClick, onScanClick = onScanClick)
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- SECCIÓN 1: CATEGORÍAS ---
         SectionContainer(
             title = stringResource(id = R.string.section_categories),
             backgroundColor = ColorBackGroundCategorySection
@@ -72,28 +72,20 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- SECCIÓN 2: RECOMENDADOS ---
         SectionContainer(
             title = stringResource(id = R.string.section_recommended),
             backgroundColor = ColorBackGroundRecommendedSection
         ) {
-            BookListRow(
-                resource = recommendedState,
-                onBookClick = onBookClick // 3. PASAMOS EL CLICK A LA LISTA
-            )
+            BookListRow(resource = recommendedState, onBookClick = onBookClick)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- SECCIÓN 3: FAVORITOS AMIGOS ---
         SectionContainer(
             title = stringResource(id = R.string.section_friends_favorites),
             backgroundColor = ColorBackGroundFavoritesSection
         ) {
-            BookListRow(
-                resource = friendsState,
-                onBookClick = onBookClick // 3. PASAMOS EL CLICK A LA LISTA
-            )
+            BookListRow(resource = friendsState, onBookClick = onBookClick)
         }
 
         Spacer(modifier = Modifier.height(80.dp))
@@ -235,7 +227,8 @@ fun HomeScreenPreview() {
     MaterialTheme {
         HomeScreen(
             onCategoryClick = { _, _ -> },
-            onBookClick = {}
+            onBookClick = {},
+            onScanClick = {}
         )
     }
 }
