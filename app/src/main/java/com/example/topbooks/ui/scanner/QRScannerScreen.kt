@@ -11,28 +11,35 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.topbooks.R
+import com.example.topbooks.data.model.Book
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
-// Importamos OptIn de Kotlin para evitar conflictos
 import kotlin.OptIn
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -41,20 +48,16 @@ fun QRScannerScreen(
     onBookFound: (String) -> Unit,
     viewModel: ScannerViewModel = viewModel()
 ) {
-    val context = LocalContext.current
+
     val cameraPermissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
 
     val isLoading = viewModel.isLoading.value
     val notFoundIsbn = viewModel.notFoundIsbn.value
+    // 1. OBSERVAMOS EL LIBRO ENCONTRADO
+    val foundBook = viewModel.foundBook.value
 
-    // Escuchamos evento de navegación
-    LaunchedEffect(Unit) {
-        viewModel.navigationEvent.collect { bookId ->
-            onBookFound(bookId)
-        }
-    }
+    val logText = viewModel.uiLog.value
 
-    // Pedimos permisos
     LaunchedEffect(Unit) {
         if (!cameraPermissionState.status.isGranted) {
             cameraPermissionState.launchPermissionRequest()
@@ -63,7 +66,8 @@ fun QRScannerScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (cameraPermissionState.status.isGranted) {
-            val isScanningEnabled = !isLoading && notFoundIsbn == null
+            // Solo escaneamos si NO estamos cargando, NO hay error Y NO hay libro en pantalla
+            val isScanningEnabled = !isLoading && notFoundIsbn == null && foundBook == null
 
             CameraPreview(
                 isScanningEnabled = isScanningEnabled,
@@ -71,6 +75,33 @@ fun QRScannerScreen(
                     viewModel.onIsbnDetected(code)
                 }
             )
+
+            // Consola de Texto
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(top = 40.dp, start = 16.dp, end = 16.dp)
+                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = logText,
+                    color = Color.Green,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
+            }
+
+            // 2. AQUÍ MOSTRAMOS LA TARJETA DEL LIBRO Y USAMOS dismissBookInfo
+            if (foundBook != null) {
+                BookInfoOverlay(
+                    book = foundBook,
+                    onDismiss = { viewModel.dismissBookInfo() }, // <--- AQUÍ SE USA
+                    onViewDetails = { onBookFound(foundBook.id) }
+                )
+            }
 
             if (isLoading) {
                 Box(
@@ -86,22 +117,126 @@ fun QRScannerScreen(
             if (notFoundIsbn != null) {
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissError() },
-                    title = { Text("Libro no encontrado") },
-                    text = { Text("No se han encontrado libros con el ISBN: $notFoundIsbn") },
+                    title = { Text("No encontrado") },
+                    text = {
+                        Text("ISBN: $notFoundIsbn\n\nNo se encontró información.")
+                    },
                     confirmButton = {
                         TextButton(onClick = { viewModel.dismissError() }) {
                             Text("Aceptar")
                         }
                     },
-                    containerColor = Color.White,
-                    titleContentColor = Color.Black,
-                    textContentColor = Color.Gray
+                    containerColor = Color.White
                 )
             }
 
         } else {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Se necesita permiso de cámara", color = Color.Black)
+                Text(text = "Se necesita permiso de cámara", color = Color.White)
+            }
+        }
+    }
+}
+
+// 3. COMPONENTE VISUAL DE LA TARJETA
+@Composable
+fun BookInfoOverlay(
+    book: Book,
+    onDismiss: () -> Unit,
+    onViewDetails: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f)) // Fondo oscurecido
+            .padding(16.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Cabecera
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "¡Libro Encontrado!",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFB9836B),
+                        fontSize = 14.sp
+                    )
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.Gray)
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                Row(verticalAlignment = Alignment.Top) {
+                    // Portada
+                    Card(
+                        shape = RoundedCornerShape(8.dp),
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        modifier = Modifier.width(80.dp).height(120.dp)
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(book.imageUrl)
+                                .crossfade(true)
+                                .error(R.drawable.icon_codigodebarras)
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Datos
+                    Column {
+                        Text(
+                            text = book.title,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = book.authors.firstOrNull() ?: "Autor desconocido",
+                            fontSize = 14.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                        if (book.description.isNotEmpty()) {
+                            Text(
+                                text = book.description,
+                                fontSize = 12.sp,
+                                color = Color.DarkGray,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = onViewDetails,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB9836B))
+                ) {
+                    Text("VER DETALLES")
+                }
             }
         }
     }
@@ -112,8 +247,7 @@ fun CameraPreview(
     isScanningEnabled: Boolean,
     onQrDetected: (String) -> Unit
 ) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val currentScanningState by rememberUpdatedState(isScanningEnabled)
 
     AndroidView(

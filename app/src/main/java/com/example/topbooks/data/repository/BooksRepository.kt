@@ -39,4 +39,27 @@ class BooksRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun getBookDetail(id: String): Result<Book> {
+        return try {
+            val response = apiService.getBookDetail(
+                id = id,
+                apiKey = API_KEY
+            )
+
+            if (response.isSuccessful) {
+                // response.body() es un BookItem único
+                val bookItem = response.body()
+                if (bookItem != null) {
+                    Result.success(bookItem.toDomain())
+                } else {
+                    Result.failure(Exception("El libro llegó vacío"))
+                }
+            } else {
+                Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

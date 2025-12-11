@@ -3,60 +3,87 @@ package com.example.topbooks.ui.scanner
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.repository.BooksRepository
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 class ScannerViewModel(private val repository: BooksRepository = BooksRepository()) : ViewModel() {
 
     // --- ESTADOS DE LA UI ---
-
-    // Si estamos cargando (consultando la API)
     var isLoading = mutableStateOf(false)
         private set
 
-    // Si hubo un error (libro no encontrado), guardamos el ISBN para mostrarlo en el mensaje
     var notFoundIsbn = mutableStateOf<String?>(null)
         private set
 
-    // Evento de navegación (Solo ocurre una vez cuando encontramos el libro)
-    private val _navigationEvent = MutableSharedFlow<String>() // Emitiremos el ID del libro
-    val navigationEvent = _navigationEvent.asSharedFlow()
+    // 1. VARIABLE QUE GUARDA EL LIBRO ENCONTRADO
+    var foundBook = mutableStateOf<Book?>(null)
+        private set
+
+    // Variable para la "consola" en pantalla
+    var uiLog = mutableStateOf("Esperando detección...\n")
+        private set
 
     // --- LÓGICA ---
 
     fun onIsbnDetected(isbn: String) {
-        // Evitamos llamadas múltiples si ya estamos cargando o mostrando un error
-        if (isLoading.value || notFoundIsbn.value != null) return
+        // Bloqueamos si ya estamos ocupados O SI YA TENEMOS UN LIBRO EN PANTALLA
+        if (isLoading.value || notFoundIsbn.value != null || foundBook.value != null) return
 
         viewModelScope.launch {
-            isLoading.value = true
+            logToUi("CÁMARA: Detectado código $isbn")
 
-            //Para buscar por ISBN en Google Books, se usa "isbn:NUMERO"
-            val query = "isbn:$isbn"
-            val result = repository.getBooks(query)
+            isLoading.value = true
+            logToUi("API: Buscando...")
+
+            // INTENTO 1: Búsqueda estricta
+            var result = repository.getBooks("isbn:$isbn")
+            var books = result.getOrDefault(emptyList())
+
+            // INTENTO 2: Búsqueda genérica
+            if (books.isEmpty()) {
+                logToUi("API: Reintentando búsqueda genérica...")
+                result = repository.getBooks(isbn)
+                books = result.getOrDefault(emptyList())
+            }
 
             isLoading.value = false
 
-            if (result.isSuccess) {
-                val books = result.getOrDefault(emptyList())
-                if (books.isNotEmpty()) {
-                    // Encontramos el libro, emitimos su ID para navegar
-                    _navigationEvent.emit(books.first().id)
-                } else {
-                    // La lista está vacía, mostramos la ventanita
-                    notFoundIsbn.value = isbn
-                }
+            if (books.isNotEmpty()) {
+                // Buscamos el mejor resultado (el que tenga descripción o el primero)
+                val bestMatch = books.find { it.description.length > 50 } ?: books.first()
+
+                logToUi("ÉXITO: Libro '${bestMatch.title}' cargado.")
+
+                // 2. AQUÍ ES DONDE GUARDAMOS EL LIBRO PARA QUE LA PANTALLA LO MUESTRE
+                foundBook.value = bestMatch
+
             } else {
-                // FALLO DE RED: Lo tratamos como no encontrado por ahora
+                logToUi("ERROR: Sin datos para $isbn")
                 notFoundIsbn.value = isbn
             }
         }
     }
 
-    // Cuando el usuario cierra la ventanita de error
     fun dismissError() {
         notFoundIsbn.value = null
+        logToUi("Alerta cerrada. Escáner listo.")
+    }
+
+    // Función para cerrar la tarjeta y seguir escaneando
+    fun dismissBookInfo() {
+        foundBook.value = null
+        logToUi("Info cerrada. Escáner listo.")
+    }
+
+    private fun logToUi(message: String) {
+        val currentLog = uiLog.value
+        val lines = currentLog.split("\n").toMutableList()
+        lines.add(message)
+        // Guardamos solo las últimas 5 líneas para que no ocupe toda la pantalla
+        if (lines.size > 5) {
+            lines.removeAt(0)
+        }
+        uiLog.value = lines.joinToString("\n")
     }
 }

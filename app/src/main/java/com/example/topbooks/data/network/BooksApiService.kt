@@ -1,5 +1,6 @@
 package com.example.topbooks.data.network
 
+import com.example.topbooks.data.model.BookItem
 import com.example.topbooks.data.model.GoogleBooksResponse
 import com.example.topbooks.data.model.OpenLibrarySearchResponse
 import retrofit2.Response
@@ -24,5 +25,12 @@ interface BooksApiService {
     suspend fun searchAuthorExternal(
         @Url url: String
     ): Response<OpenLibrarySearchResponse>
+
+    // La url final será: https://www.googleapis.com/books/v1/volumes/{id}
+    @GET("volumes/{id}")
+    suspend fun getBookDetail(
+        @retrofit2.http.Path("id") id: String,
+        @Query("key") apiKey: String
+    ): Response<BookItem>
 }
 

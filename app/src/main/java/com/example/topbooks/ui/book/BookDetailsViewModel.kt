@@ -28,18 +28,16 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            // 1. Buscamos el libro en Google Books
-            val result = repository.getBooks(query = bookId)
+            val result = repository.getBookDetail(bookId)
 
             if (result.isSuccess) {
-                val books = result.getOrDefault(emptyList())
-                val foundBook = books.firstOrNull()
+                // getBookDetail devuelve un solo objeto Book
+                val foundBook = result.getOrNull()
 
                 if (foundBook != null) {
-                    // Actualizamos estado con el libro, pero aún sin foto de autor
                     _uiState.value = _uiState.value.copy(book = foundBook, isLoading = false)
 
-                    // 2. Si tiene autor, buscamos su foto
+                    // Buscamos la foto del autor si existe
                     if (foundBook.authors.isNotEmpty()) {
                         fetchAuthorPhoto(foundBook.authors.first())
                     }
@@ -47,7 +45,10 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
                     _uiState.value = _uiState.value.copy(error = "Libro no encontrado", isLoading = false)
                 }
             } else {
-                _uiState.value = _uiState.value.copy(error = "Error de conexión", isLoading = false)
+                _uiState.value = _uiState.value.copy(
+                    error = result.exceptionOrNull()?.message ?: "Error de conexión",
+                    isLoading = false
+                )
             }
         }
     }
