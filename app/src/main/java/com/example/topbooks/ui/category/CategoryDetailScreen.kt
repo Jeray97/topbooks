@@ -75,7 +75,6 @@ fun CategoryDetailContent(
                 SearchBarCustom(onBookClick = onBookClick, onScanClick = onScanClick)
 
                 Spacer(modifier = Modifier.height(40.dp))
-                // ... (El resto sigue igual) ...
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,

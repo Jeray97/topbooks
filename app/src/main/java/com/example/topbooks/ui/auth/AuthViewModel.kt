@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 class AuthViewModel(private val repository: AuthRepository = AuthRepositoryImpl()) : ViewModel() {
 
-    // _authState es mutable (nosotros lo cambiamos internamente)
+    // _authState es mutable (lo cambiamos internamente)
     // authState es inmutable (la vista solo lo "observa")
     private val _authState = MutableStateFlow<Resource<Boolean>>(Resource.Idle)
     val authState: StateFlow<Resource<Boolean>> = _authState.asStateFlow()
@@ -56,7 +56,7 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepositoryImpl(
         }
     }
 
-    // Método para resetear el estado (útil si navegamos fuera y volvemos)
+    // Méto-do para resetear el estado (útil si navegamos fuera y volvemos)
     fun clearState() {
         _authState.value = Resource.Idle
     }

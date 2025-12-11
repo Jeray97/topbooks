@@ -33,9 +33,7 @@ fun CategoryDetailContentBackgroundShape(
                 ),
                 topLeft = Offset(
                     x = -(canvasWidth * 0.5f),
-                    // CAMBIO AQUÍ:
                     // Antes 0.5f (mitad). Ahora 0.25f (más arriba).
-                    // Cuanto MÁS PEQUEÑO este número, MÁS SUBE la ola.
                     y = canvasHeight * 0.2f
                 )
             )

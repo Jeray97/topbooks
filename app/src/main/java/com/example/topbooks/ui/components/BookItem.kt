@@ -31,7 +31,6 @@ fun BookItem(
         modifier = Modifier
             .width(120.dp)
             .padding(end = 16.dp)
-        // Opcional: Si quieres que todo el bloque sea clickeable, mueve el clickable aquí
     ) {
         // 1. La Tarjeta con la Imagen (Portada)
         Card(
@@ -40,7 +39,7 @@ fun BookItem(
             modifier = Modifier
                 .height(180.dp)
                 .fillMaxWidth()
-                .clickable { onClick() } // <--- ¡AQUÍ ACTIVAMOS EL CLICK!
+                .clickable { onClick() } //Activamos el clic
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)

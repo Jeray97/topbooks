@@ -1,7 +1,7 @@
 package com.example.topbooks.ui.auth
 
 import android.widget.Toast
-import androidx.compose.foundation.Image // Importar Image
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -9,19 +9,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color // Importar Color
-import androidx.compose.ui.layout.ContentScale // Importar ContentScale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource // Importar painterResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.topbooks.R // Importar R para acceder a los recursos
+import com.example.topbooks.R
 import com.example.topbooks.utils.Resource
 
 // --- 1. COMPONENTE CON LÓGICA (Stateful) ---
@@ -72,7 +71,7 @@ fun LoginContent(
     ) {
         // 1. Imagen de Fondo (Se dibuja primero, queda detrás)
         Image(
-            painter = painterResource(id = R.drawable.login_bg), // Asegúrate de que el nombre coincida
+            painter = painterResource(id = R.drawable.login_bg),
             contentDescription = null, // Es decorativo
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop // Llena toda la pantalla, recortando si es necesario

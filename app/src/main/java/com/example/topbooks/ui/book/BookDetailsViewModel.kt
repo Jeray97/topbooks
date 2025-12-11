@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.network.RetrofitClient
 import com.example.topbooks.data.repository.BooksRepository
-import com.example.topbooks.utils.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,7 +57,7 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
             // URL de búsqueda de Open Library
             val searchUrl = "https://openlibrary.org/search/authors.json?q=${authorName}"
 
-            // Llamada directa usando la instancia de Retrofit que ya tienes
+            // Llamada directa usando la instancia de Retrofit
             val response = RetrofitClient.instance.searchAuthorExternal(searchUrl)
 
             if (response.isSuccessful && response.body()?.docs?.isNotEmpty() == true) {

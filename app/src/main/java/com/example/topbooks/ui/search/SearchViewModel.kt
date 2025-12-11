@@ -1,4 +1,4 @@
-package com.example.topbooks.ui.components
+package com.example.topbooks.ui.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
