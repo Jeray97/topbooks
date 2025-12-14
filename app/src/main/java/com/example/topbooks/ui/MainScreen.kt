@@ -25,7 +25,8 @@ fun MainScreen(
     onLogout: () -> Unit,
     onNavigateToCategory: (String, String) -> Unit,
     onNavigateToBookDetail: (String) -> Unit,
-    onNavigateToScanner: () -> Unit
+    onNavigateToScanner: () -> Unit,
+    onNavigateToAllCategories: () -> Unit
 ) {
     val bottomNavController = rememberNavController()
 
@@ -86,7 +87,8 @@ fun MainScreen(
                 HomeScreen(
                     onCategoryClick = onNavigateToCategory,
                     onBookClick = onNavigateToBookDetail,
-                    onScanClick = onNavigateToScanner // <--- Conectamos
+                    onScanClick = onNavigateToScanner,
+                    onSeeAllCategoriesClick = onNavigateToAllCategories
                 )
             }
 

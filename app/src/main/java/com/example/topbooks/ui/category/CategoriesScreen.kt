@@ -3,10 +3,8 @@ package com.example.topbooks.ui.category
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,6 +15,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
@@ -33,7 +32,7 @@ import kotlin.math.sqrt
 
 // --- CONSTANTES ---
 private val ROW_HEIGHT = 130.dp
-private val START_OFFSET = 210.dp
+private val START_OFFSET = 145.dp
 
 data class CategoryUi(val name: String, val iconRes: Int, val query: String)
 
@@ -74,30 +73,32 @@ fun CategoriesScreen(
     val screenHeightDp = configuration.screenHeightDp.dp
     val density = LocalDensity.current
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // ESTRUCTURA CON TOPBAR
+    Scaffold(
+        containerColor = ColorHeaderBeige, // Fondo base por si acaso
+        topBar = {
+            TopBar(onBackClick = onBackClick)
+        }
+    ) { paddingValues ->
 
-        // 1. EL FONDO (Se queda detrás de to-do)
-        CategoriesBackground(
-            categoryCount = categories.size,
-            columnCount = 4,
-            rowHeight = ROW_HEIGHT,
-            startOffset = START_OFFSET
-        )
+        // Box contenedor que respeta el padding del Scaffold
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
 
-        // 2. ESTRUCTURA CON TOPBAR
-        Scaffold(
-            containerColor = Color.Transparent, // Hacemos transparente el Scaffold para ver el fondo
-            topBar = {
-                TopBar(onBackClick = onBackClick)
-            }
-        ) { paddingValues ->
+            // 1. EL FONDO (Ahora alineado con el área segura)
+            CategoriesBackground(
+                categoryCount = categories.size,
+                columnCount = 4,
+                rowHeight = ROW_HEIGHT,
+                startOffset = START_OFFSET
+            )
 
-            // 3. EL CONTENIDO
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues) // Respetamos el espacio de la TopBar
-                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp)
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -109,7 +110,10 @@ fun CategoriesScreen(
                     fontFamily = CenturyGotic,
                     fontSize = 24.sp,
                     color = ColorTituloCategoriaDetalle,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 4.dp)
                 )
 
                 // --- GRID ---
@@ -180,13 +184,19 @@ fun calculateOffset(
         val distFromCenter = abs(xPos - (widthPx / 2))
 
         // Ecuación de la elipse
+        // 1.0 es Double, así que term será Double
         val term = 1.0 - (distFromCenter * distFromCenter) / (radiusX * radiusX)
 
+        // CORRECCIÓN AQUÍ:
+        // sqrt(term) devuelve Double.
+        // Convertimos explícitamente a Float para operar con radiusY (que es Float)
         val heightAtX = if (term > 0) (radiusY * sqrt(term)).toFloat() else 0f
 
+        // Ahora to-do es Float
         val drop = radiusY - heightAtX
         val baseMarginPx = 25.dp.toPx()
 
+        // Float + Float = Float. Ahora .toDp() funciona correctamente.
         (drop + baseMarginPx).toDp()
     }
 }
@@ -242,7 +252,7 @@ fun CategoryItem(
 fun CategoriesCurvePreview() {
     TopBooksTheme {
         CategoriesScreen(
-            onBackClick = {}, // Dummy callback para el preview
+            onBackClick = {},
             onCategoryClick = { _, _ -> },
             onBookClick = {},
             onScanClick = {}

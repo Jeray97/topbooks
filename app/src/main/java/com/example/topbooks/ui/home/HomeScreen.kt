@@ -36,7 +36,8 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onCategoryClick: (String, String) -> Unit,
     onBookClick: (String) -> Unit,
-    onScanClick: () -> Unit
+    onScanClick: () -> Unit,
+    onSeeAllCategoriesClick: () -> Unit
 ) {
     val recommendedState by viewModel.recommendedBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
@@ -64,7 +65,8 @@ fun HomeScreen(
 
         SectionContainer(
             title = stringResource(id = R.string.section_categories),
-            backgroundColor = ColorBackGroundCategorySection
+            backgroundColor = ColorBackGroundCategorySection,
+            onArrowClick = onSeeAllCategoriesClick
         ) {
             CategoryRow(onCategoryClick = onCategoryClick)
             Spacer(modifier = Modifier.height(16.dp))
@@ -136,6 +138,7 @@ fun BookListRow(
 fun SectionContainer(
     title: String,
     backgroundColor: Color,
+    onArrowClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     Card(
@@ -155,11 +158,16 @@ fun SectionContainer(
                     color = Color.White,
                     fontSize = 20.sp
                 )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = stringResource(id = R.string.desc_arrow_forward),
-                    tint = Color.White
-                )
+                IconButton(
+                    onClick = { onArrowClick?.invoke() },
+                    enabled = onArrowClick != null
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward, // Ojo: usa AutoMirrored si usas Material3 nuevo
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(16.dp))
             content()
@@ -228,7 +236,8 @@ fun HomeScreenPreview() {
         HomeScreen(
             onCategoryClick = { _, _ -> },
             onBookClick = {},
-            onScanClick = {}
+            onScanClick = {},
+            onSeeAllCategoriesClick = {}
         )
     }
 }

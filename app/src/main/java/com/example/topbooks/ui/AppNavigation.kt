@@ -11,6 +11,7 @@ import com.example.topbooks.ui.auth.AuthViewModel
 import com.example.topbooks.ui.auth.LoginScreen
 import com.example.topbooks.ui.auth.RegisterScreen
 import com.example.topbooks.ui.book.BookDetailScreen
+import com.example.topbooks.ui.category.CategoriesScreen
 import com.example.topbooks.ui.category.CategoryDetailScreen
 import com.example.topbooks.ui.scanner.QRScannerScreen
 
@@ -61,13 +62,17 @@ fun AppNavigation(
                 onNavigateToCategory = { nombre, query ->
                     navController.navigate("category_detail/$nombre/$query")
                 },
-                // NUEVO: Pasamos la navegación al detalle del libro
+                //Pasamos la navegación al detalle del libro
                 onNavigateToBookDetail = { bookId ->
                     navController.navigate("book_detail/$bookId")
                 },
-                // NUEVO: Pasamos la navegación al escáner
+                //Pasamos la navegación al escáner
                 onNavigateToScanner = {
                     navController.navigate("scanner")
+                },
+                //Pasamos la navegación a todas las categorías
+                onNavigateToAllCategories = {
+                    navController.navigate("all_categories")
                 }
             )
         }
@@ -115,6 +120,18 @@ fun AppNavigation(
             BookDetailScreen(
                 bookId = bookId,
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // 7. IR A TODAS LAS CATEGORIAS
+        composable("all_categories") {
+            CategoriesScreen(
+                onBackClick = { navController.popBackStack() },
+                onCategoryClick = { name, query ->
+                    navController.navigate("category_detail/$name/$query")
+                },
+                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") },
+                onScanClick = { navController.navigate("scanner") }
             )
         }
     }
