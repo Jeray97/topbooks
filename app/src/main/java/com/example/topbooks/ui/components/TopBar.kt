@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import com.example.topbooks.ui.theme.ColorHeaderBeige
 import com.example.topbooks.ui.theme.ColorTextPrimary
 import com.example.topbooks.ui.theme.ColorTitleCategoryDetail
 import com.example.topbooks.ui.theme.ColorTitleContentCategoryDetail
@@ -40,13 +41,13 @@ fun TopBar(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Volver",
-                    tint = ColorTextPrimary // La flecha del color de tu texto
+                    tint = ColorTextPrimary // La flecha del color del texto
                 )
             }
         },
         // Hacemos la barra transparente para que se vea el fondo general
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = ColorTitleContentCategoryDetail
+            containerColor = ColorHeaderBeige
         )
     )
 }

@@ -28,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.topbooks.R
+import com.example.topbooks.ui.search.SearchViewModel
 
 //TODO USAR TEXTO DE VALUES
 @Composable
@@ -42,7 +43,7 @@ fun SearchBarCustom(
     val results by viewModel.searchResults.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val focusManager = LocalFocusManager.current
-    val IconGray = Color(0xFF9E9E9E)
+    val iconGray = Color(0xFF9E9E9E)
 
     Box(modifier = Modifier.fillMaxWidth().zIndex(1f)) {
         Column {
@@ -60,7 +61,7 @@ fun SearchBarCustom(
                         active = true
                         viewModel.onQueryChange(it)
                     },
-                    placeholder = { Text(text = "Buscar libro...", color = IconGray) },
+                    placeholder = { Text(text = "Buscar libro...", color = iconGray) },
                     modifier = Modifier.weight(1f).height(55.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
@@ -78,10 +79,10 @@ fun SearchBarCustom(
                                 viewModel.clearResults()
                                 active = false
                             }) {
-                                Icon(Icons.Default.Close, contentDescription = "Borrar", tint = IconGray)
+                                Icon(Icons.Default.Close, contentDescription = "Borrar", tint = iconGray)
                             }
                         } else {
-                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = IconGray)
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = iconGray)
                         }
                     },
                     singleLine = true
@@ -101,7 +102,7 @@ fun SearchBarCustom(
                         painter = painterResource(id = R.drawable.icon_codigodebarras),
                         contentDescription = stringResource(id = R.string.desc_scan_icon),
                         modifier = Modifier.size(24.dp),
-                        tint = IconGray
+                        tint = iconGray
                     )
                 }
             }

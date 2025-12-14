@@ -27,6 +27,13 @@ val ColorTitleContentCategoryDetail = Color(0xFFDFC8BD)
 val ColorTitleCategoryDetail = Color(0xFF91604B)
 val ColorBackgorundComponente = Color(0xFFF6E6DD)
 
+//Categories
+val ColorHeaderBeige = Color(0xFFF6E6DD)
+val ColorArcDarkBrown = Color(0xFF8D5B4C)
+val ColorArcMediumBrown = Color(0xFFC89B8C)
+val ColorArcLightBeige = Color(0xFFF6E6DD)
+val ColorArcWhite = Color(0xFFF5ECE9)
+
 
 
 //Textos
