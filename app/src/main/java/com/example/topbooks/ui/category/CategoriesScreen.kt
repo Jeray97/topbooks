@@ -88,7 +88,7 @@ fun CategoriesScreen(
                 .padding(paddingValues)
         ) {
 
-            // 1. EL FONDO (Ahora alineado con el área segura)
+            // 1. EL FONDO (Alineado con el área segura)
             CategoriesBackground(
                 categoryCount = categories.size,
                 columnCount = 4,
