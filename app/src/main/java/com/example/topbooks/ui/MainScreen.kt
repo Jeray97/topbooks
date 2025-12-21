@@ -19,6 +19,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.topbooks.ui.home.HomeScreen
 import com.example.topbooks.ui.navigation.BottomNavItem
 import com.example.topbooks.ui.theme.*
+import com.example.topbooks.ui.profile.ProfileScreen
 
 @Composable
 fun MainScreen(
@@ -111,11 +112,9 @@ fun MainScreen(
             }
 
             composable(BottomNavItem.Profile.route) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Button(onClick = onLogout) {
-                        Text("Cerrar Sesión")
-                    }
-                }
+                ProfileScreen(
+                    onLogout = onLogout
+                )
             }
         }
     }

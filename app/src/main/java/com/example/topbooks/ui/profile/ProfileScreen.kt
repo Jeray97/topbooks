@@ -112,7 +112,7 @@ fun ProfileContent(
 
                 Column {
                     Text(
-                        text = userProfile.displayName.uppercase(),
+                        text = userProfile.displayName,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
