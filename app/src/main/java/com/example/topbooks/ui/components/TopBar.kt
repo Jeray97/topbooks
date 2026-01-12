@@ -27,7 +27,7 @@ fun TopBar(
         title = {
             Text(
                 text = "TopBooks",
-                // 2. Usamos fuente y color de texto
+                // Usamos fuente y color de texto
                 fontFamily = GuardianCity,
                 color = ColorTitleCategoryDetail,
                 fontSize = 22.sp,

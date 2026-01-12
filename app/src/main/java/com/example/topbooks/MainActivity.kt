@@ -8,7 +8,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.topbooks.ui.AppNavigation
-import com.example.topbooks.ui.theme.TopBooksTheme // Asegúrate de que este import sea correcto según tu proyecto
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

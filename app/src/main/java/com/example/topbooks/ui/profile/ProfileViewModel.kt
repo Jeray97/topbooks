@@ -76,7 +76,7 @@ class ProfileViewModel : ViewModel() {
                 val completedBooksSnapshot = db.collection("users")
                     .document(uid)
                     .collection("favorites")
-                    .whereEqualTo("list", "Leídos") // Asegúrate de guardar "Leídos" o "leidos"
+                    .whereEqualTo("list", "Leídos")
                     .get()
                     .await()
 

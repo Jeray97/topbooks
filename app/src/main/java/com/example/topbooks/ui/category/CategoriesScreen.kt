@@ -186,9 +186,7 @@ fun calculateOffset(
         // Ecuación de la elipse
         // 1.0 es Double, así que term será Double
         val term = 1.0 - (distFromCenter * distFromCenter) / (radiusX * radiusX)
-
-        // CORRECCIÓN AQUÍ:
-        // sqrt(term) devuelve Double.
+        
         // Convertimos explícitamente a Float para operar con radiusY (que es Float)
         val heightAtX = if (term > 0) (radiusY * sqrt(term)).toFloat() else 0f
 

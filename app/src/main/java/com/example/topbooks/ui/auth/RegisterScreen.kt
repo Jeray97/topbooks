@@ -90,7 +90,7 @@ fun RegisterContent(
     ) {
         // 1. Imagen de Fondo
         Image(
-            painter = painterResource(id = R.drawable.register_bg), // Asegúrate de que el nombre coincida
+            painter = painterResource(id = R.drawable.register_bg),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop

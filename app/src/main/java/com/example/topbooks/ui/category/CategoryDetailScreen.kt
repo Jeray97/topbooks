@@ -32,7 +32,7 @@ fun CategoryDetailScreen(
     query: String,
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
-    onScanClick: () -> Unit, // <--- NUEVO
+    onScanClick: () -> Unit,
     viewModel: CategoryDetailViewModel = viewModel()
 ) {
     LaunchedEffect(key1 = query) {

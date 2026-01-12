@@ -163,7 +163,7 @@ fun SectionContainer(
                     enabled = onArrowClick != null
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward, // Ojo: usa AutoMirrored si usas Material3 nuevo
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
                         tint = Color.White
                     )

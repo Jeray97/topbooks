@@ -104,7 +104,6 @@ fun AppNavigation(
                 categoryName = categoryName,
                 query = query,
                 onBackClick = { navController.popBackStack() },
-                // NUEVO: Pasamos los callbacks que faltaban
                 onBookClick = { bookId -> navController.navigate("book_detail/$bookId") },
                 onScanClick = { navController.navigate("scanner") }
             )
