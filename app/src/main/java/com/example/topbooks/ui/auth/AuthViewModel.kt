@@ -6,12 +6,14 @@ import com.example.topbooks.data.repository.AuthRepository
 import com.example.topbooks.data.repository.AuthRepositoryImpl
 import com.example.topbooks.utils.Resource
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class AuthViewModel(private val repository: AuthRepository = AuthRepositoryImpl()) : ViewModel() {
+class AuthViewModel(
+    private val repository: AuthRepository = AuthRepositoryImpl()) : ViewModel() {
 
     // _authState es mutable (lo cambiamos internamente)
     // authState es inmutable (la vista solo lo "observa")
@@ -35,6 +37,23 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepositoryImpl(
                 _authState.value = Resource.Success(true)
             } else {
                 _authState.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error desconocido"))
+            }
+        }
+    }
+
+    /**
+     * Intenta iniciar sesión con google
+     */
+    fun loginWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _authState.value = Resource.Loading
+
+            val result = repository.loginWithGoogle(idToken)
+
+            if (result.isSuccess) {
+                _authState.value = Resource.Success(true)
+            } else {
+                _authState.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error Google"))
             }
         }
     }

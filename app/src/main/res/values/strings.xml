@@ -30,4 +30,7 @@
 
     <!-- REGISTRO -->
 
+    <!-- LOGIN -->
+    <string name="default_web_client_id">TEXTO A COMPLETAR</string>
+
 </resources>

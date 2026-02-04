@@ -1,6 +1,9 @@
 package com.example.topbooks.ui.auth
 
+import android.app.Activity
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,6 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topbooks.R
 import com.example.topbooks.utils.Resource
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions.*
+import com.google.android.gms.common.api.ApiException
 
 // --- 1. COMPONENTE CON LÓGICA (Stateful) ---
 @Composable
@@ -32,6 +38,34 @@ fun LoginScreen(
 ) {
     val authState by viewModel.authState.collectAsState()
     val context = LocalContext.current
+
+    // --- Configuración de Google Sign In ---
+    // Definimos el cliente de Google
+    val googleSignInClient = remember {
+        val gso = Builder(DEFAULT_SIGN_IN)
+            .requestIdToken(context.getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        GoogleSignIn.getClient(context, gso)
+    }
+
+    // --- Lanzador para el resultado de Google ---
+    val googleLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                // Si ha pasado bien llamamos al ViewModel para autenticar en Firebase
+                account.idToken?.let { token ->
+                    viewModel.loginWithGoogle(token)
+                }
+            } catch (e: ApiException) {
+                Toast.makeText(context, "Error Google: ${e.statusCode}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     LaunchedEffect(authState) {
         when (val state = authState) {
@@ -50,6 +84,10 @@ fun LoginScreen(
     LoginContent(
         isLoading = authState is Resource.Loading,
         onLoginClick = { email, pass -> viewModel.login(email, pass) },
+        // --- Pasamos la acción de lanzar el intent de Google
+        onGoogleClick = {
+            googleLauncher.launch(googleSignInClient.signInIntent)
+        },
         onNavigateToRegister = onNavigateToRegister
     )
 }
@@ -59,25 +97,25 @@ fun LoginScreen(
 fun LoginContent(
     isLoading: Boolean,
     onLoginClick: (String, String) -> Unit,
+    onGoogleClick: () -> Unit, // --- Parámetro para el click de Google
     onNavigateToRegister: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    // Usamos un Box para superponer elementos
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        // 1. Imagen de Fondo (Se dibuja primero, queda detrás)
+        // 1. Imagen de Fondo
         Image(
             painter = painterResource(id = R.drawable.login_bg),
-            contentDescription = null, // Es decorativo
+            contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop // Llena toda la pantalla, recortando si es necesario
+            contentScale = ContentScale.Crop
         )
 
-        // 2. Contenido Principal (Se dibuja encima del fondo)
+        // 2. Contenido Principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -85,8 +123,7 @@ fun LoginContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            
-            // Campos de texto
+
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -94,6 +131,10 @@ fun LoginContent(
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                 singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White.copy(alpha = 0.8f),
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.8f)
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -105,7 +146,11 @@ fun LoginContent(
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                singleLine = true
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White.copy(alpha = 0.8f),
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.8f)
+                )
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -120,12 +165,31 @@ fun LoginContent(
                 ) {
                     Text("Iniciar Sesión")
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // --- Botón de Google ---
+                OutlinedButton(
+                    onClick = { onGoogleClick() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
+                ) {
+                    // Idealmente usa un icono de Google real (R.drawable.ic_google)
+                    // Si no tienes uno, usa un icono por defecto temporalmente
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_google),
+                        contentDescription = "Logo Google",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Continuar con Google", color = Color.Black)
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Cambiar color del texto si el fondo es oscuro
                 Text("¿No tienes cuenta? ", color = Color.Black)
                 Text(
                     text = "Regístrate aquí",
@@ -138,7 +202,6 @@ fun LoginContent(
     }
 }
 
-// --- 3. PREVISUALIZACIÓN ---
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginScreenPreview() {
@@ -146,6 +209,7 @@ fun LoginScreenPreview() {
         LoginContent(
             isLoading = false,
             onLoginClick = { _, _ -> },
+            onGoogleClick = {},
             onNavigateToRegister = {}
         )
     }

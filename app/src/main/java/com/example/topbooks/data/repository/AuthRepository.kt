@@ -3,6 +3,7 @@ package com.example.topbooks.data.repository
 import android.util.Log
 import com.example.topbooks.data.model.User
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -15,6 +16,7 @@ interface AuthRepository {
     suspend fun login(email: String, pass: String): Result<Boolean>
     suspend fun register(name: String, email: String, pass: String): Result<Boolean>
     fun logout()
+    suspend fun loginWithGoogle(idToken: String): Result<Boolean>
 }
 
 //2. Implementación, definimos que se hace usando Firebase
@@ -65,6 +67,37 @@ class AuthRepositoryImpl : AuthRepository {
         } catch (e: Exception) {
             // Si falla algo (ej: email repetido), devolvemos el error
             Log.e("AuthRepository", "Error registro", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun loginWithGoogle(idToken: String): Result<Boolean> {
+        return try {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val authResult = auth.signInWithCredential(credential).await()
+            val firebaseUser = authResult.user
+
+            if (firebaseUser != null) {
+                // Opcional: Comprobamos si el usuario ya existe en Firestore para no sobrescribirlo
+                val docSnapshot = firestore.collection("users").document(firebaseUser.uid).get().await()
+
+                if (!docSnapshot.exists()) {
+                    // Si es la primera vez que entra con Google, lo guardamos en la base de datos
+                    val newUser = User(
+                        uid = firebaseUser.uid,
+                        displayName = firebaseUser.displayName ?: "Usuario Google",
+                        email = firebaseUser.email ?: "",
+                        photoURL = firebaseUser.photoUrl.toString(),
+                        role = "user"
+                    )
+                    firestore.collection("users").document(firebaseUser.uid).set(newUser).await()
+                }
+
+                Result.success(true)
+            } else {
+                Result.failure(Exception("El usuario es nulo tras loguearse con Google"))
+            }
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }

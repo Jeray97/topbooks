@@ -97,6 +97,15 @@ dependencies {
         // --- IMÁGENES (Coil) ---
         implementation("io.coil-kt:coil-compose:2.5.0")
 
+        // Importar la BoM de Firebase
+        implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+
+        // Firebase Auth
+        implementation("com.google.firebase:firebase-auth")
+
+        // Google Play Services Auth
+        implementation("com.google.android.gms:play-services-auth:20.7.0")
+
         // =======================================================
         // --- TESTING (PRUEBAS) ---
         // =======================================================

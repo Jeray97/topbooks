@@ -17,4 +17,5 @@
     <string name="reviews_bottom">Reviews</string>
     <string name="profile_bottom">Profile</string>
     <string name="book_info">Book information</string>
+    <string name="default_web_client_id">TEXTO A COMPLETAR</string>
 </resources>
