@@ -34,6 +34,10 @@ val ColorArcMediumBrown = Color(0xFFC89B8C)
 val ColorArcLightBeige = Color(0xFFF6E6DD)
 val ColorArcWhite = Color(0xFFF5ECE9)
 
+//Registro
+val ColorSurfaceTextRegister = Color(0xFFB9836B)
+val ColorConditionOk = Color(0xFF74BA32)
+
 
 
 //Textos

@@ -24,10 +24,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topbooks.R
 import com.example.topbooks.utils.Resource
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import com.example.topbooks.ui.theme.CenturyGotic
+import com.example.topbooks.ui.theme.ColorConditionOk
+import com.example.topbooks.ui.theme.ColorSurfaceTextRegister
 
 // --- 1. COMPONENTE CON LÓGICA (Stateful) ---
 @Composable
@@ -82,6 +87,7 @@ fun RegisterContent(
     //Si cumple to-do, la contraseña es válida
     val isPasswordValid = hasUpperCase && hasNumber && hasSpecialChar && isLengthValid
 
+    val scrollState = rememberScrollState()
 
     // Usamos un Box para superponer elementos
     Box(
@@ -100,12 +106,29 @@ fun RegisterContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()) // Hacer scroll si el contenido es muy largo en pantallas pequeñas
-                .imePadding(),
+                .padding(top = 60.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
+                .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = ColorSurfaceTextRegister,
+                modifier = Modifier.padding(bottom = 8.dp)
+            ) {
+                Text(
+                    text = "Crear una cuenta",
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 30.sp,
+                        fontFamily = CenturyGotic
+                    ),
+                    color = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(0.35f))
 
             // Campo Nombre
             OutlinedTextField(
@@ -114,7 +137,11 @@ fun RegisterContent(
                 label = { Text("Nombre completo") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
-                singleLine = true
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White.copy(alpha = 0.8f),
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.8f)
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -126,7 +153,11 @@ fun RegisterContent(
                 label = { Text("Correo electrónico") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                singleLine = true
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White.copy(alpha = 0.8f),
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.8f)
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -139,7 +170,11 @@ fun RegisterContent(
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
-                singleLine = true
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White.copy(alpha = 0.8f),
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.8f)
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -153,7 +188,11 @@ fun RegisterContent(
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                 singleLine = true,
-                isError = password.isNotEmpty() && confirmPassword.isNotEmpty() && password != confirmPassword
+                isError = password.isNotEmpty() && confirmPassword.isNotEmpty() && password != confirmPassword,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White.copy(alpha = 0.8f),
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.8f)
+                )
             )
 
             // Solo los mostramos si ha empezado a escribir
@@ -201,7 +240,7 @@ fun RegisterContent(
                     modifier = Modifier.clickable { onNavigateToLogin() }
                 )
             }
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
@@ -209,7 +248,7 @@ fun RegisterContent(
 //Auxiliar para comprobar requisitos password
 @Composable
 fun PasswordRequirementItem(text: String, isMet: Boolean) {
-    val color = if (isMet) Color.Green else Color.Gray //Verde si cumple, gris si no
+    val color = if (isMet) ColorConditionOk else Color.Gray //Verde si cumple, gris si no
     val icon = if (isMet) Icons.Default.Check else Icons.Default.Close
 
     Row(
