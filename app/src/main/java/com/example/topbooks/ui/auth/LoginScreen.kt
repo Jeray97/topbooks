@@ -7,7 +7,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,8 +25,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topbooks.R
+import com.example.topbooks.ui.theme.*
+import com.example.topbooks.ui.theme.ColorTituloCategoriaDetalle
 import com.example.topbooks.utils.Resource
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions.*
@@ -103,6 +109,9 @@ fun LoginContent(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
+
+    val scrollState = rememberScrollState()
+
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -119,10 +128,39 @@ fun LoginContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(top = 60.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
+            Text(
+                text = "Bienvenido a",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 24.sp,
+                    fontFamily = CenturyGotic
+                ),
+                color = ColorTituloCategoriaDetalle,
+            )
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White.copy(alpha = 0.9f),
+                modifier = Modifier.padding(bottom = 8.dp)
+            ) {
+                Text(
+                    text = "TopBooks",
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 40.sp,
+                        fontFamily = GuardianCity
+                    ),
+                    color = ColorTituloCategoriaDetalle
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(0.3f))
 
             OutlinedTextField(
                 value = email,
@@ -198,6 +236,8 @@ fun LoginContent(
                     modifier = Modifier.clickable { onNavigateToRegister() }
                 )
             }
+
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
