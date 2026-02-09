@@ -1,14 +1,18 @@
 package com.example.topbooks.ui.book
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.network.RetrofitClient
 import com.example.topbooks.data.repository.BooksRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 // Creamos un estado específico para la pantalla de detalle que incluya la foto del autor
 data class BookDetailState(
@@ -22,6 +26,9 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
 
     private val _uiState = MutableStateFlow(BookDetailState())
     val uiState: StateFlow<BookDetailState> = _uiState.asStateFlow()
+
+    private val auth = FirebaseAuth.getInstance()
+    private val db = FirebaseFirestore.getInstance()
 
     fun getBookById(bookId: String) {
         viewModelScope.launch {
@@ -76,6 +83,47 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
         } catch (e: Exception) {
             // Si falla, no hacemos nada (se quedará el icono por defecto)
             e.printStackTrace()
+        }
+    }
+
+    fun addToList(book: Book, listName: String) {
+        val uid = auth.currentUser?.uid ?: return
+
+        viewModelScope.launch {
+            try {
+                // 1. Guardar/Actualizar en la colección GLOBAL de libros
+                val globalBookRef = db.collection("books").document(book.id)
+                val globalDoc = globalBookRef.get().await()
+
+                if (!globalDoc.exists()) {
+                    val globalData = hashMapOf(
+                        "bookId" to book.id,
+                        "title" to book.title,
+                        "authors" to book.authors,
+                        "description" to book.description,
+                        "thumbnail" to book.imageUrl, // API externa
+                        "source" to "Google Books", //TODO controlar las diferentes APIS
+                        "createdAt" to com.google.firebase.Timestamp.now()
+                    )
+                    globalBookRef.set(globalData).await()
+                }
+
+                // 2. Guardar en la subcolección del USUARIO
+                val userFavRef = db.collection("users").document(uid)
+                    .collection("favorites").document(book.id)
+
+                val userFavData = hashMapOf(
+                    "bookId" to book.id,
+                    "title" to book.title,
+                    "imageUrl" to book.imageUrl,
+                    "list" to listName,
+                    "addedAt" to System.currentTimeMillis()
+                )
+                userFavRef.set(userFavData).await()
+
+            } catch (e: Exception) {
+                Log.e("Firestore", "Error al guardar: ${e.message}")
+            }
         }
     }
 }

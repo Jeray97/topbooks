@@ -1,15 +1,11 @@
 package com.example.topbooks.ui.profile
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 // Modelo de datos para la UI del perfil
 data class UserProfile(
@@ -18,7 +14,9 @@ data class UserProfile(
     val bio: String = "¡Hola! Soy nuevo en TopBooks.",
     val friendsCount: Int = 0,
     val booksCompleted: Int = 0,
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    val favoriteCovers: List<String> = emptyList(),
+    val favoriteIds: List<String> = emptyList()
 )
 
 class ProfileViewModel : ViewModel() {
@@ -29,72 +27,51 @@ class ProfileViewModel : ViewModel() {
     val userProfile: StateFlow<UserProfile> = _userProfile
 
     init {
-        loadUserProfile()
+        loadUserProfileListener()
     }
 
-    private fun loadUserProfile() {
-        val currentUser = auth.currentUser
-        val uid = currentUser?.uid
+    private fun loadUserProfileListener() {
+        val uid = auth.currentUser?.uid ?: return
 
-        if (uid == null) {
-            _userProfile.update { it.copy(displayName = "No conectado") }
-            return
-        }
-
-        viewModelScope.launch {
-            try {
-                // 1. Cargar Datos Básicos del Usuario (users/{uid})
-                val userDoc = db.collection("users").document(uid).get().await()
-
-                val name = userDoc.getString("displayName") ?: "Usuario"
-                val photo = userDoc.getString("photoURL")
-                // TODO campo "bio" en la BD, lo leeríamos aquí:
-                val bio = userDoc.getString("bio") ?: "Me apasiona leer, los libros de fantasía y misterio son mis favoritos!"
-
-                // Actualizamos la UI con lo básico mientras cargamos los contadores
-                _userProfile.update {
-                    it.copy(
-                        displayName = name,
-                        email = currentUser.email ?: "",
-                        photoUrl = photo,
-                        bio = bio
-                    )
+        // 1. Escuchar datos básicos del usuario
+        db.collection("users").document(uid)
+            .addSnapshotListener { snapshot, _ ->
+                snapshot?.let { doc ->
+                    _userProfile.update {
+                        it.copy(displayName = doc.getString("displayName") ?: "Usuario")
+                    }
                 }
-
-                // 2. Cargar Contador de Amigos (users/{uid}/friends)
-                // Obtenemos todos los documentos de la subcolección y los contamos
-                val friendsSnapshot = db.collection("users")
-                    .document(uid)
-                    .collection("friends")
-                    .get()
-                    .await()
-
-                val realFriendsCount = friendsSnapshot.size()
-
-                // 3. Cargar Contador de Libros Completados (users/{uid}/favorites)
-                // Filtramos donde el campo 'list' sea 'Leídos'
-                val completedBooksSnapshot = db.collection("users")
-                    .document(uid)
-                    .collection("favorites")
-                    .whereEqualTo("list", "Leídos")
-                    .get()
-                    .await()
-
-                val realBooksCompleted = completedBooksSnapshot.size()
-
-                // Actualizamos el estado final con los números reales
-                _userProfile.update {
-                    it.copy(
-                        friendsCount = realFriendsCount,
-                        booksCompleted = realBooksCompleted
-                    )
-                }
-
-            } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error cargando perfil", e)
-                _userProfile.update { it.copy(displayName = "Error de carga") }
             }
-        }
+
+        // 2. Escuchar FAVORITOS en tiempo real
+        db.collection("users")
+            .document(uid)
+            .collection("favorites")
+            .whereEqualTo("list", "Favoritos")
+            .limit(3)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+
+                snapshot?.let { querySnapshot ->
+                    val covers = querySnapshot.documents.mapNotNull { it.getString("imageUrl") }
+                    val ids = querySnapshot.documents.map { it.id }
+
+                    _userProfile.update {
+                        it.copy(
+                            favoriteCovers = covers,
+                            favoriteIds = ids
+                        )
+                    }
+                }
+            }
+
+        // 3. Escuchar CONTEOS (Amigos y Leídos)
+        // Para los contadores, lo ideal es lo mismo:
+        db.collection("users").document(uid).collection("favorites")
+            .whereEqualTo("list", "Leídos")
+            .addSnapshotListener { snapshot, _ ->
+                _userProfile.update { it.copy(booksCompleted = snapshot?.size() ?: 0) }
+            }
     }
 
     fun signOut() {

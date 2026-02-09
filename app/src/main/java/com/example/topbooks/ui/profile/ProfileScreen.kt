@@ -2,6 +2,7 @@ package com.example.topbooks.ui.profile
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,12 +22,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.topbooks.R
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
@@ -35,7 +39,8 @@ import com.example.topbooks.ui.theme.*
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel(),
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onNavigateToDetail: (String) -> Unit
 ) {
     val userProfile by viewModel.userProfile.collectAsState()
 
@@ -45,7 +50,8 @@ fun ProfileScreen(
         onLogout = {
             viewModel.signOut()
             onLogout()
-        }
+        },
+        onBookClick = onNavigateToDetail
     )
 }
 
@@ -53,7 +59,8 @@ fun ProfileScreen(
 @Composable
 fun ProfileContent(
     userProfile: UserProfile,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onBookClick: (String) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -155,9 +162,39 @@ fun ProfileContent(
                         title = "Tus favoritos",
                         iconContent = {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                MockBookIcon(Color(0xFF9575CD))
-                                MockBookIcon(Color(0xFFE57373))
-                                MockBookIcon(Color(0xFFFFB74D))
+                                if (userProfile.favoriteCovers.isEmpty()) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.cat_resenas_icon),
+                                        contentDescription = "Sin favoritos",
+                                        modifier = Modifier
+                                            .size(30.dp, 45.dp)
+                                            .clip(RoundedCornerShape(4.dp)),
+                                        alpha = 0.5f,
+                                        contentScale = ContentScale.Fit
+                                    )
+                                } else {
+                                    userProfile.favoriteCovers.forEachIndexed { index, url ->
+                                        val bookId = userProfile.favoriteIds.getOrNull(index)
+
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalContext.current)
+                                                .data(url)
+                                                .crossfade(true)
+                                                .build(),
+                                            contentDescription = "Portada",
+                                            modifier = Modifier
+                                                .size(30.dp, 45.dp) // Tamaño proporcional a libro
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 4.dp)
+                                                .clickable {
+                                                    if(bookId != null) onBookClick(bookId)
+                                                },
+                                            contentScale = ContentScale.Crop,
+                                            // Imagen de error por si la URL falla
+                                            error = painterResource(R.drawable.icon_codigodebarras)
+                                        )
+                                    }
+                                }
                             }
                         }
                     )
@@ -253,14 +290,6 @@ fun DashboardCard(
     }
 }
 
-@Composable
-fun MockBookIcon(color: Color) {
-    Box(
-        modifier = Modifier
-            .size(20.dp, 28.dp)
-            .background(color, RoundedCornerShape(3.dp))
-    )
-}
 
 // --- PREVIEW ---
 @Preview(showBackground = true)
@@ -274,7 +303,8 @@ fun ProfileScreenPreview() {
                 friendsCount = 42,
                 booksCompleted = 12
             ),
-            onLogout = {}
+            onLogout = {},
+            onBookClick = {}
         )
     }
 }

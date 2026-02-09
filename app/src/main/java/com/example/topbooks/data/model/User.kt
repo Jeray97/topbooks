@@ -14,7 +14,12 @@ data class User (
     val photoURL: String = "",
     val role: String? = "user",
     val preferences: Map<String, Boolean> = emptyMap(),
-    val lastLogin: Date = Date()
+    val lastLogin: Date = Date(),
+    val favoriteBooks: List<String> = emptyList(),
+    val reviewsCount: Int = 0,
+    val bookmarksCount: Int = 0,
+    val commentsCount: Int = 0,
+    val friendsCount: Int = 0
 )
 
     // Esta anotación permite que Firestore ponga la fecha del servidor automáticamente

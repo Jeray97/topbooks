@@ -113,7 +113,11 @@ fun MainScreen(
 
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
-                    onLogout = onLogout
+                    onLogout = onLogout,
+
+                    onNavigateToDetail = { id ->
+                        onNavigateToBookDetail(id)
+                    }
                 )
             }
         }
