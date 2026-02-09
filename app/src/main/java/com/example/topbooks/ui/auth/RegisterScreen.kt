@@ -111,6 +111,9 @@ fun RegisterContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+
+            Spacer(modifier = Modifier.weight(0.3f))
+
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = ColorSurfaceTextRegister,
