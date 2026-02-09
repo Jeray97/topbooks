@@ -11,6 +11,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -19,7 +20,9 @@ data class BookDetailState(
     val book: Book? = null,
     val authorImageUrl: String? = null, // Aquí guardaremos la URL de la foto
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val isBookSaved: Boolean = false,
+    val savedInList: String? = null
 )
 
 class BookDetailViewModel(private val repository: BooksRepository = BooksRepository()) : ViewModel() {
@@ -31,6 +34,9 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
     private val db = FirebaseFirestore.getInstance()
 
     fun getBookById(bookId: String) {
+
+        val uid = auth.currentUser?.uid
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
@@ -41,7 +47,31 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
                 val foundBook = result.getOrNull()
 
                 if (foundBook != null) {
-                    _uiState.value = _uiState.value.copy(book = foundBook, isLoading = false)
+                    //verificamos si el usuario lo tiene guardado
+                    var isSaved = false
+                    var listName: String? = null
+
+                    if (uid != null) {
+                        val doc = db.collection("users").document(uid)
+                            .collection("favorites").document(foundBook.id)
+                            .get()
+                            .await()
+
+                        if (doc.exists()) {
+                            isSaved = true
+                            listName = doc.getString("list")
+                        }
+                    }
+
+                    // Actualización de estado unificada
+                    _uiState.update {
+                        it.copy(
+                            book = foundBook,
+                            isBookSaved = isSaved,
+                            savedInList = listName,
+                            isLoading = false
+                        )
+                    }
 
                     // Buscamos la foto del autor si existe
                     if (foundBook.authors.isNotEmpty()) {
@@ -120,6 +150,14 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
                     "addedAt" to System.currentTimeMillis()
                 )
                 userFavRef.set(userFavData).await()
+
+                // Actualizamos el estado local para reflejar el cambio en la UI
+                _uiState.update {
+                    it.copy(
+                        isBookSaved = true,
+                        savedInList = listName
+                    )
+                }
 
             } catch (e: Exception) {
                 Log.e("Firestore", "Error al guardar: ${e.message}")

@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -78,7 +79,9 @@ fun BookDetailScreen(
                         onOptionSelected = { listaSeleccionada ->
                             viewModel.addToList(state.book!!, listaSeleccionada)
                             showDialog = false
-                        }
+                        },
+                        isSaved = state.isBookSaved,
+                        currentList = state.savedInList
                     )
                 }
 
@@ -88,7 +91,8 @@ fun BookDetailScreen(
                     authorPhotoUrl = state.authorImageUrl,
                     onFavoriteClick = {
                         showDialog = true
-                    }
+                    },
+                    isSaved = state.isBookSaved
                 )
             }
         }
@@ -100,7 +104,8 @@ fun BookDetailScreen(
 fun BookDetailContent(
     book: Book,
     authorPhotoUrl: String?,
-    onFavoriteClick: (Book) -> Unit
+    onFavoriteClick: (Book) -> Unit,
+    isSaved: Boolean
 ) {
     Column(
         modifier = Modifier
@@ -145,9 +150,9 @@ fun BookDetailContent(
                     //Icono añadir a favoritos
                     IconButton(onClick = { onFavoriteClick(book) }) {
                         Icon(
-                            imageVector = Icons.Default.FavoriteBorder,
+                            imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = "Favorito",
-                            tint = Color.White,
+                            tint = if (isSaved) Color.Red else Color.White,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -282,6 +287,8 @@ fun BookDetailContent(
 
 @Composable
 fun ListSelectionDialog(
+    isSaved: Boolean,
+    currentList: String?,
     onDismiss: () -> Unit,
     onOptionSelected: (String) -> Unit
 ) {
@@ -289,49 +296,67 @@ fun ListSelectionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        // 1. Color de fondo del diálogo (Beige claro)
         containerColor = ColorHeaderBeige,
         shape = RoundedCornerShape(20.dp),
         title = {
-            Text(
-                text = "¿Dónde quieres guardar este libro?",
-                fontFamily = CenturyGotic,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = ColorArcDarkBrown, // Marrón oscuro
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "¿Dónde quieres guardar este libro?",
+                    fontFamily = CenturyGotic,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ColorArcDarkBrown,
+                    textAlign = TextAlign.Center
+                )
+
+                if (isSaved && currentList != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Ya tienes el libro agregado a $currentList",
+                        fontFamily = CenturyGotic,
+                        fontSize = 14.sp,
+                        color = ColorArcDarkBrown.copy(alpha = 0.6f), // Color suave (transparencia)
+                        textAlign = TextAlign.Center,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    )
+                }
+            }
         },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp) // Espacio entre botones
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 opciones.forEach { opcion ->
-                    // 2. Botones de opción con el estilo de la app
+                    // Resaltamos la opción si es la lista actual
+                    val isSelected = isSaved && opcion == currentList
+
                     Button(
                         onClick = { onOptionSelected(opcion) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = ColorTituloCategoriaDetalle, // El marrón de la tarjeta
+                            containerColor = if (isSelected) ColorArcDarkBrown else ColorTituloCategoriaDetalle,
                             contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(12.dp),
                         elevation = ButtonDefaults.buttonElevation(4.dp)
                     ) {
-                        Text(
-                            text = opcion,
-                            fontFamily = CenturyGotic,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = opcion,
+                                fontFamily = CenturyGotic,
+                                fontSize = 16.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
         },
         confirmButton = {
-            // 3. Botón para cerrar el diálogo
             TextButton(onClick = onDismiss) {
                 Text(
                     "Cerrar",
@@ -374,6 +399,6 @@ fun BookDetailPreview() {
         lanzamiento = "1989"
     )
     MaterialTheme {
-        BookDetailContent(book = dummyBook, authorPhotoUrl = null, onFavoriteClick = {})
+        BookDetailContent(book = dummyBook, authorPhotoUrl = null, onFavoriteClick = {}, isSaved = false)
     }
 }
