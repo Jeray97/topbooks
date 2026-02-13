@@ -106,6 +106,8 @@ dependencies {
         // Google Play Services Auth
         implementation("com.google.android.gms:play-services-auth:20.7.0")
 
+        implementation("androidx.datastore:datastore-preferences:1.1.1")
+
         // =======================================================
         // --- TESTING (PRUEBAS) ---
         // =======================================================

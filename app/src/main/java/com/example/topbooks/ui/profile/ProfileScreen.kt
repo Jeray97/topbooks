@@ -39,7 +39,7 @@ import com.example.topbooks.ui.theme.*
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel(),
-    onLogout: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     onNavigateToDetail: (String) -> Unit
 ) {
     val userProfile by viewModel.userProfile.collectAsState()
@@ -47,10 +47,7 @@ fun ProfileScreen(
     // Llamamos al contenido visual pasándole los datos reales
     ProfileContent(
         userProfile = userProfile,
-        onLogout = {
-            viewModel.signOut()
-            onLogout()
-        },
+        onSettingsClick = onNavigateToSettings,
         onBookClick = onNavigateToDetail
     )
 }
@@ -59,7 +56,7 @@ fun ProfileScreen(
 @Composable
 fun ProfileContent(
     userProfile: UserProfile,
-    onLogout: () -> Unit,
+    onSettingsClick: () -> Unit,
     onBookClick: (String) -> Unit
 ) {
     Scaffold(
@@ -68,7 +65,7 @@ fun ProfileContent(
                 TopBar(onBackClick = {})
 
                 IconButton(
-                    onClick = onLogout,
+                    onClick = onSettingsClick,
                     modifier = Modifier.padding(end = 8.dp)
                 ) {
                     Icon(
@@ -303,7 +300,7 @@ fun ProfileScreenPreview() {
                 friendsCount = 42,
                 booksCompleted = 12
             ),
-            onLogout = {},
+            onSettingsClick = {},
             onBookClick = {}
         )
     }

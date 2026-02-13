@@ -1,6 +1,5 @@
 package com.example.topbooks.ui.config
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -13,30 +12,30 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.example.topbooks.ui.components.TopBar
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.ColorArcDarkBrown
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
 import com.example.topbooks.ui.theme.ColorHeaderBeige
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfigScreen(
+    viewModel: ConfigViewModel,
     onNavigateToAbout: () -> Unit = {},
     onNavigateToPrivacy: () -> Unit = {},
     onNavigateToLanguage: () -> Unit = {},
-    onToggleNotifications: (Boolean) -> Unit = {},
-    onToggleTheme: (Boolean) -> Unit = {}
+    onBackClick: () -> Unit = {}
 ) {
-    // Estas son las ÚNICAS variables de estado que necesitas para toda la pantalla
-    var notificationsEnabled by remember { mutableStateOf(true) }
-    var darkModeEnabled by remember { mutableStateOf(false) }
+    // Observamos el estado del ViewModel (Fuente de Verdad única)
+    val notificationsEnabled by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
+    val darkModeEnabled by viewModel.darkModeEnabled.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { TopBar(onBackClick = {}) }
+        topBar = { TopBar(onBackClick = onBackClick) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -57,16 +56,12 @@ fun ConfigScreen(
                 onClick = onNavigateToLanguage
             )
 
-            // Pasamos el valor (isChecked) y la acción (onCheckedChange)
             ConfigSwitchItem(
                 icon = Icons.Default.Notifications,
                 title = "Notificaciones",
                 description = "Recibir notificaciones sobre novedades",
                 isChecked = notificationsEnabled,
-                onCheckedChange = {
-                    notificationsEnabled = it
-                    onToggleNotifications(it)
-                }
+                onCheckedChange = { viewModel.toggleNotifications(it) }
             )
 
             ConfigSwitchItem(
@@ -74,10 +69,7 @@ fun ConfigScreen(
                 title = "Modo Oscuro",
                 description = "Activar o desactivar el tema oscuro",
                 isChecked = darkModeEnabled,
-                onCheckedChange = {
-                    darkModeEnabled = it
-                    onToggleTheme(it)
-                }
+                onCheckedChange = { viewModel.toggleDarkMode(it) }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -112,7 +104,6 @@ fun ConfigItem(
     description: String,
     onClick: () -> Unit
 ) {
-    // ELIMINADAS: Aquí no debe haber variables de estado
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -135,8 +126,8 @@ fun ConfigSwitchItem(
     icon: ImageVector,
     title: String,
     description: String,
-    isChecked: Boolean, // Recibimos el valor desde el padre
-    onCheckedChange: (Boolean) -> Unit // Avisamos al padre del cambio
+    isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -161,11 +152,4 @@ fun ConfigSwitchItem(
             )
         )
     }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewConfigScreen() {
-    ConfigScreen()
 }

@@ -23,14 +23,13 @@ import com.example.topbooks.ui.profile.ProfileScreen
 
 @Composable
 fun MainScreen(
-    onLogout: () -> Unit,
+    onNavigateToConfig: () -> Unit, // Recibimos el callback de navegación
     onNavigateToCategory: (String, String) -> Unit,
     onNavigateToBookDetail: (String) -> Unit,
     onNavigateToScanner: () -> Unit,
     onNavigateToAllCategories: () -> Unit
 ) {
     val bottomNavController = rememberNavController()
-
     val items = listOf(
         BottomNavItem.Home,
         BottomNavItem.Progress,
@@ -42,9 +41,7 @@ fun MainScreen(
     Scaffold(
         containerColor = ColorBackGroundGeneral,
         bottomBar = {
-            NavigationBar(
-                containerColor = ColorSectionBackground,
-            ) {
+            NavigationBar(containerColor = ColorSectionBackground) {
                 val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
@@ -83,7 +80,6 @@ fun MainScreen(
             startDestination = BottomNavItem.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Pestaña INICIO
             composable(BottomNavItem.Home.route) {
                 HomeScreen(
                     onCategoryClick = onNavigateToCategory,
@@ -113,11 +109,8 @@ fun MainScreen(
 
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
-                    onLogout = onLogout,
-
-                    onNavigateToDetail = { id ->
-                        onNavigateToBookDetail(id)
-                    }
+                    onNavigateToSettings = onNavigateToConfig, // Conectamos con Config
+                    onNavigateToDetail = onNavigateToBookDetail
                 )
             }
         }
