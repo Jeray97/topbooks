@@ -10,8 +10,9 @@ import java.util.Date
 data class User (
     val uid: String = "",
     val displayName: String = "",
+    val displayNameLowercase: String = "",
     val email: String = "",
-    val photoURL: String = "",
+    val photoURL: String = "capibara_1",
     val role: String? = "user",
     val preferences: Map<String, Boolean> = emptyMap(),
     val lastLogin: Date = Date(),

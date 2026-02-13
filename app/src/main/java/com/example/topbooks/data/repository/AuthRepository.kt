@@ -6,20 +6,16 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import java.util.Locale
 
-//1. Interfaz, definimos que puede hacer nuestra app con la autentificación
 interface AuthRepository {
-    //Devuelve el usuario actual o null si no hay sesión
     val currentUser: com.google.firebase.auth.FirebaseUser?
-
-    //Funciones suspendidas para corrutinas
     suspend fun login(email: String, pass: String): Result<Boolean>
     suspend fun register(name: String, email: String, pass: String): Result<Boolean>
     fun logout()
     suspend fun loginWithGoogle(idToken: String): Result<Boolean>
 }
 
-//2. Implementación, definimos que se hace usando Firebase
 class AuthRepositoryImpl : AuthRepository {
 
     private val auth = FirebaseAuth.getInstance()
@@ -39,22 +35,21 @@ class AuthRepositoryImpl : AuthRepository {
 
     override suspend fun register(name: String, email: String, pass: String): Result<Boolean> {
         return try {
-            //1. Crear usuario en Auth (Email/Pass)
             val authResult = auth.createUserWithEmailAndPassword(email, pass).await()
             val firebaseUser = authResult.user
 
             if (firebaseUser != null) {
-                //2. Creamos un objeto User propio para Firestore
                 val newUser = User(
                     uid = firebaseUser.uid,
                     displayName = name,
+                    displayNameLowercase = name.lowercase(Locale.getDefault()),
                     email = email,
-                    photoURL = "",
+                    // Seteamos el capibara por defecto en el registro manual
+                    photoURL = "capibara_1",
                     role = "user",
                     preferences = emptyMap()
                 )
 
-                //3. Guardamos en la coleccion "users"
                 firestore.collection("users")
                     .document(firebaseUser.uid)
                     .set(newUser)
@@ -65,7 +60,6 @@ class AuthRepositoryImpl : AuthRepository {
                 Result.failure(Exception("Error creando usuario: UID nulo"))
             }
         } catch (e: Exception) {
-            // Si falla algo (ej: email repetido), devolvemos el error
             Log.e("AuthRepository", "Error registro", e)
             Result.failure(e)
         }
@@ -78,16 +72,17 @@ class AuthRepositoryImpl : AuthRepository {
             val firebaseUser = authResult.user
 
             if (firebaseUser != null) {
-                // Opcional: Comprobamos si el usuario ya existe en Firestore para no sobrescribirlo
                 val docSnapshot = firestore.collection("users").document(firebaseUser.uid).get().await()
 
                 if (!docSnapshot.exists()) {
-                    // Si es la primera vez que entra con Google, lo guardamos en la base de datos
+                    val rawName = firebaseUser.displayName ?: "Usuario Google"
+
                     val newUser = User(
                         uid = firebaseUser.uid,
-                        displayName = firebaseUser.displayName ?: "Usuario Google",
+                        displayName = rawName,
+                        displayNameLowercase = rawName.lowercase(Locale.getDefault()),
                         email = firebaseUser.email ?: "",
-                        photoURL = firebaseUser.photoUrl.toString(),
+                        photoURL = "capibara_1",
                         role = "user"
                     )
                     firestore.collection("users").document(firebaseUser.uid).set(newUser).await()
@@ -105,7 +100,4 @@ class AuthRepositoryImpl : AuthRepository {
     override fun logout() {
         auth.signOut()
     }
-
-
 }
-

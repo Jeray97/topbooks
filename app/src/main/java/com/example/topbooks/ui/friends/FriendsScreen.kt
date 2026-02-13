@@ -11,9 +11,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -26,6 +26,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -82,7 +84,7 @@ fun FriendsScreen(
             SearchResultsList(
                 results = uiState.searchResults,
                 isSearching = uiState.isSearching,
-                onAddFriend = { user -> viewModel.addFriend(user) }
+                onFriendAction = { user -> viewModel.toggleFriend(user) }
             )
         } else {
             Column(
@@ -90,16 +92,46 @@ fun FriendsScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
+                // SECCIÓN: Mis amigos (Ahora con nombres)
+                SocialSection(
+                    title = "Mis amigos",
+                    isEmpty = uiState.myFriends.isEmpty(),
+                    emptyMessage = "Aún no tienes amigos añadidos"
+                ) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp), // Un poco más de espacio para los nombres
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        items(uiState.myFriends) { user ->
+                            // Envolvemos en Column para poner el nombre debajo
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.width(75.dp) // Ancho fijo para que el texto no empuje a los demás
+                            ) {
+                                UserAvatarItem(user.photoUrl)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = user.displayName,
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 SocialSection(
                     title = "Amigos de tus amigos",
                     isEmpty = uiState.friendsOfFriends.isEmpty(),
-                    emptyMessage = "Sin amigos todavía"
+                    emptyMessage = "Próximamente..."
                 ) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(uiState.friendsOfFriends) { user ->
-                            UserAvatarItem(user.photoUrl)
-                        }
-                    }
+                    // Contenido para amigos de amigos
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -137,7 +169,7 @@ fun FriendsScreen(
 fun SearchResultsList(
     results: List<SocialUser>,
     isSearching: Boolean,
-    onAddFriend: (SocialUser) -> Unit
+    onFriendAction: (SocialUser) -> Unit
 ) {
     if (isSearching) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -166,15 +198,15 @@ fun SearchResultsList(
                         modifier = Modifier.weight(1f)
                     )
 
-                    if (user.isFriend) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Ya es amigo",
-                            tint = Color(0xFF4CAF50),
-                            modifier = Modifier.padding(end = 12.dp).size(28.dp)
-                        )
-                    } else {
-                        IconButton(onClick = { onAddFriend(user) }) {
+                    IconButton(onClick = { onFriendAction(user) }) {
+                        if (user.isFriend) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Eliminar amigo",
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        } else {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Añadir amigo",
@@ -234,7 +266,8 @@ fun UserAvatarItem(photoUrl: String) {
         .padding(2.dp)
         .clip(CircleShape)
 
-    if (photoUrl.isEmpty()) {
+    // Lógica para detectar si es un recurso local (como nuestro capibara por defecto) o una URL
+    if (photoUrl == "capibara_1" || photoUrl.isEmpty()) {
         Image(
             painter = painterResource(id = R.drawable.capibara_1),
             contentDescription = null,
@@ -246,7 +279,8 @@ fun UserAvatarItem(photoUrl: String) {
             model = photoUrl,
             contentDescription = null,
             modifier = imageModifier,
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            error = painterResource(id = R.drawable.capibara_1) // Capibara si la URL falla
         )
     }
 }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 data class SocialUser(
     val uid: String = "",
@@ -29,7 +30,8 @@ data class Interaction(
 data class FriendsState(
     val searchQuery: String = "",
     val searchResults: List<SocialUser> = emptyList(),
-    val friendsIds: Set<String> = emptySet(), // IDs de amigos actuales
+    val friendsIds: Set<String> = emptySet(),
+    val myFriends: List<SocialUser> = emptyList(), // Nueva lista con perfiles completos
     val friendsOfFriends: List<SocialUser> = emptyList(),
     val sameTastes: List<SocialUser> = emptyList(),
     val recentInteractions: List<Interaction> = emptyList(),
@@ -47,7 +49,6 @@ class FriendsViewModel : ViewModel() {
     val uiState: StateFlow<FriendsState> = _uiState
 
     init {
-        // Primero cargamos los amigos para saber a quién marcar con el "tick"
         loadFriendsList()
         loadSocialData()
     }
@@ -55,16 +56,43 @@ class FriendsViewModel : ViewModel() {
     private fun loadFriendsList() {
         val currentUser = auth.currentUser ?: return
 
-        // Escuchamos la colección de amigos del usuario actual
+        // Escuchamos la subcolección de amigos
         db.collection("users").document(currentUser.uid).collection("friends")
             .addSnapshotListener { snapshot, _ ->
                 val ids = snapshot?.documents?.map { it.id }?.toSet() ?: emptySet()
+
+                // 1. Guardamos los IDs para el "tick" de búsqueda
                 _uiState.update { it.copy(friendsIds = ids) }
 
-                // Si hay una búsqueda activa, actualizamos los "ticks" en tiempo real
+                // 2. Cargamos los perfiles completos de esos amigos para mostrarlos en los recuadros
+                fetchFriendsProfiles(ids.toList())
+
                 if (_uiState.value.searchQuery.isNotEmpty()) {
                     updateSearchResultsWithFriends(ids)
                 }
+            }
+    }
+
+    private fun fetchFriendsProfiles(ids: List<String>) {
+        if (ids.isEmpty()) {
+            _uiState.update { it.copy(myFriends = emptyList()) }
+            return
+        }
+
+        // Firestore permite buscar hasta 10-30 IDs a la vez usando 'whereIn'
+        db.collection("users")
+            .whereIn("__name__", ids.take(10)) // __name__ se refiere al ID del documento
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val profiles = snapshot.documents.mapNotNull { doc ->
+                    SocialUser(
+                        uid = doc.id,
+                        displayName = doc.getString("displayName") ?: "",
+                        photoUrl = doc.getString("photoUrl") ?: "",
+                        isFriend = true
+                    )
+                }
+                _uiState.update { it.copy(myFriends = profiles) }
             }
     }
 
@@ -93,16 +121,17 @@ class FriendsViewModel : ViewModel() {
     private fun performSearch(query: String) {
         _uiState.update { it.copy(isSearching = true) }
         val currentUser = auth.currentUser?.uid
+        val queryLower = query.lowercase(Locale.getDefault())
 
         db.collection("users")
-            .whereGreaterThanOrEqualTo("displayName", query)
-            .whereLessThanOrEqualTo("displayName", query + "\uf8ff")
+            .whereGreaterThanOrEqualTo("displayNameLowercase", queryLower)
+            .whereLessThanOrEqualTo("displayNameLowercase", queryLower + "\uf8ff")
             .limit(10)
             .get()
             .addOnSuccessListener { snapshot ->
                 val friends = _uiState.value.friendsIds
                 val results = snapshot.documents.mapNotNull { doc ->
-                    if (doc.id == currentUser) return@mapNotNull null // No buscarse a uno mismo
+                    if (doc.id == currentUser) return@mapNotNull null
 
                     SocialUser(
                         uid = doc.id,
@@ -118,21 +147,21 @@ class FriendsViewModel : ViewModel() {
             }
     }
 
-    fun addFriend(targetUser: SocialUser) {
+    fun toggleFriend(user: SocialUser) {
         val currentUser = auth.currentUser ?: return
+        val friendRef = db.collection("users").document(currentUser.uid)
+            .collection("friends").document(user.uid)
 
-        // 1. Añadimos a nuestra lista de amigos
-        val friendData = mapOf(
-            "displayName" to targetUser.displayName,
-            "photoUrl" to targetUser.photoUrl,
-            "timestamp" to System.currentTimeMillis()
-        )
-
-        db.collection("users").document(currentUser.uid)
-            .collection("friends").document(targetUser.uid)
-            .set(friendData)
-            .addOnSuccessListener {
-            }
+        if (user.isFriend) {
+            friendRef.delete()
+        } else {
+            val friendData = mapOf(
+                "displayName" to user.displayName,
+                "photoUrl" to user.photoUrl,
+                "timestamp" to System.currentTimeMillis()
+            )
+            friendRef.set(friendData)
+        }
     }
 
     private fun loadSocialData() {
