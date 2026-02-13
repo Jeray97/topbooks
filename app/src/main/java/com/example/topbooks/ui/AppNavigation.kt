@@ -68,6 +68,12 @@ fun AppNavigation(
             ConfigScreen(
                 viewModel = configViewModel,
                 onBackClick = { navController.popBackStack() },
+                onLogoutSuccess = {
+                    // Volvemos al login y limpiamos el historial
+                    navController.navigate("login") {
+                        popUpTo("main") { inclusive = true }
+                    }
+                },
                 onNavigateToAbout = { /* Navegar a Acerca de */ },
                 onNavigateToPrivacy = { /* Navegar a Privacidad */ }
                 // TODO CREAR TODAS LAS FUNCIONES

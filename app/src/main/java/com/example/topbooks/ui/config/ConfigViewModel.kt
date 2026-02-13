@@ -4,19 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.preferences.SettingsManager
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel que conecta la UI con la lógica de persistencia.
- * Expone StateFlows para que la UI se repinte automáticamente al cambiar los datos.
+ * ViewModel que conecta la UI con la lógica de persistencia y sesión.
  */
 class ConfigViewModel(private val settingsManager: SettingsManager) : ViewModel() {
 
-    // Convertimos los Flows en StateFlows.
-    // WhileSubscribed(5000) detiene la observación si la pantalla no es visible tras 5 segundos.
+    private val auth = FirebaseAuth.getInstance()
+
     val darkModeEnabled: StateFlow<Boolean> = settingsManager.darkModeFlow
         .stateIn(
             scope = viewModelScope,
@@ -43,10 +43,10 @@ class ConfigViewModel(private val settingsManager: SettingsManager) : ViewModel(
         }
     }
 
-    /**
-     * Factory necesario para inyectar el SettingsManager manualmente
-     * ya que ViewModel() por defecto no recibe parámetros.
-     */
+    fun signOut() {
+        auth.signOut()
+    }
+
     class Factory(private val settingsManager: SettingsManager) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ConfigViewModel::class.java)) {
