@@ -20,16 +20,18 @@ import com.example.topbooks.ui.home.HomeScreen
 import com.example.topbooks.ui.navigation.BottomNavItem
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.ui.profile.ProfileScreen
+import com.example.topbooks.ui.friends.FriendsScreen
 
 @Composable
 fun MainScreen(
-    onNavigateToConfig: () -> Unit, // Recibimos el callback de navegación
+    onNavigateToConfig: () -> Unit,
     onNavigateToCategory: (String, String) -> Unit,
     onNavigateToBookDetail: (String) -> Unit,
     onNavigateToScanner: () -> Unit,
     onNavigateToAllCategories: () -> Unit
 ) {
     val bottomNavController = rememberNavController()
+
     val items = listOf(
         BottomNavItem.Home,
         BottomNavItem.Progress,
@@ -41,7 +43,9 @@ fun MainScreen(
     Scaffold(
         containerColor = ColorBackGroundGeneral,
         bottomBar = {
-            NavigationBar(containerColor = ColorSectionBackground) {
+            NavigationBar(
+                containerColor = ColorSectionBackground,
+            ) {
                 val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
@@ -80,6 +84,7 @@ fun MainScreen(
             startDestination = BottomNavItem.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+            // Pestaña INICIO
             composable(BottomNavItem.Home.route) {
                 HomeScreen(
                     onCategoryClick = onNavigateToCategory,
@@ -95,10 +100,9 @@ fun MainScreen(
                 }
             }
 
+            // Pestaña AMIGOS (Social)
             composable(BottomNavItem.Friends.route) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Lista de Amigos (Próximamente)")
-                }
+                FriendsScreen()
             }
 
             composable(BottomNavItem.Reviews.route) {
@@ -107,9 +111,10 @@ fun MainScreen(
                 }
             }
 
+            // Pestaña PERFIL
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
-                    onNavigateToSettings = onNavigateToConfig, // Conectamos con Config
+                    onNavigateToSettings = onNavigateToConfig,
                     onNavigateToDetail = onNavigateToBookDetail
                 )
             }
