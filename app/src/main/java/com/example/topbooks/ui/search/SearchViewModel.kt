@@ -13,18 +13,15 @@ import kotlinx.coroutines.launch
 
 class SearchViewModel(private val repository: BooksRepository = BooksRepository()) : ViewModel() {
 
-    // Lista de resultados que observará la vista
     private val _searchResults = MutableStateFlow<List<Book>>(emptyList())
     val searchResults: StateFlow<List<Book>> = _searchResults.asStateFlow()
 
-    // Para saber si está cargando
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private var searchJob: Job? = null
 
     fun onQueryChange(query: String) {
-        // Cancelamos la búsqueda anterior si el usuario sigue escribiendo rápido
         searchJob?.cancel()
 
         if (query.length < 3) {
@@ -33,11 +30,13 @@ class SearchViewModel(private val repository: BooksRepository = BooksRepository(
         }
 
         searchJob = viewModelScope.launch {
-            // Esperamos 500ms antes de llamar a la API (Debounce)
-            delay(500)
+            // Aumentamos un poco el delay (800ms) para no saturar las dos APIs mientras escribes
+            delay(800)
             _isLoading.value = true
 
-            val result = repository.getBooks(query)
+            // CORRECCIÓN: Ahora usamos searchHybrid en lugar de getBooks
+            // Esto buscará en Google y OpenLibrary en paralelo y combinará los resultados
+            val result = repository.searchHybrid(query)
 
             if (result.isSuccess) {
                 _searchResults.value = result.getOrDefault(emptyList())

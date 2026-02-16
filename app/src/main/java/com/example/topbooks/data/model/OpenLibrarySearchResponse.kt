@@ -2,9 +2,7 @@ package com.example.topbooks.data.model
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * Modelo para mapear la respuesta de OpenLibrary (Mejores valorados/Modernos)
- */
+// --- RESULTADOS DE BÚSQUEDA ---
 data class OpenLibrarySearchResponse(
     @SerializedName("docs") val docs: List<OpenLibraryDoc>?
 )
@@ -19,23 +17,25 @@ data class OpenLibraryDoc(
     @SerializedName("ratings_count") val ratingsCount: Int?
 ) {
     fun toDomain(): Book {
-        // OpenLibrary usa IDs de portada para construir la URL
-        val imageUrl = if (coverId != null) {
-            "https://covers.openlibrary.org/b/id/$coverId-L.jpg"
-        } else {
-            ""
-        }
-
+        val imageUrl = if (coverId != null) "https://covers.openlibrary.org/b/id/$coverId-L.jpg" else ""
         return Book(
-            // El ID viene como "/works/OL123", lo limpiamos
             id = key?.replace("/works/", "") ?: "unknown",
             title = title ?: "Sin título",
             authors = authorName ?: emptyList(),
-            description = "Descripción disponible en detalle.",
+            description = "Toca para ver detalles...",
             imageUrl = imageUrl,
             lanzamiento = firstPublishYear?.toString() ?: "",
-            averageRating = ratingsAverage ?: 0.0,
-            ratingsCount = ratingsCount ?: 0
+            // averageRating = ratingsAverage ?: 0.0 // Si añades rating al modelo Book
         )
     }
 }
+
+// --- DETALLE DE LIBRO (WORK API) ---
+// Esta es la clase que faltaba o daba error
+data class OpenLibraryWorkDetail(
+    @SerializedName("title") val title: String?,
+    // La descripción puede ser un String o un Objeto JSON { type: "text", value: "..." }
+    // Usamos Any para evitar errores de parseo y lo tratamos manualmente
+    @SerializedName("description") val description: Any?,
+    @SerializedName("covers") val covers: List<Int>?
+)

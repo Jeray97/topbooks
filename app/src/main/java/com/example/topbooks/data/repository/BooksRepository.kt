@@ -1,9 +1,10 @@
 package com.example.topbooks.data.repository
 
-import android.util.Log
 import com.example.topbooks.BuildConfig
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.network.RetrofitClient
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.util.Calendar
 import java.util.Locale
 
@@ -12,97 +13,112 @@ class BooksRepository {
     private val apiService = RetrofitClient.instance
     private val API_KEY = BuildConfig.API_KEY
 
-    // --- 1. GOOGLE BOOKS (Categorías, Buscador, Scanner) ---
-    suspend fun getBooks(
-        query: String,
-        orderBy: String = "relevance",
-        filterModern: Boolean = false
-    ): Result<List<Book>> {
+    // ... (Métodos getBooks y searchHybrid igual que antes) ...
+    // Solo pongo getBooks y searchHybrid resumidos para contexto,
+    // pero el foco es getBookDetail abajo.
+
+    suspend fun getBooks(query: String, orderBy: String = "relevance", filterModern: Boolean = false): Result<List<Book>> {
         return try {
-            val language = Locale.getDefault().language
-
-            val response = apiService.searchBooks(
-                query = query,
-                orderBy = orderBy,
-                apiKey = API_KEY,
-                lang = language,
-                maxResults = 40
-            )
-
-            if (response.isSuccessful) {
-                var books = response.body()?.items?.map { it.toDomain() } ?: emptyList()
-
-                // Filtros locales
-                books = books.filter { it.imageUrl.isNotEmpty() && it.authors.isNotEmpty() }
-
-                if (filterModern) {
-                    books = books.filter { book ->
-                        val year = book.lanzamiento.take(4).toIntOrNull() ?: 0
-                        year >= 2010
-                    }
-                }
-                Result.success(books)
-            } else {
-                Result.failure(Exception("Google Error: ${response.code()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    // --- 2. OPEN LIBRARY (Recomendados - CORREGIDO) ---
-    suspend fun getBestRatedModernBooks(): Result<List<Book>> {
-        return try {
-            val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-            // CAMBIO: Calculamos dinámicamente los últimos 3 años
-            val startYear = currentYear - 3
-
-            // Detectamos idioma (spa, eng, fre...)
             val langCode = if (Locale.getDefault().language == "es") "spa" else "eng"
+            var finalQuery = "$query language:$langCode"
 
-            // CONSTRUCCIÓN DE LA QUERY SEGURA
-            // Sintaxis: language:spa first_publish_year:[2023 TO 2026]
-            val finalQuery = "language:$langCode first_publish_year:[$startYear TO $currentYear]"
+            if (filterModern) {
+                val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+                val startYear = currentYear - 3
+                finalQuery += " first_publish_year:[$startYear TO $currentYear]"
+            }
 
-            Log.d("REPO", "OpenLibrary Query: $finalQuery")
+            val sortParam = if (orderBy == "rating") "rating" else null
 
-            val response = apiService.searchBooksOpenLibrary(
-                query = finalQuery,
-                sort = "rating",
-                limit = 20
-            )
+            val response = apiService.searchBooksOpenLibrary(finalQuery, sortParam, 20)
 
             if (response.isSuccessful) {
-                var books = response.body()?.docs?.map { it.toDomain() } ?: emptyList()
-
-                // Filtro extra: OpenLibrary a veces trae cosas sin portada
-                books = books.filter { it.imageUrl.isNotEmpty() }
-
-                Result.success(books)
+                val books = response.body()?.docs?.map { it.toDomain() } ?: emptyList()
+                Result.success(books.filter { it.imageUrl.isNotEmpty() })
             } else {
-                // Si OpenLibrary falla (500, 503), lanzamos excepción para que el ViewModel
-                // capture y haga fallback a Google Books si quieres implementarlo allí.
-                Result.failure(Exception("OpenLib Error: ${response.code()}"))
+                Result.failure(Exception("OpenLib Error"))
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    // --- DETALLE (Google Books) ---
+    suspend fun searchHybrid(query: String): Result<List<Book>> = coroutineScope {
+        try {
+            val lang = Locale.getDefault().language
+            // CORRECCIÓN: Cambiado 'langRestrict=lang' por 'lang=lang'
+            val googleJob = async { apiService.searchBooksGoogle(query, API_KEY, maxResults=20, lang=lang, printType="books") }
+            val olJob = async {
+                val olLang = if (lang == "es") "spa" else "eng"
+                apiService.searchBooksOpenLibrary("$query language:$olLang", limit=15)
+            }
+
+            val googleResp = googleJob.await()
+            val olResp = olJob.await()
+
+            val listGoogle = googleResp.body()?.items?.map { it.toDomain() } ?: emptyList()
+            val listOL = olResp.body()?.docs?.map { it.toDomain() } ?: emptyList()
+
+            val combined = (listOL + listGoogle)
+                .filter { it.imageUrl.isNotEmpty() }
+                .distinctBy { it.title.lowercase().trim() }
+
+            Result.success(combined)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // --- CORRECCIÓN DEL ERROR DE DETALLE ---
     suspend fun getBookDetail(id: String): Result<Book> {
         return try {
-            // Si el ID no parece de Google (no es alfanumérico corto), podría fallar.
-            // Google IDs suelen ser como "zyTCAlFPjgYC". OpenLib son "OL27349W".
-            // De momento intentamos Google.
-            val response = apiService.getBookDetail(id = id, apiKey = API_KEY)
+            if (id.startsWith("OL")) {
+                val response = apiService.getWorkDetailOpenLibrary(id)
+                if (response.isSuccessful) {
+                    val work = response.body() // OpenLibraryWorkDetail
 
-            if (response.isSuccessful) {
-                val item = response.body()
-                if (item != null) Result.success(item.toDomain())
-                else Result.failure(Exception("Libro vacío"))
+                    // CORRECCIÓN: Tratamos 'description' como Any?
+                    // OpenLibrary devuelve la descripción como String O como Map { "type": "text", "value": "..." }
+                    val descriptionText = if (work?.description != null) {
+                        if (work.description is String) {
+                            work.description
+                        } else if (work.description is Map<*, *>) {
+                            // Si es un mapa, intentamos sacar el valor "value"
+                            work.description["value"] as? String ?: "Sin descripción."
+                        } else {
+                            "Sin descripción."
+                        }
+                    } else {
+                        "Sin descripción."
+                    }
+
+                    // CORRECCIÓN: Acceso seguro a covers (List<Int>?)
+                    val cover = work?.covers?.firstOrNull()?.let {
+                        "https://covers.openlibrary.org/b/id/$it-L.jpg"
+                    } ?: ""
+
+                    val book = Book(
+                        id = id,
+                        title = work?.title ?: "Sin título",
+                        authors = emptyList(), // Work API no da autores fácil, dejamos vacío
+                        description = descriptionText,
+                        imageUrl = cover,
+                        lanzamiento = "",
+                        averageRating = 0.0
+                    )
+                    Result.success(book)
+                } else {
+                    Result.failure(Exception("Error OL Detail"))
+                }
             } else {
-                Result.failure(Exception("Error Detalle: ${response.code()}"))
+                val response = apiService.getBookDetailGoogle(id, API_KEY)
+                if (response.isSuccessful) {
+                    val item = response.body()
+                    if (item != null) Result.success(item.toDomain())
+                    else Result.failure(Exception("Google Vacío"))
+                } else {
+                    Result.failure(Exception("Error Google Detail"))
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)

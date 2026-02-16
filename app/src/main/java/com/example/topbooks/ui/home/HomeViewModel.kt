@@ -32,6 +32,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun loadInitialData() {
+        // Carga inicial usando el string de recurso para "Fantasía"
         val initialCategory = getApplication<Application>().getString(R.string.cat_fantasia_text)
         fetchBooks("subject:$initialCategory", _categoryBooks)
     }
@@ -44,11 +45,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _recommendedBooks.value = Resource.Loading
 
-            // CAMBIO: Usamos la función específica de OpenLibrary
-            val result = repository.getBestRatedModernBooks()
+            // Obtenemos el término de búsqueda general (ej: "bestseller" o "ficción")
+            val baseQuery = getApplication<Application>().getString(R.string.query_recommended_base)
+
+            // CAMBIO: Sustituimos getBestRatedModernBooks por getBooks con parámetros
+            val result = repository.getBooks(
+                query = baseQuery,
+                orderBy = "relevance", // Ordenamos por relevancia
+                filterModern = true    // Activamos el filtro de años (>= 2010)
+            )
 
             if (result.isSuccess) {
-                _recommendedBooks.value = Resource.Success(result.getOrDefault(emptyList()))
+                // Tomamos 10 aleatorios para dar variedad en la portada
+                _recommendedBooks.value = Resource.Success(result.getOrDefault(emptyList()).shuffled().take(10))
             } else {
                 _recommendedBooks.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error"))
             }
@@ -56,19 +65,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun fetchFriendsBooks() {
-        // Amigos sigue con Google Books (Aventuras)//TODO
         viewModelScope.launch {
             _friendsBooks.value = Resource.Loading
+
+            // Para la sección de amigos usamos una categoría fija (ej: Aventura)
             val baseQuery = getApplication<Application>().getString(R.string.cat_aventura_text)
+
+            // Aquí usamos getBooks sin filtros modernos obligatorios
             val result = repository.getBooks("subject:$baseQuery")
+
             if (result.isSuccess) {
                 _friendsBooks.value = Resource.Success(result.getOrDefault(emptyList()).take(10))
             } else {
-                _friendsBooks.value = Resource.Error(Exception("Error"))
+                _friendsBooks.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error"))
             }
         }
     }
 
+    // Función auxiliar para cargar listas simples por categoría
     private fun fetchBooks(query: String, state: MutableStateFlow<Resource<List<Book>>>) {
         viewModelScope.launch {
             state.value = Resource.Loading
