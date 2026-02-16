@@ -1,5 +1,7 @@
 package com.example.topbooks.ui.tutorial
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Book
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.example.topbooks.R
 
 data class OnboardingState(
     val selectedGenres: Set<String> = emptySet(),
@@ -22,18 +25,30 @@ data class OnboardingState(
     val isSaving: Boolean = false
 )
 
-class TutorialViewModel(private val booksRepository: BooksRepository = BooksRepository()) : ViewModel() {
+class TutorialViewModel(application: Application) : AndroidViewModel(application) {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
+    private val booksRepository = BooksRepository()
     private val _uiState = MutableStateFlow(OnboardingState())
     val uiState: StateFlow<OnboardingState> = _uiState
 
     val availableGenres = listOf(
-        "Historia", "Biografías", "Horror", "Arte",
-        "Romance", "Misterio", "Manga", "Fantasía",
-        "Infantil", "Filosofía", "Poesía", "Novela Gráfica",
-        "Aventuras", "Ciencia Ficción", "Bibliografía", "Religión"
+        getApplication<Application>().getString(R.string.cat_historia_text),
+        getApplication<Application>().getString(R.string.cat_bibliografia_text),
+        getApplication<Application>().getString(R.string.cat_horror_text),
+        getApplication<Application>().getString(R.string.cat_arte_text),
+        getApplication<Application>().getString(R.string.cat_romance_text),
+        getApplication<Application>().getString(R.string.cat_misterio_text),
+        getApplication<Application>().getString(R.string.cat_manga_text),
+        getApplication<Application>().getString(R.string.cat_fantasia_text),
+        getApplication<Application>().getString(R.string.cat_infantil_text),
+        getApplication<Application>().getString(R.string.cat_filosofia_text),
+        getApplication<Application>().getString(R.string.cat_poesia_text),
+        getApplication<Application>().getString(R.string.cat_novela_grafica_text),
+        getApplication<Application>().getString(R.string.cat_aventura_text),
+        getApplication<Application>().getString(R.string.cat_ciencia_ficcion_text),
+        getApplication<Application>().getString(R.string.cat_religion_text)
     )
 
     fun toggleGenre(genre: String) {
@@ -66,14 +81,13 @@ class TutorialViewModel(private val booksRepository: BooksRepository = BooksRepo
             _uiState.update { it.copy(isLoadingBooks = true) }
             val genres = _uiState.value.selectedGenres.toList()
 
-            // Buscamos libros en paralelo para cada género seleccionado
+            // Lógica Paralela: Busca 2 libros por cada género seleccionado
             val deferredBooks = genres.map { genre ->
                 async {
-                    // Llamada correcta al repositorio sincronizado
                     booksRepository.getBooks(
                         query = "subject:$genre",
                         orderBy = "relevance",
-                        filterModern = true // Sugerir libros visualmente atractivos y nuevos
+                        filterModern = true // Libros modernos y con portada
                     ).getOrNull()?.take(2) ?: emptyList()
                 }
             }
@@ -88,7 +102,7 @@ class TutorialViewModel(private val booksRepository: BooksRepository = BooksRepo
         _uiState.update { it.copy(isSaving = true) }
 
         val updates = mapOf(
-            "isTutorialCompleted" to true,
+            "isTutorialCompleted" to true, // CORREGIDO: Coincide con User.kt
             "favoriteGenres" to _uiState.value.selectedGenres.toList(),
             "favoriteBooks" to _uiState.value.selectedBookIds.toList()
         )
@@ -97,7 +111,7 @@ class TutorialViewModel(private val booksRepository: BooksRepository = BooksRepo
             .set(updates, SetOptions.merge())
             .addOnSuccessListener {
                 _uiState.update { it.copy(isSaving = false) }
-                onSuccess()
+                onSuccess() // Esto dispara la navegación al Home
             }
             .addOnFailureListener {
                 _uiState.update { it.copy(isSaving = false) }

@@ -45,5 +45,6 @@
     <string name="cat_novela_grafica_text">Novela Grafica</string>
     <string name="cat_poesia_text">Poesia</string>
     <string name="cat_religion_text">Religión</string>
+    <string name="cat_arte_text">Arte</string>
 
 </resources>
