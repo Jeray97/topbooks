@@ -1,6 +1,5 @@
 package com.example.topbooks.data.repository
 
-import android.util.Log
 import com.example.topbooks.data.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
@@ -8,6 +7,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.util.Locale
 
+// 1. DEFINICIÓN DE LA INTERFAZ (Esto faltaba o no se encontraba)
 interface AuthRepository {
     val currentUser: com.google.firebase.auth.FirebaseUser?
     suspend fun login(email: String, pass: String): Result<Boolean>
@@ -16,8 +16,8 @@ interface AuthRepository {
     suspend fun loginWithGoogle(idToken: String): Result<Boolean>
 }
 
+// 2. IMPLEMENTACIÓN DE LA INTERFAZ
 class AuthRepositoryImpl : AuthRepository {
-
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
 
@@ -39,28 +39,26 @@ class AuthRepositoryImpl : AuthRepository {
             val firebaseUser = authResult.user
 
             if (firebaseUser != null) {
+                // Creamos el modelo de usuario
                 val newUser = User(
                     uid = firebaseUser.uid,
                     displayName = name,
                     displayNameLowercase = name.lowercase(Locale.getDefault()),
                     email = email,
-                    // Seteamos el capibara por defecto en el registro manual
                     photoURL = "capibara_1",
-                    role = "user",
-                    preferences = emptyMap()
+                    isTutorialCompleted = false // Forzamos el tutorial
                 )
 
-                firestore.collection("users")
-                    .document(firebaseUser.uid)
+                // RUTA ESTÁNDAR: users/{uid}
+                firestore.collection("users").document(firebaseUser.uid)
                     .set(newUser)
                     .await()
 
                 Result.success(true)
             } else {
-                Result.failure(Exception("Error creando usuario: UID nulo"))
+                Result.failure(Exception("Error al crear usuario en Auth"))
             }
         } catch (e: Exception) {
-            Log.e("AuthRepository", "Error registro", e)
             Result.failure(e)
         }
     }
@@ -72,25 +70,25 @@ class AuthRepositoryImpl : AuthRepository {
             val firebaseUser = authResult.user
 
             if (firebaseUser != null) {
-                val docSnapshot = firestore.collection("users").document(firebaseUser.uid).get().await()
+                // Verificamos si ya existe en Firestore
+                val userRef = firestore.collection("users").document(firebaseUser.uid)
+                val doc = userRef.get().await()
 
-                if (!docSnapshot.exists()) {
+                if (!doc.exists()) {
                     val rawName = firebaseUser.displayName ?: "Usuario Google"
-
                     val newUser = User(
                         uid = firebaseUser.uid,
                         displayName = rawName,
                         displayNameLowercase = rawName.lowercase(Locale.getDefault()),
                         email = firebaseUser.email ?: "",
-                        photoURL = "capibara_1",
-                        role = "user"
+                        photoURL = firebaseUser.photoUrl?.toString() ?: "capibara_1",
+                        isTutorialCompleted = false
                     )
-                    firestore.collection("users").document(firebaseUser.uid).set(newUser).await()
+                    userRef.set(newUser).await()
                 }
-
                 Result.success(true)
             } else {
-                Result.failure(Exception("El usuario es nulo tras loguearse con Google"))
+                Result.failure(Exception("Error en Login con Google"))
             }
         } catch (e: Exception) {
             Result.failure(e)

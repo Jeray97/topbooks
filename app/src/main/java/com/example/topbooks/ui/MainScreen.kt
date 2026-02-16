@@ -116,6 +116,7 @@ fun MainScreen(
                 ProfileScreen(
                     onNavigateToSettings = onNavigateToConfig,
                     onNavigateToDetail = onNavigateToBookDetail
+                    // Aquí podrías pasar también onLogout si quisieras un botón ahí
                 )
             }
         }

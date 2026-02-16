@@ -1,6 +1,11 @@
 package com.example.topbooks.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,6 +22,8 @@ import com.example.topbooks.ui.category.CategoryDetailScreen
 import com.example.topbooks.ui.config.ConfigScreen
 import com.example.topbooks.ui.config.ConfigViewModel
 import com.example.topbooks.ui.scanner.QRScannerScreen
+import com.example.topbooks.ui.theme.ColorArcMediumBrown
+import com.example.topbooks.ui.tutorial.TutorialScreen
 
 @Composable
 fun AppNavigation(
@@ -24,14 +31,32 @@ fun AppNavigation(
     authViewModel: AuthViewModel = viewModel()
 ) {
     val navController = rememberNavController()
-    val startDestination = if (authViewModel.currentUser != null) "main" else "login"
+
+    // 1. Guardián de carga: Esperamos a que Firebase nos diga el estado del tutorial
+    if (authViewModel.isLoadingProfile) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = ColorArcMediumBrown)
+        }
+        return
+    }
+
+    // 2. Lógica de destino inicial
+    val startDestination = when {
+        authViewModel.currentUser == null -> "login"
+        !authViewModel.isTutorialCompleted -> "tutorial"
+        else -> "main"
+    }
 
     NavHost(navController = navController, startDestination = startDestination) {
 
+        // --- AUTENTICACIÓN ---
         composable("login") {
             LoginScreen(
+                viewModel = authViewModel,
                 onLoginSuccess = {
-                    navController.navigate("main") { popUpTo("login") { inclusive = true } }
+                    navController.navigate(if (authViewModel.isTutorialCompleted) "main" else "tutorial") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 },
                 onNavigateToRegister = { navController.navigate("register") }
             )
@@ -39,18 +64,33 @@ fun AppNavigation(
 
         composable("register") {
             RegisterScreen(
+                viewModel = authViewModel,
                 onRegisterSuccess = {
-                    navController.navigate("main") { popUpTo("login") { inclusive = true } }
+                    // Al registrarse, siempre vamos al tutorial
+                    navController.navigate("tutorial") {
+                        popUpTo("register") { inclusive = true }
+                    }
                 },
                 onNavigateToLogin = { navController.popBackStack() }
             )
         }
 
+        composable("tutorial") {
+            TutorialScreen(onFinished = {
+                // Al terminar tutorial, actualizamos estado y vamos a Main
+                authViewModel.checkUserProfile()
+                navController.navigate("main") {
+                    popUpTo("tutorial") { inclusive = true }
+                }
+            })
+        }
+
+        // --- PANTALLA PRINCIPAL (Bottom Navigation) ---
         composable("main") {
             MainScreen(
-                onNavigateToConfig = { navController.navigate("config") }, // Nueva conexión
-                onNavigateToCategory = { nombre, query ->
-                    navController.navigate("category_detail/$nombre/$query")
+                onNavigateToConfig = { navController.navigate("config") },
+                onNavigateToCategory = { categoryName, query ->
+                    navController.navigate("category_detail/$categoryName/$query")
                 },
                 onNavigateToBookDetail = { bookId ->
                     navController.navigate("book_detail/$bookId")
@@ -60,44 +100,27 @@ fun AppNavigation(
             )
         }
 
-        // --- PANTALLA DE CONFIGURACIÓN ---
-        composable("config") {
-            val configViewModel: ConfigViewModel = viewModel(
-                factory = ConfigViewModel.Factory(settingsManager)
-            )
-            ConfigScreen(
-                viewModel = configViewModel,
-                onBackClick = { navController.popBackStack() },
-                onLogoutSuccess = {
-                    // Volvemos al login y limpiamos el historial
-                    navController.navigate("login") {
-                        popUpTo("main") { inclusive = true }
-                    }
-                },
-                onNavigateToAbout = { /* Navegar a Acerca de */ },
-                onNavigateToPrivacy = { /* Navegar a Privacidad */ }
-                // TODO CREAR TODAS LAS FUNCIONES
-            )
-        }
-
-        composable("scanner") {
-            QRScannerScreen(
-                onBookFound = { bookId ->
-                    navController.navigate("book_detail/$bookId") {
-                        popUpTo("scanner") { inclusive = true }
-                    }
-                }
-            )
-        }
-
+        // --- DETALLE DE LIBRO ---
         composable(
-            route = "category_detail/{name}/{query}",
+            route = "book_detail/{bookId}",
+            arguments = listOf(navArgument("bookId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getString("bookId") ?: return@composable
+            BookDetailScreen(
+                bookId = bookId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // --- DETALLE DE CATEGORÍA ---
+        composable(
+            route = "category_detail/{categoryName}/{query}",
             arguments = listOf(
-                navArgument("name") { type = NavType.StringType },
+                navArgument("categoryName") { type = NavType.StringType },
                 navArgument("query") { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            val categoryName = backStackEntry.arguments?.getString("name") ?: "Categoría"
+            val categoryName = backStackEntry.arguments?.getString("categoryName") ?: ""
             val query = backStackEntry.arguments?.getString("query") ?: ""
 
             CategoryDetailScreen(
@@ -109,17 +132,7 @@ fun AppNavigation(
             )
         }
 
-        composable(
-            route = "book_detail/{bookId}",
-            arguments = listOf(navArgument("bookId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
-            BookDetailScreen(
-                bookId = bookId,
-                onBackClick = { navController.popBackStack() }
-            )
-        }
-
+        // --- TODAS LAS CATEGORÍAS ---
         composable("all_categories") {
             CategoriesScreen(
                 onBackClick = { navController.popBackStack() },
@@ -128,6 +141,35 @@ fun AppNavigation(
                 },
                 onBookClick = { bookId -> navController.navigate("book_detail/$bookId") },
                 onScanClick = { navController.navigate("scanner") }
+            )
+        }
+
+        // --- CONFIGURACIÓN ---
+        composable("config") {
+            // Creamos el ViewModel con la Factory para pasarle el SettingsManager
+            val viewModel: ConfigViewModel = viewModel(factory = ConfigViewModel.Factory(settingsManager))
+
+            ConfigScreen(
+                viewModel = viewModel,
+                onLogoutSuccess = {
+                    authViewModel.signOut()
+                    navController.navigate("login") {
+                        popUpTo("main") { inclusive = true }
+                    }
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // --- ESCÁNER QR ---
+        composable("scanner") {
+            QRScannerScreen(
+                onBookFound = { bookId ->
+                    // Usamos popUpTo para que al volver atrás desde el detalle no vuelva a la cámara inmediatamente
+                    navController.navigate("book_detail/$bookId") {
+                        popUpTo("scanner") { inclusive = true }
+                    }
+                }
             )
         }
     }

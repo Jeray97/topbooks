@@ -1,91 +1,120 @@
 package com.example.topbooks.ui.auth
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.repository.AuthRepository
 import com.example.topbooks.data.repository.AuthRepositoryImpl
-import com.example.topbooks.utils.Resource
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.GoogleAuthProvider
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
-    private val repository: AuthRepository = AuthRepositoryImpl()) : ViewModel() {
+    // Aquí inyectamos la implementación en la interfaz
+    private val repository: AuthRepository = AuthRepositoryImpl()
+) : ViewModel() {
 
-    // _authState es mutable (lo cambiamos internamente)
-    // authState es inmutable (la vista solo lo "observa")
-    private val _authState = MutableStateFlow<Resource<Boolean>>(Resource.Idle)
-    val authState: StateFlow<Resource<Boolean>> = _authState.asStateFlow()
+    var currentUser by mutableStateOf<FirebaseUser?>(repository.currentUser)
+        private set
 
-    val currentUser: FirebaseUser?
-        get() = repository.currentUser
-    /**
-     * Intenta iniciar sesión con email y contraseña
-     */
-    fun login(email: String, pass: String) {
-        //Lanzamos una corrutina para no bloquear la pantalla
+    var isTutorialCompleted by mutableStateOf(true)
+        private set
+
+    var isAuthenticating by mutableStateOf(false)
+        private set
+
+    var isLoadingProfile by mutableStateOf(false)
+        private set
+
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
+    init {
+        checkUserProfile()
+    }
+
+    fun checkUserProfile(onComplete: (Boolean) -> Unit = {}) {
+        val user = currentUser
+        if (user == null) {
+            isLoadingProfile = false
+            return
+        }
+
+        isLoadingProfile = true
+
+        // RUTA ESTÁNDAR: users/{uid}
+        FirebaseFirestore.getInstance()
+            .collection("users").document(user.uid)
+            .get()
+            .addOnSuccessListener { doc ->
+                val completed = doc.getBoolean("isTutorialCompleted") ?: false
+                isTutorialCompleted = completed
+                isLoadingProfile = false
+                onComplete(completed)
+            }
+            .addOnFailureListener {
+                // Si falla (ej: sin internet), asumimos completado para no bloquear
+                isTutorialCompleted = true
+                isLoadingProfile = false
+                onComplete(true)
+            }
+    }
+
+    fun login(email: String, pass: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
-            _authState.value = Resource.Loading //Avisamos a UI que muestre cargando
-
-            val result = repository.login(email, pass)
-
-            //Actualizamos el estado segun el repositorio
-            if(result.isSuccess) {
-                _authState.value = Resource.Success(true)
-            } else {
-                _authState.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error desconocido"))
+            isAuthenticating = true
+            repository.login(email, pass).onSuccess {
+                currentUser = repository.currentUser
+                checkUserProfile {
+                    isAuthenticating = false
+                    onSuccess()
+                }
+            }.onFailure {
+                errorMessage = it.localizedMessage
+                isAuthenticating = false
             }
         }
     }
 
-    /**
-     * Intenta iniciar sesión con google
-     */
-    fun loginWithGoogle(idToken: String) {
+    fun register(name: String, email: String, pass: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
-            _authState.value = Resource.Loading
-
-            val result = repository.loginWithGoogle(idToken)
-
-            if (result.isSuccess) {
-                _authState.value = Resource.Success(true)
-            } else {
-                _authState.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error Google"))
+            isAuthenticating = true
+            repository.register(name, email, pass).onSuccess {
+                currentUser = repository.currentUser
+                // Al registrarse, el tutorial NO está completado
+                isTutorialCompleted = false
+                isAuthenticating = false
+                onSuccess()
+            }.onFailure {
+                errorMessage = it.localizedMessage
+                isAuthenticating = false
             }
         }
     }
 
-    /**
-     * Registra un nuevo usuario
-     */
-    fun register(name: String, email: String, pass: String){
+    fun loginWithGoogle(token: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
-            _authState.value = Resource.Loading
-
-            val result = repository.register(name, email, pass)
-
-            if(result.isSuccess) {
-                _authState.value = Resource.Success(true)
-            } else {
-                _authState.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error al registrar"))
+            isAuthenticating = true
+            repository.loginWithGoogle(token).onSuccess {
+                currentUser = repository.currentUser
+                checkUserProfile {
+                    isAuthenticating = false
+                    onSuccess()
+                }
+            }.onFailure {
+                errorMessage = it.localizedMessage
+                isAuthenticating = false
             }
         }
     }
 
-    // Méto-do para resetear el estado (útil si navegamos fuera y volvemos)
-    fun clearState() {
-        _authState.value = Resource.Idle
-    }
-
-    /**
-     * Cierra la sesión en Firebase y resetea el estado local.
-     * Es vital llamar a esto desde el botón de Logout en la Home.
-     */
     fun signOut() {
         repository.logout()
-        _authState.value = Resource.Idle
+        currentUser = null
+        isTutorialCompleted = true
     }
+
+    fun clearError() { errorMessage = null }
 }

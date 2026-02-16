@@ -23,39 +23,43 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topbooks.R
 import com.example.topbooks.ui.theme.*
-import com.example.topbooks.ui.theme.ColorTituloCategoriaDetalle
-import com.example.topbooks.utils.Resource
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions.*
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 
-// --- 1. COMPONENTE CON LÓGICA (Stateful) ---
+/**
+ * Pantalla de inicio de sesión actualizada para el flujo de Onboarding.
+ */
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel = viewModel(),
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
-    val authState by viewModel.authState.collectAsState()
     val context = LocalContext.current
 
-    // --- Configuración de Google Sign In ---
-    // Definimos el cliente de Google
+    // Observamos mensajes de error globales del ViewModel
+    LaunchedEffect(viewModel.errorMessage) {
+        viewModel.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+        }
+    }
+
+    // Configuración para el inicio de sesión con Google
     val googleSignInClient = remember {
-        val gso = Builder(DEFAULT_SIGN_IN)
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(context.getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
         GoogleSignIn.getClient(context, gso)
     }
 
-    // --- Lanzador para el resultado de Google ---
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -63,60 +67,35 @@ fun LoginScreen(
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
-                // Si ha pasado bien llamamos al ViewModel para autenticar en Firebase
                 account.idToken?.let { token ->
-                    viewModel.loginWithGoogle(token)
+                    viewModel.loginWithGoogle(token, onLoginSuccess)
                 }
             } catch (e: ApiException) {
-                Toast.makeText(context, "Error Google: ${e.statusCode}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Error en Google: ${e.statusCode}", Toast.LENGTH_LONG).show()
             }
-        }
-    }
-
-    LaunchedEffect(authState) {
-        when (val state = authState) {
-            is Resource.Success -> {
-                viewModel.clearState()
-                onLoginSuccess()
-            }
-            is Resource.Error -> {
-                Toast.makeText(context, state.exception.message, Toast.LENGTH_LONG).show()
-                viewModel.clearState()
-            }
-            else -> {}
         }
     }
 
     LoginContent(
-        isLoading = authState is Resource.Loading,
-        onLoginClick = { email, pass -> viewModel.login(email, pass) },
-        // --- Pasamos la acción de lanzar el intent de Google
-        onGoogleClick = {
-            googleLauncher.launch(googleSignInClient.signInIntent)
-        },
+        isLoading = viewModel.isAuthenticating,
+        onLoginClick = { email, pass -> viewModel.login(email, pass, onLoginSuccess) },
+        onGoogleClick = { googleLauncher.launch(googleSignInClient.signInIntent) },
         onNavigateToRegister = onNavigateToRegister
     )
 }
 
-// --- 2. COMPONENTE DE DISEÑO PURO (Stateless) ---
 @Composable
 fun LoginContent(
     isLoading: Boolean,
     onLoginClick: (String, String) -> Unit,
-    onGoogleClick: () -> Unit, // --- Parámetro para el click de Google
+    onGoogleClick: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
-
     val scrollState = rememberScrollState()
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        // 1. Imagen de Fondo
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Image(
             painter = painterResource(id = R.drawable.login_bg),
             contentDescription = null,
@@ -124,15 +103,13 @@ fun LoginContent(
             contentScale = ContentScale.Crop
         )
 
-        // 2. Contenido Principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 60.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
+                .padding(start = 24.dp, top = 60.dp, end = 24.dp, bottom = 24.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             Text(
                 text = "Bienvenido a",
                 style = MaterialTheme.typography.headlineLarge.copy(
@@ -194,26 +171,28 @@ fun LoginContent(
             Spacer(modifier = Modifier.height(24.dp))
 
             if (isLoading) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(
+                    modifier = Modifier.size(40.dp),
+                    color = ColorArcMediumBrown,
+                    strokeWidth = 4.dp
+                )
             } else {
                 Button(
                     onClick = { onLoginClick(email, password) },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = email.isNotEmpty() && password.isNotEmpty()
+                    enabled = email.isNotEmpty() && password.isNotEmpty(),
+                    colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)
                 ) {
                     Text("Iniciar Sesión")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- Botón de Google ---
                 OutlinedButton(
-                    onClick = { onGoogleClick() },
+                    onClick = onGoogleClick,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
                 ) {
-                    // Idealmente usa un icono de Google real (R.drawable.ic_google)
-                    // Si no tienes uno, usa un icono por defecto temporalmente
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google),
                         contentDescription = "Logo Google",
@@ -231,26 +210,12 @@ fun LoginContent(
                 Text("¿No tienes cuenta? ", color = Color.Black)
                 Text(
                     text = "Regístrate aquí",
-                    color = MaterialTheme.colorScheme.primary,
+                    color = ColorArcDarkBrown,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable { onNavigateToRegister() }
                 )
             }
-
             Spacer(modifier = Modifier.weight(1f))
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun LoginScreenPreview() {
-    MaterialTheme {
-        LoginContent(
-            isLoading = false,
-            onLoginClick = { _, _ -> },
-            onGoogleClick = {},
-            onNavigateToRegister = {}
-        )
     }
 }

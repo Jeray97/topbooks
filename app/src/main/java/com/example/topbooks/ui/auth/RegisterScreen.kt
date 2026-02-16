@@ -4,7 +4,13 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,55 +23,40 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topbooks.R
-import com.example.topbooks.utils.Resource
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import com.example.topbooks.ui.theme.CenturyGotic
-import com.example.topbooks.ui.theme.ColorConditionOk
-import com.example.topbooks.ui.theme.ColorSurfaceTextRegister
+import com.example.topbooks.ui.theme.*
 
-// --- 1. COMPONENTE CON LÓGICA (Stateful) ---
+/**
+ * Pantalla de registro actualizada para redirigir al tutorial tras el éxito.
+ */
 @Composable
 fun RegisterScreen(
     viewModel: AuthViewModel = viewModel(),
     onRegisterSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
-    val authState by viewModel.authState.collectAsState()
     val context = LocalContext.current
 
-    LaunchedEffect(authState) {
-        when (val state = authState) {
-            is Resource.Success -> {
-                viewModel.clearState()
-                onRegisterSuccess()
-            }
-            is Resource.Error -> {
-                Toast.makeText(context, state.exception.message, Toast.LENGTH_LONG).show()
-                viewModel.clearState()
-            }
-            else -> {}
+    // Observamos errores del proceso de registro
+    LaunchedEffect(viewModel.errorMessage) {
+        viewModel.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
         }
     }
 
     RegisterContent(
-        isLoading = authState is Resource.Loading,
-        onRegisterClick = { name, email, pass -> viewModel.register(name, email, pass) },
+        isLoading = viewModel.isAuthenticating,
+        onRegisterClick = { name, email, pass ->
+            viewModel.register(name, email, pass, onRegisterSuccess)
+        },
         onNavigateToLogin = onNavigateToLogin
     )
 }
 
-// --- 2. COMPONENTE DE DISEÑO PURO (Stateless) ---
 @Composable
 fun RegisterContent(
     isLoading: Boolean,
@@ -77,24 +68,16 @@ fun RegisterContent(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
-
-    //Lógica para validación en tiempo real
-    val hasUpperCase = remember(password) { password.any {it.isUpperCase() } }
+    // Validación de seguridad de contraseña
+    val hasUpperCase = remember(password) { password.any { it.isUpperCase() } }
     val hasNumber = remember(password) { password.any { it.isDigit() } }
     val hasSpecialChar = remember(password) { password.any { !it.isLetterOrDigit() } }
     val isLengthValid = remember(password) { password.length >= 6 }
-
-    //Si cumple to-do, la contraseña es válida
     val isPasswordValid = hasUpperCase && hasNumber && hasSpecialChar && isLengthValid
 
     val scrollState = rememberScrollState()
 
-    // Usamos un Box para superponer elementos
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        // 1. Imagen de Fondo
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Image(
             painter = painterResource(id = R.drawable.register_bg),
             contentDescription = null,
@@ -102,16 +85,14 @@ fun RegisterContent(
             contentScale = ContentScale.Crop
         )
 
-        // 2. Contenido Principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 60.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
+                .padding(start = 24.dp, top = 60.dp, end = 24.dp, bottom = 24.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
             Spacer(modifier = Modifier.weight(0.3f))
 
             Surface(
@@ -133,13 +114,11 @@ fun RegisterContent(
 
             Spacer(modifier = Modifier.weight(0.35f))
 
-            // Campo Nombre
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Nombre completo") },
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White.copy(alpha = 0.8f),
@@ -149,13 +128,11 @@ fun RegisterContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Email
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("Correo electrónico") },
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White.copy(alpha = 0.8f),
@@ -165,14 +142,12 @@ fun RegisterContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Contraseña
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text("Contraseña") },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White.copy(alpha = 0.8f),
@@ -182,14 +157,12 @@ fun RegisterContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Confirmar Contraseña
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
                 label = { Text("Confirmar Contraseña") },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                 singleLine = true,
                 isError = password.isNotEmpty() && confirmPassword.isNotEmpty() && password != confirmPassword,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -198,35 +171,31 @@ fun RegisterContent(
                 )
             )
 
-            // Solo los mostramos si ha empezado a escribir
-            if (password.isNotEmpty() || confirmPassword.isNotEmpty()) {
+            if (password.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Text("La contraseña debe contener:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    PasswordRequirementItem(text = "Mínimo 6 caracteres", isMet = isLengthValid)
-                    PasswordRequirementItem(text = "Al menos 1 mayúscula", isMet = hasUpperCase)
-                    PasswordRequirementItem(text = "Al menos 1 número", isMet = hasNumber)
-                    PasswordRequirementItem(text = "Al menos 1 carácter especial (@#$%)", isMet = hasSpecialChar)
+                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+                    Text("La contraseña debe contener:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    PasswordReqItem(text = "Mínimo 6 caracteres", isMet = isLengthValid)
+                    PasswordReqItem(text = "Al menos 1 mayúscula", isMet = hasUpperCase)
+                    PasswordReqItem(text = "Al menos 1 número", isMet = hasNumber)
+                    PasswordReqItem(text = "Al menos 1 carácter especial", isMet = hasSpecialChar)
                 }
-            }
-
-
-            if (password.isNotEmpty() && confirmPassword.isNotEmpty() && password != confirmPassword) {
-                Text("Las contraseñas no coinciden", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             if (isLoading) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(
+                    modifier = Modifier.size(40.dp),
+                    color = ColorArcMediumBrown,
+                    strokeWidth = 4.dp
+                )
             } else {
                 Button(
                     onClick = { onRegisterClick(name, email, password) },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && password == confirmPassword && isPasswordValid
+                    enabled = name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && password == confirmPassword && isPasswordValid,
+                    colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)
                 ) {
                     Text("Registrarse")
                 }
@@ -238,7 +207,7 @@ fun RegisterContent(
                 Text("¿Ya tienes cuenta? ", color = Color.Black)
                 Text(
                     text = "Inicia sesión aquí",
-                    color = MaterialTheme.colorScheme.primary,
+                    color = ColorArcDarkBrown,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable { onNavigateToLogin() }
                 )
@@ -248,41 +217,13 @@ fun RegisterContent(
     }
 }
 
-//Auxiliar para comprobar requisitos password
 @Composable
-fun PasswordRequirementItem(text: String, isMet: Boolean) {
-    val color = if (isMet) ColorConditionOk else Color.Gray //Verde si cumple, gris si no
+fun PasswordReqItem(text: String, isMet: Boolean) {
+    val color = if (isMet) ColorConditionOk else Color.DarkGray
     val icon = if (isMet) Icons.Default.Check else Icons.Default.Close
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 2.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(16.dp)
-        )
-
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+        Icon(icon, null, tint = color, modifier = Modifier.size(16.dp))
         Spacer(modifier = Modifier.width(8.dp))
-
-        Text(
-            text = text,
-            color = color,
-            fontSize = 12.sp
-        )
-    }
-}
-// --- 3. PREVISUALIZACIÓN ---
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun RegisterScreenPreview() {
-    MaterialTheme {
-        RegisterContent(
-            isLoading = false,
-            onRegisterClick = { _, _, _ -> },
-            onNavigateToLogin = {}
-        )
+        Text(text, color = color, fontSize = 12.sp)
     }
 }

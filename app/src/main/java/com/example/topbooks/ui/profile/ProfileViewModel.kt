@@ -33,48 +33,38 @@ class ProfileViewModel : ViewModel() {
     private fun loadUserProfileListener() {
         val uid = auth.currentUser?.uid ?: return
 
-        // 1. Escuchar datos básicos del usuario
+        // 1. Escuchar datos básicos del usuario (users/{uid})
         db.collection("users").document(uid)
             .addSnapshotListener { snapshot, _ ->
                 snapshot?.let { doc ->
                     _userProfile.update {
-                        it.copy(displayName = doc.getString("displayName") ?: "Usuario")
-                    }
-                }
-            }
-
-        // 2. Escuchar FAVORITOS en tiempo real
-        db.collection("users")
-            .document(uid)
-            .collection("favorites")
-            .whereEqualTo("list", "Favoritos")
-            .limit(3)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) return@addSnapshotListener
-
-                snapshot?.let { querySnapshot ->
-                    val covers = querySnapshot.documents.mapNotNull { it.getString("imageUrl") }
-                    val ids = querySnapshot.documents.map { it.id }
-
-                    _userProfile.update {
                         it.copy(
-                            favoriteCovers = covers,
-                            favoriteIds = ids
+                            displayName = doc.getString("displayName") ?: "Usuario",
+                            photoUrl = doc.getString("photoURL") ?: ""
                         )
                     }
                 }
             }
 
-        // 3. Escuchar CONTEOS (Amigos y Leídos)
-        // Para los contadores, lo ideal es lo mismo:
+        // 2. Escuchar FAVORITOS (users/{uid}/favorites)
+        db.collection("users").document(uid)
+            .collection("favorites")
+            .whereEqualTo("list", "Favoritos")
+            .limit(3)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                snapshot?.let { query ->
+                    val covers = query.documents.mapNotNull { it.getString("imageUrl") }
+                    val ids = query.documents.map { it.id }
+                    _userProfile.update { it.copy(favoriteCovers = covers, favoriteIds = ids) }
+                }
+            }
+
+        // 3. Conteos
         db.collection("users").document(uid).collection("favorites")
             .whereEqualTo("list", "Leídos")
             .addSnapshotListener { snapshot, _ ->
                 _userProfile.update { it.copy(booksCompleted = snapshot?.size() ?: 0) }
             }
-    }
-
-    fun signOut() {
-        auth.signOut()
     }
 }

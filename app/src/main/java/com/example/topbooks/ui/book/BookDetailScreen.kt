@@ -47,7 +47,7 @@ fun BookDetailScreen(
 ) {
     // 1. Al entrar, pedimos los datos al ViewModel
     LaunchedEffect(bookId) {
-        viewModel.getBookById(bookId)
+        viewModel.getBook(bookId)
     }
 
     // 2. Observamos el estado (que incluye libro y foto autor)

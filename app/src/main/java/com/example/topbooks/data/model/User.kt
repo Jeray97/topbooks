@@ -4,25 +4,30 @@ import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
 /**
- * Representa al usuario de la aplicación.
- * Coincide con los campos que guardaremos en Firestore.
+ * Modelo de Usuario.
  */
-data class User (
+data class User(
     val uid: String = "",
     val displayName: String = "",
     val displayNameLowercase: String = "",
     val email: String = "",
     val photoURL: String = "capibara_1",
     val role: String? = "user",
-    val preferences: Map<String, Boolean> = emptyMap(),
-    val lastLogin: Date = Date(),
+
+    // Preferencias y Tutorial
+    val isTutorialCompleted: Boolean = false,
+    val favoriteGenres: List<String> = emptyList(),
     val favoriteBooks: List<String> = emptyList(),
+    val preferences: Map<String, Boolean> = emptyMap(),
+
+    // Estadísticas
+    val lastLogin: Date = Date(),
     val reviewsCount: Int = 0,
     val bookmarksCount: Int = 0,
     val commentsCount: Int = 0,
-    val friendsCount: Int = 0
-)
+    val friendsCount: Int = 0,
 
-    // Esta anotación permite que Firestore ponga la fecha del servidor automáticamente
+    // Fecha de creación (automática por Firestore)
     @ServerTimestamp
-    val createAt: Date? = null
+    val createdAt: Date? = null
+)
