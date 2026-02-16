@@ -42,55 +42,64 @@ fun HomeScreen(
     val recommendedState by viewModel.recommendedBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(ColorBackGroundGeneral)
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Text(
-            text = stringResource(id = R.string.welcome_title),
-            fontFamily = GuardianCity,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = ColorTituloTopBooks,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // Pasamos el evento de escaneo
-        SearchBarCustom(onBookClick = onBookClick, onScanClick = onScanClick)
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        SectionContainer(
-            title = stringResource(id = R.string.section_categories),
-            backgroundColor = ColorBackGroundCategorySection,
-            onArrowClick = onSeeAllCategoriesClick
+    Scaffold(
+        containerColor = ColorBackGroundGeneral
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(ColorBackGroundGeneral)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            CategoryRow(onCategoryClick = onCategoryClick)
+            Text(
+                text = stringResource(id = R.string.welcome_title),
+                fontFamily = GuardianCity,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = ColorTituloTopBooks,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // Pasamos el evento de escaneo
+            SearchBarCustom(
+                onBookClick = onBookClick,
+                onScanClick = onScanClick
+                // viewModel usa el valor por defecto viewModel() definido en SearchBarCustom
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            SectionContainer(
+                title = stringResource(id = R.string.section_categories),
+                backgroundColor = ColorBackGroundCategorySection,
+                onArrowClick = onSeeAllCategoriesClick
+            ) {
+                CategoryRow(onCategoryClick = onCategoryClick)
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
+
+            SectionContainer(
+                title = stringResource(id = R.string.section_recommended),
+                backgroundColor = ColorBackGroundRecommendedSection
+            ) {
+                BookListRow(resource = recommendedState, onBookClick = onBookClick)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SectionContainer(
+                title = stringResource(id = R.string.section_friends_favorites),
+                backgroundColor = ColorBackGroundFavoritesSection
+            ) {
+                BookListRow(resource = friendsState, onBookClick = onBookClick)
+            }
+
+            Spacer(modifier = Modifier.height(80.dp))
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        SectionContainer(
-            title = stringResource(id = R.string.section_recommended),
-            backgroundColor = ColorBackGroundRecommendedSection
-        ) {
-            BookListRow(resource = recommendedState, onBookClick = onBookClick)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        SectionContainer(
-            title = stringResource(id = R.string.section_friends_favorites),
-            backgroundColor = ColorBackGroundFavoritesSection
-        ) {
-            BookListRow(resource = friendsState, onBookClick = onBookClick)
-        }
-
-        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
@@ -179,16 +188,22 @@ fun SectionContainer(
 fun CategoryRow(
     onCategoryClick: (String, String) -> Unit
 ) {
+    // CORREGIDO: Ahora el tercer elemento es R.string.xxx también.
+    // Usamos Triple(NombreRes, IconoRes, QueryRes)
+    // Así la query también se traduce (ej: "Misterio" vs "Mystery")
     val categories = listOf(
-        Triple(R.string.category_romance, R.drawable.cat_romance_icon, "romance"),
-        Triple(R.string.category_mystery, R.drawable.cat_misterio_icon, "mystery"),
-        Triple(R.string.category_horror, R.drawable.cat_horror_icon, "horror"),
-        Triple(R.string.category_fantasy, R.drawable.cat_fantasia_icon, "fantasy")
+        Triple(R.string.cat_romance_text, R.drawable.cat_romance_icon, R.string.cat_romance_text),
+        Triple(R.string.cat_misterio_text, R.drawable.cat_misterio_icon, R.string.cat_misterio_text),
+        Triple(R.string.cat_horror_text, R.drawable.cat_horror_icon, R.string.cat_horror_text),
+        Triple(R.string.cat_fantasia_text, R.drawable.cat_fantasia_icon, R.string.cat_fantasia_text)
     )
 
     LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        items(categories) { (nameRes, iconResId, apiQuery) ->
+        items(categories) { (nameRes, iconResId, queryRes) ->
             val categoryName = stringResource(id = nameRes)
+            // Obtenemos la query traducida desde el recurso
+            val apiQuery = stringResource(id = queryRes)
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.clickable { onCategoryClick(categoryName, apiQuery) }
@@ -226,18 +241,5 @@ fun BookPlaceholderRow() {
                 modifier = Modifier.size(90.dp).height(130.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.5f))
             )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    MaterialTheme {
-        HomeScreen(
-            onCategoryClick = { _, _ -> },
-            onBookClick = {},
-            onScanClick = {},
-            onSeeAllCategoriesClick = {}
-        )
     }
 }

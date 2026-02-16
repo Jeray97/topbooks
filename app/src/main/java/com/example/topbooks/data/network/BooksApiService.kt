@@ -10,27 +10,36 @@ import retrofit2.http.Url
 
 interface BooksApiService {
 
-    // Definimos la petición GET a la url "volumes" (que es donde Google tiene los libros)
-    @GET("volumes")
+    // --- GOOGLE BOOKS ---
+    @GET("https://www.googleapis.com/books/v1/volumes")
     suspend fun searchBooks(
-        @Query("q") query: String, // Lo que buscamos (ej: "Harry Potter")
-        @Query("key") apiKey: String, // Clave API
-        @Query("maxResults") maxResults: Int = 10, // Cuántos libros queremos (por defecto 10)
-        @Query("orderBy") orderBy: String = "relevance", //Por defecto los más relevantes
-        @Query("langRestrict") lang: String = "es" // Para que salgan en español (Predeterminado)
+        @Query("q") query: String,
+        @Query("key") apiKey: String,
+        @Query("maxResults") maxResults: Int = 40,
+        @Query("orderBy") orderBy: String = "relevance",
+        @Query("langRestrict") lang: String = "es",
+        @Query("printType") printType: String = "books"
     ): Response<GoogleBooksResponse>
 
-    // --- NUEVO: Función para buscar autor en Open Library ---
-    @GET
-    suspend fun searchAuthorExternal(
-        @Url url: String
-    ): Response<OpenLibrarySearchResponse>
-
-    // La url final será: https://www.googleapis.com/books/v1/volumes/{id}
-    @GET("volumes/{id}")
+    @GET("https://www.googleapis.com/books/v1/volumes/{id}")
     suspend fun getBookDetail(
         @retrofit2.http.Path("id") id: String,
         @Query("key") apiKey: String
     ): Response<BookItem>
-}
 
+    @GET
+    suspend fun getBookDetailGoogle(@Url url: String): Response<BookItem>
+
+    // --- OPEN LIBRARY (CORREGIDO) ---
+    // Hemos quitado 'first_publish_year' como parámetro suelto para evitar el error 500.
+    // Todo el filtro irá dentro de 'q'.
+    @GET("https://openlibrary.org/search.json")
+    suspend fun searchBooksOpenLibrary(
+        @Query("q") query: String,       // ej: "language:spa first_publish_year:[2020 TO 2026]"
+        @Query("sort") sort: String,     // "rating"
+        @Query("limit") limit: Int
+    ): Response<OpenLibrarySearchResponse>
+
+    @GET
+    suspend fun searchAuthorExternal(@Url url: String): Response<OpenLibrarySearchResponse>
+}

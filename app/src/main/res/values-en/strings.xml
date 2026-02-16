@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="search_hint">Search for book…</string>
-    <string name="category_romance">Romance</string>
-    <string name="category_mystery">Mystery</string>
-    <string name="category_horror">Horror</string>
-    <string name="category_fantasy">Fantasy</string>
     <string name="section_categories">Categories</string>
     <string name="section_recommended">Recommended</string>
     <string name="section_friends_favorites">Your friends\' favourites</string>
+    <string name="query_recommended_base">*</string>
     <string name="desc_search_icon">Search</string>
     <string name="desc_scan_icon">Scan code</string>
     <string name="desc_arrow_forward">See more</string>
@@ -17,5 +14,20 @@
     <string name="reviews_bottom">Reviews</string>
     <string name="profile_bottom">Profile</string>
     <string name="book_info">Book information</string>
-    <string name="default_web_client_id">TEXTO A COMPLETAR</string>
+    <string name="cat_romance_text">Romance</string>
+    <string name="cat_aventura_text">Adventure</string>
+    <string name="cat_bibliografia_text">Bibliography</string>
+    <string name="cat_ciencia_ficcion_text">Science Fiction</string>
+    <string name="cat_comedia_text">Comedy</string>
+    <string name="cat_documental_text">Documentary</string>
+    <string name="cat_fantasia_text">Fantasy</string>
+    <string name="cat_filosofia_text">Philosophy</string>
+    <string name="cat_historia_text">History</string>
+    <string name="cat_horror_text">Horror</string>
+    <string name="cat_infantil_text">Children</string>
+    <string name="cat_manga_text">Manga</string>
+    <string name="cat_misterio_text">Mistery</string>
+    <string name="cat_novela_grafica_text">Graphic Novel</string>
+    <string name="cat_poesia_text">Poetry</string>
+    <string name="cat_religion_text">Religion</string>
 </resources>

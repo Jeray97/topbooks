@@ -6,14 +6,10 @@
     <string name="search_hint">Buscar libro…</string>
 
     <!-- SECCIONES -->
-    <string name="category_romance">Romance</string>
-    <string name="category_mystery">Misterio</string>
-    <string name="category_horror">Horror</string>
-    <string name="category_fantasy">Fantasia</string>
-
     <string name="section_categories">Categorías</string>
     <string name="section_recommended">Recomendados</string>
     <string name="section_friends_favorites">Favoritos de tus amigos</string>
+    <string name="query_recommended_base">bestseller</string>
 
     <!-- ACCESIBILIDAD -->
     <string name="desc_search_icon">Buscar</string>
@@ -31,6 +27,23 @@
     <!-- REGISTRO -->
 
     <!-- LOGIN -->
-    <string name="default_web_client_id">TEXTO A COMPLETAR</string>
+
+    <!-- CATEGORIAS -->
+    <string name="cat_romance_text">Romance</string>
+    <string name="cat_aventura_text">Aventura</string>
+    <string name="cat_bibliografia_text">Bibliografía</string>
+    <string name="cat_ciencia_ficcion_text">Ciencia Ficción</string>
+    <string name="cat_comedia_text">Comedia</string>
+    <string name="cat_documental_text">Documental</string>
+    <string name="cat_fantasia_text">Fantasia</string>
+    <string name="cat_filosofia_text">Filosofia</string>
+    <string name="cat_historia_text">Historia</string>
+    <string name="cat_horror_text">Horror</string>
+    <string name="cat_infantil_text">Infantil</string>
+    <string name="cat_manga_text">Manga</string>
+    <string name="cat_misterio_text">Misterio</string>
+    <string name="cat_novela_grafica_text">Novela Grafica</string>
+    <string name="cat_poesia_text">Poesia</string>
+    <string name="cat_religion_text">Religión</string>
 
 </resources>

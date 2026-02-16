@@ -29,7 +29,6 @@ class TutorialViewModel(private val booksRepository: BooksRepository = BooksRepo
     private val _uiState = MutableStateFlow(OnboardingState())
     val uiState: StateFlow<OnboardingState> = _uiState
 
-    // Los 16 géneros solicitados
     val availableGenres = listOf(
         "Historia", "Biografías", "Horror", "Arte",
         "Romance", "Misterio", "Manga", "Fantasía",
@@ -67,17 +66,19 @@ class TutorialViewModel(private val booksRepository: BooksRepository = BooksRepo
             _uiState.update { it.copy(isLoadingBooks = true) }
             val genres = _uiState.value.selectedGenres.toList()
 
-            // Lógica Paralela: Busca 2 libros por cada género
+            // Buscamos libros en paralelo para cada género seleccionado
             val deferredBooks = genres.map { genre ->
                 async {
-                    booksRepository.getBooks(query = "subject:$genre", orderBy = "relevance")
-                        .getOrNull()?.take(2) ?: emptyList()
+                    // Llamada correcta al repositorio sincronizado
+                    booksRepository.getBooks(
+                        query = "subject:$genre",
+                        orderBy = "relevance",
+                        filterModern = true // Sugerir libros visualmente atractivos y nuevos
+                    ).getOrNull()?.take(2) ?: emptyList()
                 }
             }
 
-            // Esperamos todos los resultados y unificamos la lista
             val allBooks = deferredBooks.awaitAll().flatten().distinctBy { it.id }
-
             _uiState.update { it.copy(suggestedBooks = allBooks, isLoadingBooks = false) }
         }
     }
@@ -92,7 +93,6 @@ class TutorialViewModel(private val booksRepository: BooksRepository = BooksRepo
             "favoriteBooks" to _uiState.value.selectedBookIds.toList()
         )
 
-        // RUTA ESTÁNDAR: users/{uid} con merge para no borrar datos existentes
         db.collection("users").document(userId)
             .set(updates, SetOptions.merge())
             .addOnSuccessListener {
