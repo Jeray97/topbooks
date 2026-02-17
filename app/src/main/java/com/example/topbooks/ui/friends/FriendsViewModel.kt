@@ -31,7 +31,7 @@ data class FriendsState(
     val searchQuery: String = "",
     val searchResults: List<SocialUser> = emptyList(),
     val friendsIds: Set<String> = emptySet(),
-    val myFriends: List<SocialUser> = emptyList(), // Nueva lista con perfiles completos
+    val myFriends: List<SocialUser> = emptyList(),
     val friendsOfFriends: List<SocialUser> = emptyList(),
     val sameTastes: List<SocialUser> = emptyList(),
     val recentInteractions: List<Interaction> = emptyList(),
@@ -56,15 +56,10 @@ class FriendsViewModel : ViewModel() {
     private fun loadFriendsList() {
         val currentUser = auth.currentUser ?: return
 
-        // Escuchamos la subcolección de amigos
         db.collection("users").document(currentUser.uid).collection("friends")
             .addSnapshotListener { snapshot, _ ->
                 val ids = snapshot?.documents?.map { it.id }?.toSet() ?: emptySet()
-
-                // 1. Guardamos los IDs para el "tick" de búsqueda
                 _uiState.update { it.copy(friendsIds = ids) }
-
-                // 2. Cargamos los perfiles completos de esos amigos para mostrarlos en los recuadros
                 fetchFriendsProfiles(ids.toList())
 
                 if (_uiState.value.searchQuery.isNotEmpty()) {
@@ -79,16 +74,17 @@ class FriendsViewModel : ViewModel() {
             return
         }
 
-        // Firestore permite buscar hasta 10-30 IDs a la vez usando 'whereIn'
+        // Dividimos en bloques de 10 porque 'whereIn' tiene límite
         db.collection("users")
-            .whereIn("__name__", ids.take(10)) // __name__ se refiere al ID del documento
+            .whereIn("__name__", ids.take(10))
             .get()
             .addOnSuccessListener { snapshot ->
                 val profiles = snapshot.documents.mapNotNull { doc ->
                     SocialUser(
                         uid = doc.id,
                         displayName = doc.getString("displayName") ?: "",
-                        photoUrl = doc.getString("photoUrl") ?: "",
+                        // CORRECCIÓN: Usamos "photoURL" (tal como se guarda en ProfileViewModel)
+                        photoUrl = doc.getString("photoURL") ?: "",
                         isFriend = true
                     )
                 }
@@ -136,7 +132,8 @@ class FriendsViewModel : ViewModel() {
                     SocialUser(
                         uid = doc.id,
                         displayName = doc.getString("displayName") ?: "",
-                        photoUrl = doc.getString("photoUrl") ?: "",
+                        // CORRECCIÓN: "photoURL"
+                        photoUrl = doc.getString("photoURL") ?: "",
                         isFriend = friends.contains(doc.id)
                     )
                 }
@@ -157,7 +154,8 @@ class FriendsViewModel : ViewModel() {
         } else {
             val friendData = mapOf(
                 "displayName" to user.displayName,
-                "photoUrl" to user.photoUrl,
+                // CORRECCIÓN: Guardamos también como "photoURL" por consistencia
+                "photoURL" to user.photoUrl,
                 "timestamp" to System.currentTimeMillis()
             )
             friendRef.set(friendData)
@@ -176,7 +174,8 @@ class FriendsViewModel : ViewModel() {
                         SocialUser(
                             uid = doc.id,
                             displayName = doc.getString("displayName") ?: "Usuario",
-                            photoUrl = doc.getString("photoUrl") ?: ""
+                            // CORRECCIÓN: "photoURL"
+                            photoUrl = doc.getString("photoURL") ?: ""
                         )
                     } else null
                 } ?: emptyList()

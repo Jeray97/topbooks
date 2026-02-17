@@ -11,9 +11,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -34,6 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topbooks.R
 import com.example.topbooks.ui.theme.*
+import com.example.topbooks.utils.AvatarHelper // Asegúrate de importar esto
 
 @Composable
 fun FriendsScreen(
@@ -92,21 +93,20 @@ fun FriendsScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
-                // SECCIÓN: Mis amigos (Ahora con nombres)
+                // Mis amigos
                 SocialSection(
                     title = "Mis amigos",
                     isEmpty = uiState.myFriends.isEmpty(),
                     emptyMessage = "Aún no tienes amigos añadidos"
                 ) {
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp), // Un poco más de espacio para los nombres
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
                         items(uiState.myFriends) { user ->
-                            // Envolvemos en Column para poner el nombre debajo
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.width(75.dp) // Ancho fijo para que el texto no empuje a los demás
+                                modifier = Modifier.width(75.dp)
                             ) {
                                 UserAvatarItem(user.photoUrl)
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -126,16 +126,7 @@ fun FriendsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                SocialSection(
-                    title = "Amigos de tus amigos",
-                    isEmpty = uiState.friendsOfFriends.isEmpty(),
-                    emptyMessage = "Próximamente..."
-                ) {
-                    // Contenido para amigos de amigos
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
+                // Otras secciones...
                 SocialSection(
                     title = "Con tus mismos gustos",
                     isEmpty = uiState.sameTastes.isEmpty()
@@ -199,21 +190,12 @@ fun SearchResultsList(
                     )
 
                     IconButton(onClick = { onFriendAction(user) }) {
-                        if (user.isFriend) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Eliminar amigo",
-                                tint = Color(0xFF4CAF50),
-                                modifier = Modifier.size(28.dp)
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Añadir amigo",
-                                tint = ColorArcMediumBrown,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = if (user.isFriend) Icons.Default.Check else Icons.Default.Add,
+                            contentDescription = null,
+                            tint = if (user.isFriend) Color(0xFF4CAF50) else ColorArcMediumBrown,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
                 }
             }
@@ -266,21 +248,23 @@ fun UserAvatarItem(photoUrl: String) {
         .padding(2.dp)
         .clip(CircleShape)
 
-    // Lógica para detectar si es un recurso local (como nuestro capibara por defecto) o una URL
-    if (photoUrl == "capibara_1" || photoUrl.isEmpty()) {
-        Image(
-            painter = painterResource(id = R.drawable.capibara_1),
-            contentDescription = null,
-            modifier = imageModifier,
-            contentScale = ContentScale.Crop
-        )
-    } else {
+    // CORRECCIÓN: Detectamos si es URL web o nombre de recurso local
+    if (photoUrl.startsWith("http")) {
         AsyncImage(
             model = photoUrl,
             contentDescription = null,
             modifier = imageModifier,
             contentScale = ContentScale.Crop,
-            error = painterResource(id = R.drawable.capibara_1) // Capibara si la URL falla
+            error = painterResource(id = R.drawable.capibara_1)
+        )
+    } else {
+        val resourceId = if (photoUrl.isEmpty()) R.drawable.capibara_1 else AvatarHelper.getDrawableId(photoUrl)
+
+        Image(
+            painter = painterResource(id = resourceId),
+            contentDescription = null,
+            modifier = imageModifier,
+            contentScale = ContentScale.Crop
         )
     }
 }

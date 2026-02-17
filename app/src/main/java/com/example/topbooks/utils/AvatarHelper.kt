@@ -18,8 +18,6 @@ object AvatarHelper {
         Pair("capibara_8", R.drawable.capibara_8),
         Pair("capibara_9", R.drawable.capibara_9),
         Pair("capibara_10", R.drawable.capibara_10),
-
-        Pair("default", R.drawable.capibara_1)
     )
 
     // Función para obtener el ID del recurso a partir del nombre guardado en Firebase

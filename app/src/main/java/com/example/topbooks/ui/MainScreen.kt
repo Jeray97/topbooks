@@ -1,8 +1,11 @@
 package com.example.topbooks.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -11,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,6 +25,7 @@ import com.example.topbooks.ui.navigation.BottomNavItem
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.ui.profile.ProfileScreen
 import com.example.topbooks.ui.friends.FriendsScreen
+import com.example.topbooks.ui.reviews.ReviewsScreen
 
 @Composable
 fun MainScreen(
@@ -31,6 +36,8 @@ fun MainScreen(
     onNavigateToAllCategories: () -> Unit
 ) {
     val bottomNavController = rememberNavController()
+    val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
     val items = listOf(
         BottomNavItem.Home,
@@ -41,30 +48,44 @@ fun MainScreen(
     )
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
         bottomBar = {
             NavigationBar(
-                containerColor = ColorSectionBackground,
+                containerColor = ColorArcMediumBrown, // Color de la barra café
+                tonalElevation = 0.dp // Quitamos elevación para que el color sea puro
             ) {
-                val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
-
                 items.forEach { item ->
+                    val isSelected = currentRoute == item.route
+
                     NavigationBarItem(
                         icon = {
-                            Icon(
-                                painter = painterResource(id = item.icon),
-                                contentDescription = stringResource(id = item.title),
-                                tint = Color.Unspecified
+                            // --- CÍRCULO BLANCO DE FONDO ---
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp) // Tamaño del círculo
+                                    .background(
+                                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f),
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = item.icon),
+                                    contentDescription = stringResource(id = item.title),
+                                    // Ajustamos el tamaño del icono vectorial dentro del círculo
+                                    modifier = Modifier.size(24.dp),
+                                    // El icono se verá café sobre el fondo blanco
+                                    tint = ColorArcMediumBrown
+                                )
+                            }
+                        },
+                        label = {
+                            Text(
+                                text = stringResource(id = item.title),
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall
                             )
                         },
-                        label = { Text(stringResource(id = item.title)) },
-                        selected = currentRoute == item.route,
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = ColorSectionBackground.copy(alpha = 0.2f),
-                            selectedTextColor = ColorBackGroundCategorySection,
-                            unselectedTextColor = ColorTextPrimary
-                        ),
+                        selected = isSelected,
                         onClick = {
                             bottomNavController.navigate(item.route) {
                                 popUpTo(bottomNavController.graph.findStartDestination().id) {
@@ -73,7 +94,11 @@ fun MainScreen(
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                        }
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            // Ponemos el indicador transparente para que no choque con nuestro círculo
+                            indicatorColor = Color.Transparent
+                        )
                     )
                 }
             }
@@ -84,7 +109,6 @@ fun MainScreen(
             startDestination = BottomNavItem.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Pestaña INICIO
             composable(BottomNavItem.Home.route) {
                 HomeScreen(
                     onCategoryClick = onNavigateToCategory,
@@ -100,23 +124,21 @@ fun MainScreen(
                 }
             }
 
-            // Pestaña AMIGOS (Social)
             composable(BottomNavItem.Friends.route) {
                 FriendsScreen()
             }
 
             composable(BottomNavItem.Reviews.route) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Tus Reseñas (Próximamente)")
-                }
+                ReviewsScreen(
+                    onBackClick = { /* No hay back en la raíz */ },
+                    onBookClick = onNavigateToBookDetail
+                )
             }
 
-            // Pestaña PERFIL
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
                     onNavigateToSettings = onNavigateToConfig,
                     onNavigateToDetail = onNavigateToBookDetail
-                    // Aquí podrías pasar también onLogout si quisieras un botón ahí
                 )
             }
         }

@@ -2,7 +2,6 @@ package com.example.topbooks.ui.tutorial
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.repository.BooksRepository
@@ -88,7 +87,7 @@ class TutorialViewModel(application: Application) : AndroidViewModel(application
                         query = "subject:$genre",
                         orderBy = "relevance",
                         filterModern = true // Libros modernos y con portada
-                    ).getOrNull()?.take(2) ?: emptyList()
+                    ).getOrNull()?.take(3) ?: emptyList()
                 }
             }
 

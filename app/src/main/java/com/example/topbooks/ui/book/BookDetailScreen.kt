@@ -1,6 +1,7 @@
 package com.example.topbooks.ui.book
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
@@ -11,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,8 +56,9 @@ fun BookDetailScreen(
     // 2. Observamos el estado (que incluye libro y foto autor)
     val state by viewModel.uiState.collectAsState()
 
-    // ESTADO PARA EL DIALOGO
-    var showDialog by remember { mutableStateOf(false) }
+    // ESTADO PARA LOS DIÁLOGOS
+    var showListDialog by remember { mutableStateOf(false) }
+    var showReviewDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = ColorBackGroundGeneral, // Fondo Beige General
@@ -72,26 +76,37 @@ fun BookDetailScreen(
                 }
             } else if (state.book != null) {
 
-                // Si el dialogo debe mostrarse
-                if (showDialog) {
+                // DIÁLOGO SELECCIÓN LISTA
+                if (showListDialog) {
                     ListSelectionDialog(
-                        onDismiss = { showDialog = false },
+                        onDismiss = { showListDialog = false },
                         onOptionSelected = { listaSeleccionada ->
                             viewModel.addToList(state.book!!, listaSeleccionada)
-                            showDialog = false
+                            showListDialog = false
                         },
                         isSaved = state.isBookSaved,
                         currentList = state.savedInList
                     )
                 }
 
-                // Si tenemos libro, pintamos el contenido pasando también la foto del autor
+                // DIÁLOGO ESCRIBIR RESEÑA
+                if (showReviewDialog) {
+                    WriteReviewDialog(
+                        onDismiss = { showReviewDialog = false },
+                        onSubmit = { rating, chapter, text ->
+                            viewModel.saveReview(state.book!!, rating, text, chapter) {
+                                showReviewDialog = false
+                            }
+                        }
+                    )
+                }
+
+                // Si tenemos libro, pintamos el contenido
                 BookDetailContent(
                     book = state.book!!,
                     authorPhotoUrl = state.authorImageUrl,
-                    onFavoriteClick = {
-                        showDialog = true
-                    },
+                    onFavoriteClick = { showListDialog = true },
+                    onReviewClick = { showReviewDialog = true }, // Conectamos el botón al diálogo
                     isSaved = state.isBookSaved
                 )
             }
@@ -105,6 +120,7 @@ fun BookDetailContent(
     book: Book,
     authorPhotoUrl: String?,
     onFavoriteClick: (Book) -> Unit,
+    onReviewClick: () -> Unit,
     isSaved: Boolean
 ) {
     Column(
@@ -276,8 +292,11 @@ fun BookDetailContent(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.End
                     ) {
-                        BotonPersonalizado(texto = "COMENTARIOS")
-                        BotonPersonalizado(texto = "RESEÑAS")
+                        // Conectamos este botón a la acción de reseñar
+                        BotonPersonalizado(texto = "COMENTARIOS", onClick = onReviewClick)
+
+                        // Botón de ejemplo para navegar a reseñas (si se implementara navegación)
+                        BotonPersonalizado(texto = "RESEÑAS", onClick = { /* Navegar a lista reseñas */ })
                     }
                 }
             }
@@ -318,7 +337,7 @@ fun ListSelectionDialog(
                         text = "Ya tienes el libro agregado a $currentList",
                         fontFamily = CenturyGotic,
                         fontSize = 14.sp,
-                        color = ColorArcDarkBrown.copy(alpha = 0.6f), // Color suave (transparencia)
+                        color = ColorArcDarkBrown.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center,
                         fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                     )
@@ -331,7 +350,6 @@ fun ListSelectionDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 opciones.forEach { opcion ->
-                    // Resaltamos la opción si es la lista actual
                     val isSelected = isSaved && opcion == currentList
 
                     Button(
@@ -370,9 +388,9 @@ fun ListSelectionDialog(
 }
 
 @Composable
-fun BotonPersonalizado(texto: String) {
+fun BotonPersonalizado(texto: String, onClick: () -> Unit) {
     Button(
-        onClick = { /* TODO */ },
+        onClick = onClick,
         colors = ButtonDefaults.buttonColors(
             containerColor = Color(0xFFE6B8A2), // Color Salmón claro
             contentColor = Color.White
@@ -384,6 +402,93 @@ fun BotonPersonalizado(texto: String) {
     ) {
         Text(text = texto, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
     }
+}
+
+// --- DIÁLOGO DE ESCRITURA DE RESEÑA (Reutilizado del chat anterior) ---
+@Composable
+fun WriteReviewDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (Int, String, String) -> Unit
+) {
+    var rating by remember { mutableStateOf(0) }
+    var chapter by remember { mutableStateOf("") }
+    var reviewText by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "Escribir Reseña",
+                fontFamily = GuardianCity,
+                color = ColorArcDarkBrown
+            )
+        },
+        text = {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    for (i in 1..5) {
+                        Icon(
+                            imageVector = if (i <= rating) Icons.Default.Star else Icons.Outlined.Star,
+                            contentDescription = "$i Estrellas",
+                            tint = if (i <= rating) Color(0xFFFFB300) else Color.Gray,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clickable { rating = i }
+                                .padding(2.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = chapter,
+                    onValueChange = { chapter = it },
+                    label = { Text("Capítulo (Opcional)") },
+                    placeholder = { Text("Ej: Cap. 3") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ColorArcMediumBrown,
+                        focusedLabelColor = ColorArcMediumBrown
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = reviewText,
+                    onValueChange = { reviewText = it },
+                    label = { Text("Tu opinión") },
+                    minLines = 3,
+                    maxLines = 5,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ColorArcMediumBrown,
+                        focusedLabelColor = ColorArcMediumBrown
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(rating, chapter, reviewText) },
+                enabled = rating > 0 && reviewText.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)
+            ) {
+                Text("Publicar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", color = ColorArcMediumBrown)
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(16.dp)
+    )
 }
 
 // --- PREVIEW ---
@@ -399,6 +504,6 @@ fun BookDetailPreview() {
         lanzamiento = "1989"
     )
     MaterialTheme {
-        BookDetailContent(book = dummyBook, authorPhotoUrl = null, onFavoriteClick = {}, isSaved = false)
+        BookDetailContent(book = dummyBook, authorPhotoUrl = null, onFavoriteClick = {}, isSaved = false, onReviewClick = {})
     }
 }
