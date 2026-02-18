@@ -1,509 +1,412 @@
 package com.example.topbooks.ui.book
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.topbooks.R
 import com.example.topbooks.data.model.Book
-import com.example.topbooks.ui.components.TopBar
+import com.example.topbooks.data.model.Review
+import com.example.topbooks.ui.components.TopBar // TU TOPBAR
 import com.example.topbooks.ui.theme.*
+import com.example.topbooks.utils.AvatarHelper
+import kotlinx.coroutines.launch
 
-// --- 1. PANTALLA PRINCIPAL ---
 @Composable
 fun BookDetailScreen(
     bookId: String,
     onBackClick: () -> Unit,
     viewModel: BookDetailViewModel = viewModel()
 ) {
-    // 1. Al entrar, pedimos los datos al ViewModel
+    val state by viewModel.uiState.collectAsState()
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    var isFabExpanded by remember { mutableStateOf(false) }
+    var showReviewDialog by remember { mutableStateOf(false) }
+
+    // Estado para el diálogo de confirmación de borrado
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(bookId) {
         viewModel.getBook(bookId)
     }
 
-    // 2. Observamos el estado (que incluye libro y foto autor)
-    val state by viewModel.uiState.collectAsState()
+    // DIÁLOGO: Escribir Reseña
+    if (showReviewDialog && state.book != null) {
+        ReviewDialog(
+            onDismiss = { showReviewDialog = false },
+            onSubmit = { rating, text ->
+                viewModel.saveReview(state.book!!, rating, text) {
+                    showReviewDialog = false
+                }
+            }
+        )
+    }
 
-    // ESTADO PARA LOS DIÁLOGOS
-    var showListDialog by remember { mutableStateOf(false) }
-    var showReviewDialog by remember { mutableStateOf(false) }
+    // DIÁLOGO: Confirmar Borrado
+    if (showDeleteDialog && state.book != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("¿Eliminar de tu biblioteca?") },
+            text = { Text("Este libro se eliminará de tu lista '${state.savedInList}'.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.removeFromList(state.book!!.id)
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                ) { Text("Eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+            },
+            containerColor = Color.White
+        )
+    }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral, // Fondo Beige General
-        topBar = { TopBar(onBackClick) }
-    ) { paddingValues ->
+        containerColor = ColorBackGroundGeneral,
+        topBar = {
+            // USAMOS TU COMPONENTE PERSONALIZADO
+            TopBar(onBackClick = onBackClick)
+        },
+        floatingActionButton = {
+            if (state.book != null) {
+                Column(horizontalAlignment = Alignment.End) {
+                    AnimatedVisibility(
+                        visible = isFabExpanded,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        SmallFabItem(Icons.Default.Edit, "Escribir reseña") {
+                            isFabExpanded = false
+                            showReviewDialog = true
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
 
-        Box(modifier = Modifier.padding(paddingValues)) {
+                    AnimatedVisibility(
+                        visible = isFabExpanded,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        SmallFabItem(Icons.Default.Search, "Ver opiniones") {
+                            isFabExpanded = false
+                            coroutineScope.launch { listState.animateScrollToItem(2) }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    val rotation by animateFloatAsState(if (isFabExpanded) 45f else 0f, label = "fab")
+                    FloatingActionButton(
+                        onClick = { isFabExpanded = !isFabExpanded },
+                        containerColor = ColorArcMediumBrown,
+                        contentColor = Color.White,
+                        shape = CircleShape
+                    ) {
+                        Icon(Icons.Default.Add, "Menú", modifier = Modifier.rotate(rotation))
+                    }
+                }
+            }
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (state.isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = ColorTituloCategoriaDetalle)
-                }
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = ColorArcMediumBrown)
             } else if (state.error != null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = state.error!!, color = Color.Red)
-                }
+                Text("Error: ${state.error}", color = Color.Red, modifier = Modifier.align(Alignment.Center))
             } else if (state.book != null) {
+                val book = state.book!!
 
-                // DIÁLOGO SELECCIÓN LISTA
-                if (showListDialog) {
-                    ListSelectionDialog(
-                        onDismiss = { showListDialog = false },
-                        onOptionSelected = { listaSeleccionada ->
-                            viewModel.addToList(state.book!!, listaSeleccionada)
-                            showListDialog = false
-                        },
-                        isSaved = state.isBookSaved,
-                        currentList = state.savedInList
-                    )
-                }
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(bottom = 100.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // 1. HEADER (Portada, Título, Autor, Botonera Listas)
+                    item {
+                        BookHeaderSection(
+                            book = book,
+                            savedInList = state.savedInList, // Pasamos en qué lista está
+                            onListAction = { targetList ->
+                                if (state.savedInList == targetList) {
+                                    // Si ya está en esa lista, preguntamos para borrar
+                                    showDeleteDialog = true
+                                } else {
+                                    // Si no, lo movemos/añadimos a la nueva lista
+                                    viewModel.addToList(book, targetList)
+                                }
+                            }
+                        )
+                    }
 
-                // DIÁLOGO ESCRIBIR RESEÑA
-                if (showReviewDialog) {
-                    WriteReviewDialog(
-                        onDismiss = { showReviewDialog = false },
-                        onSubmit = { rating, chapter, text ->
-                            viewModel.saveReview(state.book!!, rating, text, chapter) {
-                                showReviewDialog = false
+                    // 2. SINOPSIS
+                    item { SynopsisSection(book.description) }
+
+                    // 3. CABECERA RESEÑAS
+                    item {
+                        Text(
+                            text = "Opiniones de la comunidad (${state.reviews.size})",
+                            fontFamily = CenturyGotic,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorTituloTopBooks,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                        )
+                    }
+
+                    // 4. LISTA RESEÑAS
+                    if (state.reviews.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                                Text("Nadie ha opinado todavía. ¡Sé el primero!", color = Color.Gray, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
                             }
                         }
-                    )
+                    } else {
+                        items(state.reviews) { review ->
+                            ReviewItem(review)
+                        }
+                    }
                 }
-
-                // Si tenemos libro, pintamos el contenido
-                BookDetailContent(
-                    book = state.book!!,
-                    authorPhotoUrl = state.authorImageUrl,
-                    onFavoriteClick = { showListDialog = true },
-                    onReviewClick = { showReviewDialog = true }, // Conectamos el botón al diálogo
-                    isSaved = state.isBookSaved
-                )
             }
         }
     }
 }
 
-// --- 2. CONTENIDO VISUAL (La Tarjeta Marrón) ---
+// --- COMPONENTES UI ---
+
 @Composable
-fun BookDetailContent(
+fun BookHeaderSection(
     book: Book,
-    authorPhotoUrl: String?,
-    onFavoriteClick: (Book) -> Unit,
-    onReviewClick: () -> Unit,
-    isSaved: Boolean
+    savedInList: String?, // "Favoritos", "Leídos", "Pendientes" o null
+    onListAction: (String) -> Unit
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+        Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(10.dp), modifier = Modifier.width(170.dp).height(260.dp)) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current).data(book.imageUrl).crossfade(true).error(com.example.topbooks.R.drawable.icon_codigodebarras).build(),
+                contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
+            )
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(book.title, fontSize = 24.sp, fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks, textAlign = TextAlign.Center, lineHeight = 28.sp, modifier = Modifier.padding(horizontal = 24.dp))
+        Text(book.authors.joinToString(", "), fontSize = 16.sp, fontFamily = CenturyGotic, color = ColorArcDarkBrown, modifier = Modifier.padding(top = 8.dp))
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // --- BOTONERA DE ESTADO (3 Listas) ---
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            // 1. Favoritos
+            StatusButton(
+                label = "Favoritos",
+                isActive = savedInList == "Favoritos",
+                activeIcon = Icons.Default.Favorite,
+                inactiveIcon = Icons.Default.FavoriteBorder,
+                onClick = { onListAction("Favoritos") }
+            )
+
+            // 2. Leídos
+            StatusButton(
+                label = "Leídos",
+                isActive = savedInList == "Leídos",
+                activeIcon = Icons.Default.CheckCircle,
+                inactiveIcon = Icons.Outlined.CheckCircle,
+                onClick = { onListAction("Leídos") }
+            )
+
+            // 3. Pendientes
+            StatusButton(
+                label = "Pendientes",
+                isActive = savedInList == "Pendientes",
+                activeIcon = Icons.Default.Info,
+                inactiveIcon = Icons.Default.Call,
+                onClick = { onListAction("Pendientes") }
+            )
+        }
+    }
+}
+
+@Composable
+fun StatusButton(
+    label: String,
+    isActive: Boolean,
+    activeIcon: ImageVector,
+    inactiveIcon: ImageVector,
+    onClick: () -> Unit
 ) {
     Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
+            .clickable { onClick() }
+            .padding(8.dp)
     ) {
-        // Título fuera de la tarjeta
-        Text(
-            text = "Información del libro",
-            fontFamily = CenturyGotic,
-            fontSize = 24.sp,
-            color = ColorTituloTopBooks,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // TARJETA MARRÓN PRINCIPAL
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = ColorTituloCategoriaDetalle),
-            modifier = Modifier.fillMaxWidth()
+        // Círculo de fondo
+        Box(
+            modifier = Modifier
+                .size(50.dp)
+                .background(
+                    color = if (isActive) ColorArcMediumBrown else Color.White,
+                    shape = CircleShape
+                )
+                .border(
+                    width = if (isActive) 0.dp else 1.dp,
+                    color = ColorArcMediumBrown,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                // Título del Libro
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "- ${book.title}",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontFamily = GuardianCity,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f)
-                    )
+            Icon(
+                imageVector = if (isActive) activeIcon else inactiveIcon,
+                contentDescription = label,
+                tint = if (isActive) Color.White else ColorArcMediumBrown,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+            color = if (isActive) ColorArcMediumBrown else Color.Gray
+        )
+    }
+}
 
-                    //Icono añadir a favoritos
-                    IconButton(onClick = { onFavoriteClick(book) }) {
-                        Icon(
-                            imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Favorito",
-                            tint = if (isSaved) Color.Red else Color.White,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // FILA: Imagen + Sinopsis (Mitad y Mitad)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // 1. Imagen Portada
-                    Card(
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        modifier = Modifier
-                            .weight(0.4f)
-                            .aspectRatio(0.65f)
-                    ) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(book.imageUrl)
-                                .crossfade(true)
-                                .error(R.drawable.icon_codigodebarras)
-                                .build(),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-
-                    // 2. Columna derecha: Texto Sinopsis (Recortado)
-                    Column(modifier = Modifier.weight(0.6f)) {
-                        Text(
-                            text = "- Sinopsis:",
-                            color = Color.White,
-                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                            fontSize = 16.sp,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        Text(
-                            text = book.description.take(250) + "...",
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp,
-                            textAlign = TextAlign.Justify
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // SECCIÓN RESUMEN COMPLETO
-                Text(
-                    text = "- Resumen:",
-                    color = Color.White,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                Text(
-                    text = book.description,
-                    color = Color.White,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Justify
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // SECCIÓN AUTOR Y BOTONES
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Autor (Izquierda)
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "- Autor: ${book.authors.firstOrNull() ?: "Desconocido"}",
-                            color = Color.White,
-                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                            fontSize = 14.sp,
-                            modifier = Modifier
-                                .padding(bottom = 8.dp)
-                                .align(Alignment.Start)
-                        )
-
-                        // FOTO REDONDA DEL AUTOR
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f)), // Fondo semi-transparente
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (authorPhotoUrl != null) {
-                                AsyncImage(
-                                    model = ImageRequest.Builder(LocalContext.current)
-                                        .data(authorPhotoUrl)
-                                        .crossfade(true)
-                                        .build(),
-                                    contentDescription = "Foto Autor",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            } else {
-                                // Icono por defecto si no hay foto
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Autor",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(50.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    // Botones (Derecha)
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        // Conectamos este botón a la acción de reseñar
-                        BotonPersonalizado(texto = "COMENTARIOS", onClick = onReviewClick)
-
-                        // Botón de ejemplo para navegar a reseñas (si se implementara navegación)
-                        BotonPersonalizado(texto = "RESEÑAS", onClick = { /* Navegar a lista reseñas */ })
-                    }
-                }
-            }
+// ... Resto de componentes (SynopsisSection, ReviewItem, SmallFabItem, ReviewDialog) igual que antes ...
+@Composable
+fun SmallFabItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
+        Surface(color = Color.White, shape = RoundedCornerShape(8.dp), shadowElevation = 2.dp, modifier = Modifier.padding(end = 8.dp)) {
+            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+        }
+        SmallFloatingActionButton(onClick = onClick, containerColor = ColorHeaderBeige, contentColor = ColorArcDarkBrown) {
+            Icon(icon, contentDescription = label)
         }
     }
 }
 
 @Composable
-fun ListSelectionDialog(
-    isSaved: Boolean,
-    currentList: String?,
-    onDismiss: () -> Unit,
-    onOptionSelected: (String) -> Unit
-) {
-    val opciones = listOf("Favoritos", "Pendientes", "Leídos")
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = ColorHeaderBeige,
-        shape = RoundedCornerShape(20.dp),
-        title = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "¿Dónde quieres guardar este libro?",
-                    fontFamily = CenturyGotic,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ColorArcDarkBrown,
-                    textAlign = TextAlign.Center
-                )
-
-                if (isSaved && currentList != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Ya tienes el libro agregado a $currentList",
-                        fontFamily = CenturyGotic,
-                        fontSize = 14.sp,
-                        color = ColorArcDarkBrown.copy(alpha = 0.6f),
-                        textAlign = TextAlign.Center,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                    )
-                }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                opciones.forEach { opcion ->
-                    val isSelected = isSaved && opcion == currentList
-
-                    Button(
-                        onClick = { onOptionSelected(opcion) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isSelected) ColorArcDarkBrown else ColorTituloCategoriaDetalle,
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = ButtonDefaults.buttonElevation(4.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = opcion,
-                                fontFamily = CenturyGotic,
-                                fontSize = 16.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(
-                    "Cerrar",
-                    color = ColorArcDarkBrown,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = CenturyGotic
-                )
-            }
-        }
-    )
+fun SynopsisSection(description: String) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp)) {
+        Text("Sinopsis", fontSize = 18.sp, fontFamily = CenturyGotic, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(if (description.isNotBlank()) description else "No hay descripción disponible.", fontSize = 14.sp, lineHeight = 22.sp, color = Color.DarkGray, textAlign = TextAlign.Justify)
+    }
 }
 
 @Composable
-fun BotonPersonalizado(texto: String, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFFE6B8A2), // Color Salmón claro
-            contentColor = Color.White
-        ),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier
-            .width(160.dp)
-            .height(45.dp)
+fun ReviewItem(review: Review) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Text(text = texto, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val avatarModifier = Modifier.size(40.dp).clip(CircleShape).border(1.dp, Color.LightGray, CircleShape)
+                if (review.userPhotoUrl.isNotEmpty() && review.userPhotoUrl.startsWith("http")) {
+                    AsyncImage(model = review.userPhotoUrl, contentDescription = null, modifier = avatarModifier, contentScale = ContentScale.Crop)
+                } else {
+                    Image(painter = painterResource(AvatarHelper.getDrawableId(review.userPhotoUrl)), contentDescription = null, modifier = avatarModifier, contentScale = ContentScale.Crop)
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(review.userName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+                Row {
+                    repeat(review.rating) { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD54F), modifier = Modifier.size(16.dp)) }
+                }
+            }
+            if (review.text.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(review.text, fontSize = 14.sp, color = Color.DarkGray, lineHeight = 20.sp)
+            }
+        }
     }
 }
 
-// --- DIÁLOGO DE ESCRITURA DE RESEÑA (Reutilizado del chat anterior) ---
 @Composable
-fun WriteReviewDialog(
-    onDismiss: () -> Unit,
-    onSubmit: (Int, String, String) -> Unit
-) {
-    var rating by remember { mutableStateOf(0) }
-    var chapter by remember { mutableStateOf("") }
+fun ReviewDialog(onDismiss: () -> Unit, onSubmit: (Int, String) -> Unit) {
+    var rating by remember { mutableIntStateOf(0) }
     var reviewText by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Escribir Reseña",
-                fontFamily = GuardianCity,
-                color = ColorArcDarkBrown
-            )
-        },
+        title = { Text("Escribe tu reseña", fontWeight = FontWeight.Bold, color = ColorTituloTopBooks, fontFamily = CenturyGotic) },
         text = {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                     for (i in 1..5) {
-                        Icon(
-                            imageVector = if (i <= rating) Icons.Default.Star else Icons.Outlined.Star,
-                            contentDescription = "$i Estrellas",
-                            tint = if (i <= rating) Color(0xFFFFB300) else Color.Gray,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clickable { rating = i }
-                                .padding(2.dp)
-                        )
+                        IconButton(onClick = { rating = i }) {
+                            Icon(if (i <= rating) Icons.Default.Star else Icons.Outlined.Star, "$i estrellas", tint = if (i <= rating) Color(0xFFFFD54F) else Color.LightGray, modifier = Modifier.size(36.dp))
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-
+                Spacer(Modifier.height(16.dp))
                 OutlinedTextField(
-                    value = chapter,
-                    onValueChange = { chapter = it },
-                    label = { Text("Capítulo (Opcional)") },
-                    placeholder = { Text("Ej: Cap. 3") },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorArcMediumBrown,
-                        focusedLabelColor = ColorArcMediumBrown
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = reviewText,
-                    onValueChange = { reviewText = it },
+                    value = reviewText, onValueChange = { reviewText = it },
                     label = { Text("Tu opinión") },
-                    minLines = 3,
-                    maxLines = 5,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorArcMediumBrown,
-                        focusedLabelColor = ColorArcMediumBrown
-                    ),
+                    placeholder = { Text("¿Qué te ha parecido el libro?") },
+                    minLines = 4, maxLines = 6,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown, focusedLabelColor = ColorArcMediumBrown),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(
-                onClick = { onSubmit(rating, chapter, reviewText) },
-                enabled = rating > 0 && reviewText.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)
-            ) {
+            Button(onClick = { onSubmit(rating, reviewText) }, enabled = rating > 0 && reviewText.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)) {
                 Text("Publicar")
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = ColorArcMediumBrown)
-            }
-        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = ColorArcDarkBrown) } },
         containerColor = Color.White,
         shape = RoundedCornerShape(16.dp)
     )
-}
-
-// --- PREVIEW ---
-@Preview(showBackground = true)
-@Composable
-fun BookDetailPreview() {
-    val dummyBook = Book(
-        id = "1",
-        title = "Los pilares de la tierra",
-        authors = listOf("Ken Follett"),
-        description = "Los pilares de la Tierra es una novela histórica...",
-        imageUrl = "",
-        lanzamiento = "1989"
-    )
-    MaterialTheme {
-        BookDetailContent(book = dummyBook, authorPhotoUrl = null, onFavoriteClick = {}, isSaved = false, onReviewClick = {})
-    }
 }

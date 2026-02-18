@@ -4,9 +4,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Book
+import com.example.topbooks.data.model.Review
 import com.example.topbooks.data.repository.BooksRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,15 +18,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-// --- ESTADO DEL DETALLE ---
 data class BookDetailState(
     val book: Book? = null,
-    val authorImageUrl: String? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val isBookSaved: Boolean = false,
-    val savedInList: String? = null,
-    val isReviewing: Boolean = false
+    val savedInList: String? = null, // "Favoritos", "Leídos", "Pendientes"
+    val isReviewing: Boolean = false,
+    val reviews: List<Review> = emptyList()
 )
 
 class BookDetailViewModel(private val repository: BooksRepository = BooksRepository()) : ViewModel() {
@@ -39,8 +42,44 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
             repository.getBookDetail(id).onSuccess { book ->
                 _uiState.update { it.copy(book = book, isLoading = false) }
                 checkIfBookIsSaved(book.id)
+                fetchBookReviews(book.id)
             }.onFailure { error ->
                 _uiState.update { it.copy(error = error.message, isLoading = false) }
+            }
+        }
+    }
+
+    private fun fetchBookReviews(bookId: String) {
+        viewModelScope.launch {
+            try {
+                val result = db.collection("reviews")
+                    .whereEqualTo("bookId", bookId)
+                    .orderBy("createAt", Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+
+                val rawReviews = result.toObjects(Review::class.java)
+                val enrichedReviews = rawReviews.map { review ->
+                    async {
+                        var enriched = review
+                        try {
+                            if (review.userId.isNotEmpty()) {
+                                val userDoc = db.collection("users").document(review.userId).get().await()
+                                if (userDoc.exists()) {
+                                    enriched = enriched.copy(
+                                        userName = userDoc.getString("displayName") ?: "Anónimo",
+                                        userPhotoUrl = userDoc.getString("photoURL") ?: ""
+                                    )
+                                }
+                            }
+                        } catch (e: Exception) { }
+                        enriched
+                    }
+                }.awaitAll()
+
+                _uiState.update { it.copy(reviews = enrichedReviews) }
+            } catch (e: Exception) {
+                Log.e("BookDetailVM", "Error reviews: ${e.message}")
             }
         }
     }
@@ -54,78 +93,77 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
                 if (doc.exists()) {
                     val list = doc.getString("list") ?: "Favoritos"
                     _uiState.update { it.copy(isBookSaved = true, savedInList = list) }
+                } else {
+                    _uiState.update { it.copy(isBookSaved = false, savedInList = null) }
                 }
             }
     }
 
+    // Guardar en una lista específica (Sobreescribe si ya existe, actualizando la lista)
     fun addToList(book: Book, listName: String) {
         val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
             try {
                 ensureBookInGlobalCollection(book)
-
-                val userFavRef = db.collection("users").document(uid)
-                    .collection("favorites").document(book.id)
-
+                val userFavRef = db.collection("users").document(uid).collection("favorites").document(book.id)
                 val userFavData = hashMapOf(
                     "bookId" to book.id,
                     "title" to book.title,
                     "imageUrl" to book.imageUrl,
-                    "list" to listName,
+                    "list" to listName, // "Favoritos", "Leídos", "Pendientes"
                     "addedAt" to System.currentTimeMillis()
                 )
                 userFavRef.set(userFavData).await()
-
                 _uiState.update { it.copy(isBookSaved = true, savedInList = listName) }
+            } catch (e: Exception) { Log.e("Firestore", "Error fav: ${e.message}") }
+        }
+    }
+
+    // NUEVO: Borrar de la base de datos
+    fun removeFromList(bookId: String) {
+        val uid = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(uid)
+                    .collection("favorites").document(bookId)
+                    .delete()
+                    .await()
+
+                // Actualizamos estado a NO guardado
+                _uiState.update { it.copy(isBookSaved = false, savedInList = null) }
             } catch (e: Exception) {
-                Log.e("Firestore", "Error al guardar favorito: ${e.message}")
+                Log.e("BookDetailVM", "Error al borrar: ${e.message}")
             }
         }
     }
 
-    /**
-     * CORRECCIÓN: Ahora guarda IDs (Strings) en lugar de DocumentReferences
-     * para coincidir con el nuevo modelo de Comment y evitar errores de serialización.
-     */
-    fun saveReview(book: Book, rating: Int, text: String, chapter: String, onSuccess: () -> Unit) {
+    fun saveReview(book: Book, rating: Int, text: String, onSuccess: () -> Unit) {
         val uid = auth.currentUser?.uid ?: return
         _uiState.update { it.copy(isReviewing = true) }
-
         viewModelScope.launch {
             try {
-                // Aseguramos que el libro exista en la colección global para poder mostrarlo en el muro
                 ensureBookInGlobalCollection(book)
-
-                val newCommentRef = db.collection("comments").document()
-
-                // Mapeamos los datos usando IDs de tipo String
-                val commentData = hashMapOf(
-                    "commentId" to newCommentRef.id,
-                    "bookId" to book.id,  // ID del libro como String
-                    "userId" to uid,      // ID del usuario como String
+                val newReviewRef = db.collection("reviews").document()
+                val reviewData = hashMapOf(
+                    "id" to newReviewRef.id,
+                    "bookId" to book.id,
+                    "userId" to uid,
                     "rating" to rating,
                     "text" to text,
-                    "chapter" to chapter,
                     "likes" to 0,
-                    "edited" to false,
                     "createAt" to com.google.firebase.Timestamp.now()
                 )
-
-                newCommentRef.set(commentData).await()
-                Log.d("BookDetailVM", "Reseña guardada con éxito: ${newCommentRef.id}")
+                newReviewRef.set(reviewData).await()
+                fetchBookReviews(book.id)
                 onSuccess()
-            } catch (e: Exception) {
-                Log.e("Firestore", "Error al guardar la reseña: ${e.message}")
-            } finally {
-                _uiState.update { it.copy(isReviewing = false) }
-            }
+            } catch (e: Exception) { Log.e("Firestore", "Error review: ${e.message}") }
+            finally { _uiState.update { it.copy(isReviewing = false) } }
         }
     }
 
     private suspend fun ensureBookInGlobalCollection(book: Book) {
         val globalBookRef = db.collection("books").document(book.id)
-        val doc = globalBookRef.get().await()
-        if (!doc.exists()) {
+        if (!globalBookRef.get().await().exists()) {
             val globalData = hashMapOf(
                 "title" to book.title,
                 "thumbnail" to book.imageUrl,
