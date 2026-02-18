@@ -35,7 +35,9 @@ fun MainScreen(
     onNavigateToScanner: () -> Unit,
     onNavigateToAllCategories: () -> Unit,
     onNavigateToRecommended: () -> Unit,
-    onNavigateToFriendsActivity: () -> Unit
+    onNavigateToFriendsActivity: () -> Unit,
+    // Callback para ir al perfil de un amigo
+    onNavigateToFriendProfile: (String) -> Unit
 ) {
     val bottomNavController = rememberNavController()
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
@@ -125,7 +127,9 @@ fun MainScreen(
             }
 
             composable(BottomNavItem.Friends.route) {
-                FriendsScreen()
+                FriendsScreen(
+                    onNavigateToProfile = onNavigateToFriendProfile
+                )
             }
 
             composable(BottomNavItem.Reviews.route) {

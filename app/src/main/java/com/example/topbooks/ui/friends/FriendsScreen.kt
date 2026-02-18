@@ -2,6 +2,7 @@ package com.example.topbooks.ui.friends
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -34,10 +35,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topbooks.R
 import com.example.topbooks.ui.theme.*
-import com.example.topbooks.utils.AvatarHelper // Asegúrate de importar esto
+import com.example.topbooks.utils.AvatarHelper
 
 @Composable
 fun FriendsScreen(
+    onNavigateToProfile: (String) -> Unit, // <--- ÚNICO CAMBIO: Recibimos la navegación
     viewModel: FriendsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -85,7 +87,8 @@ fun FriendsScreen(
             SearchResultsList(
                 results = uiState.searchResults,
                 isSearching = uiState.isSearching,
-                onFriendAction = { user -> viewModel.toggleFriend(user) }
+                onFriendAction = { user -> viewModel.toggleFriend(user) },
+                onNavigateToProfile = onNavigateToProfile // Pasamos la navegación a la lista
             )
         } else {
             Column(
@@ -106,7 +109,9 @@ fun FriendsScreen(
                         items(uiState.myFriends) { user ->
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.width(75.dp)
+                                modifier = Modifier
+                                    .width(75.dp)
+                                    .clickable { onNavigateToProfile(user.uid) } // <--- CAMBIO: Clic en amigo
                             ) {
                                 UserAvatarItem(user.photoUrl)
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -133,7 +138,10 @@ fun FriendsScreen(
                 ) {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(uiState.sameTastes) { user ->
-                            UserAvatarItem(user.photoUrl)
+                            // Envolvemos en Box para hacer clickable sin romper diseño
+                            Box(modifier = Modifier.clickable { onNavigateToProfile(user.uid) }) {
+                                UserAvatarItem(user.photoUrl)
+                            }
                         }
                     }
                 }
@@ -146,7 +154,9 @@ fun FriendsScreen(
                 ) {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(uiState.recentInteractions) { interaction ->
-                            UserAvatarItem(interaction.userPhoto)
+                            Box(modifier = Modifier.clickable { onNavigateToProfile(interaction.userId) }) {
+                                UserAvatarItem(interaction.userPhoto)
+                            }
                         }
                     }
                 }
@@ -160,7 +170,8 @@ fun FriendsScreen(
 fun SearchResultsList(
     results: List<SocialUser>,
     isSearching: Boolean,
-    onFriendAction: (SocialUser) -> Unit
+    onFriendAction: (SocialUser) -> Unit,
+    onNavigateToProfile: (String) -> Unit // Nuevo parámetro
 ) {
     if (isSearching) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -176,6 +187,7 @@ fun SearchResultsList(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable { onNavigateToProfile(user.uid) } // <--- CAMBIO: Clic en resultado
                         .background(Color.White, RoundedCornerShape(12.dp))
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically

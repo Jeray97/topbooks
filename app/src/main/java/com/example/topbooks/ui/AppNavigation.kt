@@ -21,6 +21,7 @@ import com.example.topbooks.ui.category.CategoriesScreen
 import com.example.topbooks.ui.category.CategoryDetailScreen
 import com.example.topbooks.ui.config.ConfigScreen
 import com.example.topbooks.ui.config.ConfigViewModel
+import com.example.topbooks.ui.friends.FriendProfileScreen
 import com.example.topbooks.ui.friends.FriendsActivityScreen
 import com.example.topbooks.ui.home.RecommendedScreen
 import com.example.topbooks.ui.home.RecommendedSectionScreen
@@ -83,7 +84,6 @@ fun AppNavigation(
             })
         }
 
-        // --- PANTALLA PRINCIPAL ---
         composable("main") {
             MainScreen(
                 onNavigateToConfig = { navController.navigate("config") },
@@ -96,11 +96,31 @@ fun AppNavigation(
                 onNavigateToScanner = { navController.navigate("scanner") },
                 onNavigateToAllCategories = { navController.navigate("all_categories") },
                 onNavigateToRecommended = { navController.navigate("recommended_screen") },
-                // --- FIX: ESTA ES LA LÍNEA QUE FALTABA ---
-                onNavigateToFriendsActivity = { navController.navigate("friends_activity") }
+                onNavigateToFriendsActivity = { navController.navigate("friends_activity") },
+                onNavigateToFriendProfile = { userId -> navController.navigate("friend_profile/$userId") }
             )
         }
 
+        // --- PANTALLAS DE AMIGOS ---
+        composable("friends_activity") {
+            FriendsActivityScreen(
+                onBackClick = { navController.popBackStack() },
+                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") }
+            )
+        }
+
+        composable(
+            route = "friend_profile/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+            FriendProfileScreen(
+                userId = userId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // ... Resto de rutas ...
         composable("recommended_screen") {
             RecommendedScreen(
                 onBackClick = { navController.popBackStack() },
@@ -194,13 +214,6 @@ fun AppNavigation(
                         popUpTo("scanner") { inclusive = true }
                     }
                 }
-            )
-        }
-
-        composable("friends_activity") {
-            FriendsActivityScreen(
-                onBackClick = { navController.popBackStack() },
-                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") }
             )
         }
     }

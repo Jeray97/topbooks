@@ -5,6 +5,7 @@ import java.util.Date
 
 /**
  * Modelo de Usuario.
+ * Refleja los datos guardados en la colección "users" de Firestore.
  */
 data class User(
     val uid: String = "",
@@ -22,10 +23,13 @@ data class User(
 
     // Estadísticas
     val lastLogin: Date = Date(),
-    val reviewsCount: Int = 0,
-    val bookmarksCount: Int = 0,
-    val commentsCount: Int = 0,
-    val friendsCount: Int = 0,
+    val reviewsCount: Int = 0,    // Total de reseñas escritas
+    val bookmarksCount: Int = 0,  // Total de libros guardados/pendientes
+    val commentsCount: Int = 0,   // Total de comentarios en capítulos
+    val friendsCount: Int = 0,    // Total de amigos seguidos
+
+    // --- NUEVO CAMPO AÑADIDO ---
+    val booksCompleted: Int = 0,  // Total de libros marcados como "Leídos"
 
     // Fecha de creación (automática por Firestore)
     @ServerTimestamp
