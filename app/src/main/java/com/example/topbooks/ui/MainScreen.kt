@@ -33,7 +33,8 @@ fun MainScreen(
     onNavigateToCategory: (String, String) -> Unit,
     onNavigateToBookDetail: (String) -> Unit,
     onNavigateToScanner: () -> Unit,
-    onNavigateToAllCategories: () -> Unit
+    onNavigateToAllCategories: () -> Unit,
+    onNavigateToRecommended: () -> Unit
 ) {
     val bottomNavController = rememberNavController()
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
@@ -50,18 +51,17 @@ fun MainScreen(
     Scaffold(
         bottomBar = {
             NavigationBar(
-                containerColor = ColorArcMediumBrown, // Color de la barra café
-                tonalElevation = 0.dp // Quitamos elevación para que el color sea puro
+                containerColor = ColorArcMediumBrown,
+                tonalElevation = 0.dp
             ) {
                 items.forEach { item ->
                     val isSelected = currentRoute == item.route
 
                     NavigationBarItem(
                         icon = {
-                            // --- CÍRCULO BLANCO DE FONDO ---
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp) // Tamaño del círculo
+                                    .size(40.dp)
                                     .background(
                                         color = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f),
                                         shape = CircleShape
@@ -71,9 +71,7 @@ fun MainScreen(
                                 Icon(
                                     painter = painterResource(id = item.icon),
                                     contentDescription = stringResource(id = item.title),
-                                    // Ajustamos el tamaño del icono vectorial dentro del círculo
                                     modifier = Modifier.size(24.dp),
-                                    // El icono se verá café sobre el fondo blanco
                                     tint = ColorArcMediumBrown
                                 )
                             }
@@ -96,7 +94,6 @@ fun MainScreen(
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            // Ponemos el indicador transparente para que no choque con nuestro círculo
                             indicatorColor = Color.Transparent
                         )
                     )
@@ -114,7 +111,8 @@ fun MainScreen(
                     onCategoryClick = onNavigateToCategory,
                     onBookClick = onNavigateToBookDetail,
                     onScanClick = onNavigateToScanner,
-                    onSeeAllCategoriesClick = onNavigateToAllCategories
+                    onSeeAllCategoriesClick = onNavigateToAllCategories,
+                    onRecommendedClick = onNavigateToRecommended
                 )
             }
 
@@ -130,8 +128,9 @@ fun MainScreen(
 
             composable(BottomNavItem.Reviews.route) {
                 ReviewsScreen(
-                    onBackClick = { /* No hay back en la raíz */ },
-                    onBookClick = onNavigateToBookDetail
+                    onBackClick = { },
+                    onBookClick = onNavigateToBookDetail,
+                    //onScanClick = onNavigateToScanner
                 )
             }
 

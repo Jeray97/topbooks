@@ -19,11 +19,16 @@ val ColorBackGroundGeneral = Color(0xFFF6E6DD)
 val ColorBackGroundCategorySection = Color(0xFFB9836B)
 val ColorBackGroundRecommendedSection = Color(0xFFD9AD9A)
 val ColorBackGroundFavoritesSection = Color(0xFFCEB5A5)
-val ColorSectionBackground = Color(0xFFB29C91)
+
+val ColorRecommededPopularBooks = Color(0xFFEAAF9B)
+val ColorRecommendedTastesBooks = Color(0xFFD9B6A6)
+val ColorRecommendedFriendsBooks = Color(0xFFA66953)
+
+
+
 
 //CategoryDetail
 val ColorCategoryDetailContentBackgroundShape = Color(0xFFD9AD9A)
-val ColorTitleContentCategoryDetail = Color(0xFFDFC8BD)
 val ColorTitleCategoryDetail = Color(0xFF91604B)
 val ColorBackgorundComponente = Color(0xFFF6E6DD)
 
@@ -42,6 +47,5 @@ val ColorConditionOk = Color(0xFF74BA32)
 
 //Textos
 val ColorTextPrimary = Color(0xFF5D4037)
-val ColorWhiteTranslucent = Color(0x99FFFFFF)
 val ColorTituloTopBooks = Color(0xFF91604B)
 val ColorTituloCategoriaDetalle = Color(0xFF8E5D48)

@@ -15,7 +15,6 @@ import androidx.compose.ui.unit.sp
 import com.example.topbooks.ui.theme.ColorHeaderBeige
 import com.example.topbooks.ui.theme.ColorTextPrimary
 import com.example.topbooks.ui.theme.ColorTitleCategoryDetail
-import com.example.topbooks.ui.theme.ColorTitleContentCategoryDetail
 import com.example.topbooks.ui.theme.GuardianCity
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -6,6 +6,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -21,6 +22,8 @@ import com.example.topbooks.ui.category.CategoriesScreen
 import com.example.topbooks.ui.category.CategoryDetailScreen
 import com.example.topbooks.ui.config.ConfigScreen
 import com.example.topbooks.ui.config.ConfigViewModel
+import com.example.topbooks.ui.home.RecommendedScreen
+import com.example.topbooks.ui.home.RecommendedSectionScreen
 import com.example.topbooks.ui.scanner.QRScannerScreen
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
 import com.example.topbooks.ui.tutorial.TutorialScreen
@@ -32,7 +35,6 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
 
-    // 1. Guardián de carga: Esperamos a que Firebase nos diga el estado del tutorial
     if (authViewModel.isLoadingProfile) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = ColorArcMediumBrown)
@@ -40,7 +42,6 @@ fun AppNavigation(
         return
     }
 
-    // 2. Lógica de destino inicial
     val startDestination = when {
         authViewModel.currentUser == null -> "login"
         !authViewModel.isTutorialCompleted -> "tutorial"
@@ -49,7 +50,6 @@ fun AppNavigation(
 
     NavHost(navController = navController, startDestination = startDestination) {
 
-        // --- AUTENTICACIÓN ---
         composable("login") {
             LoginScreen(
                 viewModel = authViewModel,
@@ -66,7 +66,6 @@ fun AppNavigation(
             RegisterScreen(
                 viewModel = authViewModel,
                 onRegisterSuccess = {
-                    // Al registrarse, siempre vamos al tutorial
                     navController.navigate("tutorial") {
                         popUpTo("register") { inclusive = true }
                     }
@@ -77,7 +76,6 @@ fun AppNavigation(
 
         composable("tutorial") {
             TutorialScreen(onFinished = {
-                // Al terminar tutorial, actualizamos estado y vamos a Main
                 authViewModel.checkUserProfile()
                 navController.navigate("main") {
                     popUpTo("tutorial") { inclusive = true }
@@ -85,7 +83,7 @@ fun AppNavigation(
             })
         }
 
-        // --- PANTALLA PRINCIPAL (Bottom Navigation) ---
+        // --- PANTALLA PRINCIPAL ---
         composable("main") {
             MainScreen(
                 onNavigateToConfig = { navController.navigate("config") },
@@ -96,11 +94,45 @@ fun AppNavigation(
                     navController.navigate("book_detail/$bookId")
                 },
                 onNavigateToScanner = { navController.navigate("scanner") },
-                onNavigateToAllCategories = { navController.navigate("all_categories") }
+                onNavigateToAllCategories = { navController.navigate("all_categories") },
+                onNavigateToRecommended = { navController.navigate("recommended_screen") }
             )
         }
 
-        // --- DETALLE DE LIBRO ---
+        // --- PANTALLA RECOMENDADOS (Resumen) ---
+        composable("recommended_screen") {
+            RecommendedScreen(
+                onBackClick = { navController.popBackStack() },
+                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") },
+                onSectionClick = { type, genre, color ->
+                    // Convertimos el color a Int para pasarlo por la ruta
+                    navController.navigate("recommended_section/$type/$genre/$color")
+                }
+            )
+        }
+
+        // --- NUEVA PANTALLA: DETALLE DE SECCIÓN DE RECOMENDADOS ---
+        composable(
+            route = "recommended_section/{type}/{genre}/{color}",
+            arguments = listOf(
+                navArgument("type") { type = NavType.StringType },
+                navArgument("genre") { type = NavType.StringType },
+                navArgument("color") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val type = backStackEntry.arguments?.getString("type") ?: "POPULAR"
+            val genre = backStackEntry.arguments?.getString("genre") ?: "General"
+            val color = backStackEntry.arguments?.getInt("color") ?: 0xFF000000.toInt()
+
+            RecommendedSectionScreen(
+                sectionType = type,
+                genre = genre,
+                colorArgb = color,
+                onBackClick = { navController.popBackStack() },
+                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") }
+            )
+        }
+
         composable(
             route = "book_detail/{bookId}",
             arguments = listOf(navArgument("bookId") { type = NavType.StringType })
@@ -112,7 +144,6 @@ fun AppNavigation(
             )
         }
 
-        // --- DETALLE DE CATEGORÍA ---
         composable(
             route = "category_detail/{categoryName}/{query}",
             arguments = listOf(
@@ -132,7 +163,6 @@ fun AppNavigation(
             )
         }
 
-        // --- TODAS LAS CATEGORÍAS ---
         composable("all_categories") {
             CategoriesScreen(
                 onBackClick = { navController.popBackStack() },
@@ -144,11 +174,8 @@ fun AppNavigation(
             )
         }
 
-        // --- CONFIGURACIÓN ---
         composable("config") {
-            // Creamos el ViewModel con la Factory para pasarle el SettingsManager
             val viewModel: ConfigViewModel = viewModel(factory = ConfigViewModel.Factory(settingsManager))
-
             ConfigScreen(
                 viewModel = viewModel,
                 onLogoutSuccess = {
@@ -161,11 +188,9 @@ fun AppNavigation(
             )
         }
 
-        // --- ESCÁNER QR ---
         composable("scanner") {
             QRScannerScreen(
                 onBookFound = { bookId ->
-                    // Usamos popUpTo para que al volver atrás desde el detalle no vuelva a la cámara inmediatamente
                     navController.navigate("book_detail/$bookId") {
                         popUpTo("scanner") { inclusive = true }
                     }
