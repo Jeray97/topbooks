@@ -6,7 +6,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -22,6 +21,7 @@ import com.example.topbooks.ui.category.CategoriesScreen
 import com.example.topbooks.ui.category.CategoryDetailScreen
 import com.example.topbooks.ui.config.ConfigScreen
 import com.example.topbooks.ui.config.ConfigViewModel
+import com.example.topbooks.ui.friends.FriendsActivityScreen
 import com.example.topbooks.ui.home.RecommendedScreen
 import com.example.topbooks.ui.home.RecommendedSectionScreen
 import com.example.topbooks.ui.scanner.QRScannerScreen
@@ -95,23 +95,22 @@ fun AppNavigation(
                 },
                 onNavigateToScanner = { navController.navigate("scanner") },
                 onNavigateToAllCategories = { navController.navigate("all_categories") },
-                onNavigateToRecommended = { navController.navigate("recommended_screen") }
+                onNavigateToRecommended = { navController.navigate("recommended_screen") },
+                // --- FIX: ESTA ES LA LÍNEA QUE FALTABA ---
+                onNavigateToFriendsActivity = { navController.navigate("friends_activity") }
             )
         }
 
-        // --- PANTALLA RECOMENDADOS (Resumen) ---
         composable("recommended_screen") {
             RecommendedScreen(
                 onBackClick = { navController.popBackStack() },
                 onBookClick = { bookId -> navController.navigate("book_detail/$bookId") },
                 onSectionClick = { type, genre, color ->
-                    // Convertimos el color a Int para pasarlo por la ruta
                     navController.navigate("recommended_section/$type/$genre/$color")
                 }
             )
         }
 
-        // --- NUEVA PANTALLA: DETALLE DE SECCIÓN DE RECOMENDADOS ---
         composable(
             route = "recommended_section/{type}/{genre}/{color}",
             arguments = listOf(
@@ -195,6 +194,13 @@ fun AppNavigation(
                         popUpTo("scanner") { inclusive = true }
                     }
                 }
+            )
+        }
+
+        composable("friends_activity") {
+            FriendsActivityScreen(
+                onBackClick = { navController.popBackStack() },
+                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") }
             )
         }
     }

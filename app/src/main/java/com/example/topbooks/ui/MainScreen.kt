@@ -34,7 +34,8 @@ fun MainScreen(
     onNavigateToBookDetail: (String) -> Unit,
     onNavigateToScanner: () -> Unit,
     onNavigateToAllCategories: () -> Unit,
-    onNavigateToRecommended: () -> Unit
+    onNavigateToRecommended: () -> Unit,
+    onNavigateToFriendsActivity: () -> Unit
 ) {
     val bottomNavController = rememberNavController()
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
@@ -112,7 +113,8 @@ fun MainScreen(
                     onBookClick = onNavigateToBookDetail,
                     onScanClick = onNavigateToScanner,
                     onSeeAllCategoriesClick = onNavigateToAllCategories,
-                    onRecommendedClick = onNavigateToRecommended
+                    onRecommendedClick = onNavigateToRecommended,
+                    onFriendsActivityClick = onNavigateToFriendsActivity
                 )
             }
 

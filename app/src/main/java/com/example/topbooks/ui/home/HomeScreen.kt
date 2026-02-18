@@ -19,22 +19,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
 import com.example.topbooks.R
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.ui.components.BookItem
 import com.example.topbooks.ui.components.SearchBarCustom
 import com.example.topbooks.ui.theme.*
-import com.example.topbooks.utils.AvatarHelper
 import com.example.topbooks.utils.Resource
 
 @Composable
@@ -44,7 +39,8 @@ fun HomeScreen(
     onBookClick: (String) -> Unit,
     onScanClick: () -> Unit,
     onSeeAllCategoriesClick: () -> Unit,
-    onRecommendedClick: () -> Unit
+    onRecommendedClick: () -> Unit,
+    onFriendsActivityClick: () -> Unit // NUEVO PARÁMETRO
 ) {
     val recommendedState by viewModel.recommendedBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
@@ -99,30 +95,33 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. SECCIÓN FAVORITOS DE TUS AMIGOS (Actualizado)
+            // 3. SECCIÓN FAVORITOS DE TUS AMIGOS
             SectionContainer(
                 title = stringResource(id = R.string.section_friends_favorites),
                 backgroundColor = ColorBackGroundFavoritesSection,
-                onArrowClick = { /* Futuro */ }
+                // AQUÍ CONECTAMOS LA NAVEGACIÓN
+                onArrowClick = onFriendsActivityClick
             ) {
                 when (val state = friendsState) {
                     is Resource.Success -> {
                         if (state.data.isEmpty()) {
                             EmptyFriendsMessage()
                         } else {
-                            // Usamos el nuevo componente de lista para amigos
-                            FriendsRecommendationRow(
-                                recommendations = state.data,
-                                onBookClick = onBookClick
-                            )
+                            // CORRECCIÓN DE TIPO: Extraemos el libro del objeto FriendBookRecommendation
+                            // para pasárselo a tu componente visual original que espera List<Book>
+                            val books = state.data.map { it.book }
+
+                            BookListRowContent(books = books, onBookClick = onBookClick)
                         }
                     }
                     is Resource.Loading -> {
-                        Box(Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
+                        Box(modifier = Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(color = Color.White)
                         }
                     }
-                    is Resource.Error -> EmptyFriendsMessage()
+                    is Resource.Error -> {
+                        EmptyFriendsMessage()
+                    }
                     else -> {}
                 }
             }
@@ -132,104 +131,66 @@ fun HomeScreen(
     }
 }
 
-// --- NUEVO COMPONENTE: LISTA DE RECOMENDACIONES DE AMIGOS ---
-@Composable
-fun FriendsRecommendationRow(
-    recommendations: List<FriendBookRecommendation>,
-    onBookClick: (String) -> Unit
-) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp)
-    ) {
-        items(recommendations) { item ->
-            Column(
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier.width(120.dp) // Ancho fijo para alinear
-            ) {
-                // 1. El libro normal
-                BookItem(book = item.book, onClick = { onBookClick(item.book.id) })
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // 2. La info del amigo debajo
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 2.dp)
-                ) {
-                    // Avatar pequeño
-                    val avatarModifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color.White)
-
-                    if (item.friendPhotoUrl.startsWith("http")) {
-                        AsyncImage(
-                            model = item.friendPhotoUrl,
-                            contentDescription = null,
-                            modifier = avatarModifier,
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Image(
-                            painter = painterResource(id = AvatarHelper.getDrawableId(item.friendPhotoUrl)),
-                            contentDescription = null,
-                            modifier = avatarModifier,
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    // Nombre del amigo
-                    Text(
-                        text = item.friendName.split(" ").first(), // Solo primer nombre
-                        fontSize = 10.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
-    }
-}
-
-// --- RESTO DE COMPONENTES AUXILIARES (Sin cambios) ---
+// --- COMPONENTES AUXILIARES ---
 
 @Composable
 fun EmptyFriendsMessage() {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Image(
             painter = painterResource(id = R.drawable.social),
             contentDescription = null,
-            modifier = Modifier.size(60.dp).padding(bottom = 8.dp),
+            modifier = Modifier
+                .size(60.dp)
+                .padding(bottom = 8.dp),
             colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.5f))
         )
-        Text("No se han encontrado amigos", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, fontWeight = FontWeight.Medium, fontFamily = CenturyGotic)
-        Text("Añade amigos para ver sus libros favoritos", color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp, fontFamily = CenturyGotic)
+        Text(
+            text = "No se han encontrado amigos",
+            color = Color.White.copy(alpha = 0.8f),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            fontFamily = CenturyGotic
+        )
+        Text(
+            text = "Añade amigos para ver sus libros favoritos",
+            color = Color.White.copy(alpha = 0.6f),
+            fontSize = 10.sp,
+            fontFamily = CenturyGotic
+        )
     }
 }
 
 @Composable
 fun BookListRowContent(books: List<Book>, onBookClick: (String) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(horizontal = 4.dp)) {
-        items(books) { book -> BookItem(book = book, onClick = { onBookClick(book.id) }) }
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp)
+    ) {
+        items(books) { book ->
+            BookItem(book = book, onClick = { onBookClick(book.id) })
+        }
     }
 }
 
 @Composable
-fun BookListRow(resource: Resource<List<Book>>, onBookClick: (String) -> Unit) {
+fun BookListRow(
+    resource: Resource<List<Book>>,
+    onBookClick: (String) -> Unit
+) {
     when (resource) {
         is Resource.Loading -> BookPlaceholderRow()
         is Resource.Success -> {
-            if (resource.data.isEmpty()) Text("No se encontraron libros.", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
-            else BookListRowContent(resource.data, onBookClick)
+            if (resource.data.isEmpty()) {
+                Text("No se encontraron libros.", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
+            } else {
+                BookListRowContent(resource.data, onBookClick)
+            }
         }
         is Resource.Error -> Text("Error cargando", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
         else -> {}
@@ -237,13 +198,38 @@ fun BookListRow(resource: Resource<List<Book>>, onBookClick: (String) -> Unit) {
 }
 
 @Composable
-fun SectionContainer(title: String, backgroundColor: Color, onArrowClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = backgroundColor), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+fun SectionContainer(
+    title: String,
+    backgroundColor: Color,
+    onArrowClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(text = title, fontFamily = CenturyGotic, color = Color.White, fontSize = 20.sp)
-                IconButton(onClick = { onArrowClick?.invoke() }, enabled = onArrowClick != null) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = if (onArrowClick != null) Color.White else Color.Transparent)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    fontFamily = CenturyGotic,
+                    color = Color.White,
+                    fontSize = 20.sp
+                )
+                IconButton(
+                    onClick = { onArrowClick?.invoke() },
+                    enabled = onArrowClick != null
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = if (onArrowClick != null) Color.White else Color.Transparent
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -253,24 +239,44 @@ fun SectionContainer(title: String, backgroundColor: Color, onArrowClick: (() ->
 }
 
 @Composable
-fun CategoryRow(onCategoryClick: (String, String) -> Unit) {
+fun CategoryRow(
+    onCategoryClick: (String, String) -> Unit
+) {
     val categories = listOf(
         Triple(R.string.cat_romance_text, R.drawable.cat_romance_icon, R.string.cat_romance_text),
         Triple(R.string.cat_misterio_text, R.drawable.cat_misterio_icon, R.string.cat_misterio_text),
         Triple(R.string.cat_horror_text, R.drawable.cat_horror_icon, R.string.cat_horror_text),
         Triple(R.string.cat_fantasia_text, R.drawable.cat_fantasia_icon, R.string.cat_fantasia_text)
     )
+
     LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         items(categories) { (nameRes, iconResId, queryRes) ->
             val categoryName = stringResource(id = nameRes)
             val apiQuery = stringResource(id = queryRes)
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onCategoryClick(categoryName, apiQuery) }) {
-                Box(modifier = Modifier.size(70.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
-                    Icon(painter = painterResource(id = iconResId), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(48.dp))
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable { onCategoryClick(categoryName, apiQuery) }
+            ) {
+                Box(
+                    modifier = Modifier.size(70.dp).clip(CircleShape).background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = iconResId),
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(48.dp)
+                    )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Surface(color = Color.White, shape = RoundedCornerShape(12.dp)) {
-                    Text(text = categoryName, fontSize = 12.sp, color = ColorBackGroundCategorySection, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+                    Text(
+                        text = categoryName,
+                        fontSize = 12.sp,
+                        color = ColorBackGroundCategorySection,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
                 }
             }
         }
@@ -280,6 +286,10 @@ fun CategoryRow(onCategoryClick: (String, String) -> Unit) {
 @Composable
 fun BookPlaceholderRow() {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        items(5) { Box(modifier = Modifier.size(90.dp).height(130.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.5f))) }
+        items(5) {
+            Box(
+                modifier = Modifier.size(90.dp).height(130.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.5f))
+            )
+        }
     }
 }
