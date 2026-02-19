@@ -35,8 +35,6 @@ data class FriendActivityItem(
     val timestamp: Date?
 )
 
-enum class ActivityType { REVIEW, COMMENT, FAVORITE }
-
 class FriendsActivityViewModel(
     private val repository: BooksRepository = BooksRepository()
 ) : ViewModel() {

@@ -128,15 +128,16 @@ fun MainScreen(
 
             composable(BottomNavItem.Friends.route) {
                 FriendsScreen(
-                    onNavigateToProfile = onNavigateToFriendProfile
+                    onNavigateToProfile = onNavigateToFriendProfile,
+                    // SOLUCION: Añadimos la navegación aquí sin tocar tu diseño
+                    onNavigateToActivity = onNavigateToFriendsActivity
                 )
             }
 
             composable(BottomNavItem.Reviews.route) {
                 ReviewsScreen(
                     onBackClick = { },
-                    onBookClick = onNavigateToBookDetail,
-                    //onScanClick = onNavigateToScanner
+                    onBookClick = onNavigateToBookDetail
                 )
             }
 

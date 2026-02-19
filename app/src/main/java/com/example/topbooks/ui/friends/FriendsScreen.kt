@@ -26,9 +26,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -39,7 +42,8 @@ import com.example.topbooks.utils.AvatarHelper
 
 @Composable
 fun FriendsScreen(
-    onNavigateToProfile: (String) -> Unit, // <--- ÚNICO CAMBIO: Recibimos la navegación
+    onNavigateToProfile: (String) -> Unit,
+    onNavigateToActivity: () -> Unit, // <--- NUEVO PARÁMETRO
     viewModel: FriendsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -88,7 +92,7 @@ fun FriendsScreen(
                 results = uiState.searchResults,
                 isSearching = uiState.isSearching,
                 onFriendAction = { user -> viewModel.toggleFriend(user) },
-                onNavigateToProfile = onNavigateToProfile // Pasamos la navegación a la lista
+                onNavigateToProfile = onNavigateToProfile
             )
         } else {
             Column(
@@ -111,7 +115,7 @@ fun FriendsScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
                                     .width(75.dp)
-                                    .clickable { onNavigateToProfile(user.uid) } // <--- CAMBIO: Clic en amigo
+                                    .clickable { onNavigateToProfile(user.uid) }
                             ) {
                                 UserAvatarItem(user.photoUrl)
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -131,16 +135,34 @@ fun FriendsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Otras secciones...
+                // Con tus mismos gustos
                 SocialSection(
                     title = "Con tus mismos gustos",
-                    isEmpty = uiState.sameTastes.isEmpty()
+                    isEmpty = uiState.sameTastes.isEmpty(),
+                    emptyMessage = "No hay sugerencias por ahora"
                 ) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
                         items(uiState.sameTastes) { user ->
-                            // Envolvemos en Box para hacer clickable sin romper diseño
-                            Box(modifier = Modifier.clickable { onNavigateToProfile(user.uid) }) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .width(75.dp)
+                                    .clickable { onNavigateToProfile(user.uid) }
+                            ) {
                                 UserAvatarItem(user.photoUrl)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = user.displayName,
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                         }
                     }
@@ -148,19 +170,24 @@ fun FriendsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // --- INTERACCIONES RECIENTES ---
+                // Aquí usamos el nuevo callback onNavigateToActivity al hacer clic en el item
                 SocialSection(
                     title = "Interacciones recientes",
-                    isEmpty = uiState.recentInteractions.isEmpty()
+                    isEmpty = uiState.recentInteractions.isEmpty(),
+                    emptyMessage = "Añade amigos para ver su actividad"
                 ) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(uiState.recentInteractions) { interaction ->
-                            Box(modifier = Modifier.clickable { onNavigateToProfile(interaction.userId) }) {
-                                UserAvatarItem(interaction.userPhoto)
-                            }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        uiState.recentInteractions.forEach { interaction ->
+                            InteractionItem(
+                                interaction = interaction,
+                                onClick = onNavigateToActivity // <--- AL HACER CLIC, VAMOS A LA ACTIVIDAD
+                            )
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(32.dp))
+
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }
@@ -171,7 +198,7 @@ fun SearchResultsList(
     results: List<SocialUser>,
     isSearching: Boolean,
     onFriendAction: (SocialUser) -> Unit,
-    onNavigateToProfile: (String) -> Unit // Nuevo parámetro
+    onNavigateToProfile: (String) -> Unit
 ) {
     if (isSearching) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -187,7 +214,7 @@ fun SearchResultsList(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onNavigateToProfile(user.uid) } // <--- CAMBIO: Clic en resultado
+                        .clickable { onNavigateToProfile(user.uid) }
                         .background(Color.White, RoundedCornerShape(12.dp))
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -239,10 +266,10 @@ fun SocialSection(
 
             if (isEmpty) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(80.dp),
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(emptyMessage, color = Color.White.copy(alpha = 0.7f))
+                    Text(emptyMessage, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
                 }
             } else {
                 content()
@@ -251,16 +278,55 @@ fun SocialSection(
     }
 }
 
+// Actualizado para ser genérico: recibe onClick () -> Unit
 @Composable
-fun UserAvatarItem(photoUrl: String) {
+fun InteractionItem(interaction: Interaction, onClick: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() } // Ejecuta la navegación general
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            // Avatar pequeño
+            UserAvatarItem(photoUrl = interaction.userPhoto, size = 40.dp)
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Texto formateado: "Nombre accion Libro"
+            val text = buildAnnotatedString {
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)) {
+                    append(interaction.userName)
+                }
+                append(" ${interaction.actionText} ")
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFFB9836B))) {
+                    append(interaction.bookTitle)
+                }
+            }
+
+            Text(
+                text = text,
+                fontSize = 13.sp,
+                color = Color.DarkGray,
+                lineHeight = 16.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun UserAvatarItem(photoUrl: String, size: androidx.compose.ui.unit.Dp = 70.dp) {
     val imageModifier = Modifier
-        .size(70.dp)
+        .size(size)
         .clip(CircleShape)
         .background(Color.White)
         .padding(2.dp)
         .clip(CircleShape)
 
-    //Detectamos si es URL web o nombre de recurso local
     if (photoUrl.startsWith("http")) {
         AsyncImage(
             model = photoUrl,

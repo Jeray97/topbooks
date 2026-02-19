@@ -28,6 +28,7 @@ import com.example.topbooks.ui.home.RecommendedSectionScreen
 import com.example.topbooks.ui.scanner.QRScannerScreen
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
 import com.example.topbooks.ui.tutorial.TutorialScreen
+import com.example.topbooks.ui.friends.SocialActivityScreen
 
 @Composable
 fun AppNavigation(
@@ -103,7 +104,7 @@ fun AppNavigation(
 
         // --- PANTALLAS DE AMIGOS ---
         composable("friends_activity") {
-            FriendsActivityScreen(
+            SocialActivityScreen(
                 onBackClick = { navController.popBackStack() },
                 onBookClick = { bookId -> navController.navigate("book_detail/$bookId") }
             )
