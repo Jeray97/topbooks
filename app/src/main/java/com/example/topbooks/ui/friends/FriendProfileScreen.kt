@@ -41,7 +41,6 @@ import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.model.Review
 import com.example.topbooks.data.model.User
 import com.example.topbooks.ui.components.TopBar
-// import com.example.topbooks.ui.profile.DashboardCard // Usamos versión local para asegurar estilo
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.AvatarHelper
 import com.example.topbooks.utils.Resource
@@ -51,7 +50,6 @@ import java.util.Locale
 fun FriendProfileScreen(
     userId: String,
     onBackClick: () -> Unit,
-    // Callback opcional para navegar al libro si tocas una portada
     onBookClick: (String) -> Unit = {},
     viewModel: FriendProfileViewModel = viewModel()
 ) {
@@ -64,8 +62,8 @@ fun FriendProfileScreen(
     }
 
     Scaffold(
-        // FONDO OSCURO: Igual que en ProfileScreen
-        containerColor = ColorArcDarkBrown,
+        // CORRECCIÓN: Usamos ColorBackGroundGeneral para que la App sea igual al Preview
+        containerColor = ColorBackGroundGeneral,
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { paddingValues ->
         Box(
@@ -84,7 +82,7 @@ fun FriendProfileScreen(
                     Text(
                         text = "No se pudo cargar el perfil",
                         modifier = Modifier.align(Alignment.Center),
-                        color = Color.White
+                        color = ColorArcDarkBrown
                     )
                 }
                 is Resource.Success -> {
@@ -104,14 +102,14 @@ fun FriendProfileScreen(
 @Composable
 fun FriendProfileContent(
     user: User,
-    favoriteBooks: List<Book>, // Recibimos libros
-    reviews: List<Review>,     // Recibimos reseñas
+    favoriteBooks: List<Book>,
+    reviews: List<Review>,
     onBookClick: (String) -> Unit = {}
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()) // Scroll vertical habilitado
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -155,7 +153,6 @@ fun FriendProfileContent(
         // --- BIO ---
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            // Usamos la bio del usuario si existe, si no el texto por defecto
             text = if (user.bio.isNotEmpty()) user.bio else "Amante de la lectura y el café.",
             fontFamily = GuardianCity,
             fontSize = 14.sp,
@@ -182,7 +179,8 @@ fun FriendProfileContent(
         // --- TARJETA DE GUSTOS ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.6f)),
+            // Un toque de transparencia sobre el fondo beige
+            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.5f)),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -211,16 +209,13 @@ fun FriendProfileContent(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- GRID 2X2 (Estilo ProfileScreen) ---
+        // --- GRID 2X2 (Fondo Blanco en las tarjetas internas) ---
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            // COLUMNA IZQUIERDA
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
-                // 1. Sus Favoritos
                 FriendDashboardCard("Sus favoritos") {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (favoriteBooks.isEmpty()) {
-                            Image(painterResource(R.drawable.cat_resenas_icon), null, Modifier.size(30.dp, 45.dp), alpha = 0.5f)
+                            Image(painterResource(R.drawable.cat_resenas_icon), null, Modifier.size(30.dp, 45.dp), alpha = 0.3f)
                         } else {
                             favoriteBooks.take(3).forEach { book ->
                                 AsyncImage(
@@ -237,26 +232,21 @@ fun FriendProfileContent(
                     }
                 }
 
-                // 2. Sus Marcadores (Simulado visualmente)
                 FriendDashboardCard("Sus marcadores") {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(Icons.Default.Favorite, null, tint = Color.Gray)
+                        Icon(Icons.Default.Favorite, null, tint = Color.LightGray)
                         Icon(Icons.Default.Favorite, null, tint = Color(0xFFFFD54F))
-                        Icon(Icons.Default.Favorite, null, tint = Color.Gray)
+                        Icon(Icons.Default.Favorite, null, tint = Color.LightGray)
                     }
                 }
             }
 
-            // COLUMNA DERECHA
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
-                // 3. Sus Reseñas
                 FriendDashboardCard("Sus reseñas") {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (reviews.isEmpty()) {
-                            Icon(Icons.Default.Star, null, tint = Color.Gray)
+                            Icon(Icons.Default.Star, null, tint = Color.LightGray)
                         } else {
-                            // Mostramos hasta 3 estrellas doradas
                             repeat(minOf(reviews.size, 3)) {
                                 Icon(Icons.Default.Star, null, tint = Color(0xFFFFD54F))
                             }
@@ -264,7 +254,6 @@ fun FriendProfileContent(
                     }
                 }
 
-                // 4. Sus Comentarios
                 FriendDashboardCard("Sus comentarios") {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("${user.commentsCount}", fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontSize = 18.sp)
@@ -274,17 +263,16 @@ fun FriendProfileContent(
             }
         }
 
-        // Espacio extra al final para el scroll
         Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
-// --- COMPONENTE LOCAL PARA EL GRID ---
 @Composable
 fun FriendDashboardCard(title: String, iconContent: @Composable () -> Unit) {
     Surface(
-        color = Color.White, // <--- CAMBIO: FONDO BLANCO COMO PEDISTE
+        color = Color.White, // Fondo blanco puro para resaltar sobre el beige
         shape = RoundedCornerShape(12.dp),
+        shadowElevation = 2.dp,
         modifier = Modifier.fillMaxWidth().height(95.dp)
     ) {
         Column(
@@ -310,14 +298,12 @@ fun FriendDashboardCard(title: String, iconContent: @Composable () -> Unit) {
 
 @Composable
 fun GenreItem(genreCode: String) {
-    // 1. Obtenemos los recursos basados en el CÓDIGO (Ej: "FANTASY")
     val (iconRes, nameRes) = getCategoryResources(genreCode)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(60.dp)
     ) {
-        // ICONO
         Box(
             modifier = Modifier
                 .size(50.dp)
@@ -336,7 +322,6 @@ fun GenreItem(genreCode: String) {
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // TEXTO: Si encontramos traducción, la usamos. Si no, mostramos el código original formateado.
         Text(
             text = if (nameRes != null) stringResource(id = nameRes) else formatFallbackName(genreCode),
             fontSize = 11.sp,
@@ -350,7 +335,6 @@ fun GenreItem(genreCode: String) {
 }
 
 fun getCategoryResources(code: String): Pair<Int, Int?> {
-    // Normalizamos a mayúsculas para evitar errores (ej: "Fantasy" -> "FANTASY")
     return when (code.uppercase(Locale.ROOT).trim()) {
         "HISTORY", "HISTORIA" -> Pair(R.drawable.cat_historia_icon, R.string.cat_historia_text)
         "FANTASY", "FANTASIA" -> Pair(R.drawable.cat_fantasia_icon, R.string.cat_fantasia_text)
@@ -358,21 +342,16 @@ fun getCategoryResources(code: String): Pair<Int, Int?> {
         "ROMANCE" -> Pair(R.drawable.cat_romance_icon, R.string.cat_romance_text)
         "MYSTERY", "MISTERIO" -> Pair(R.drawable.cat_misterio_icon, R.string.cat_misterio_text)
         "MANGA" -> Pair(R.drawable.cat_manga_icon, R.string.cat_manga_text)
-        "FANTASY", "FANTASIA" -> Pair(R.drawable.cat_fantasia_icon, R.string.cat_fantasia_text)
         "KIDS", "INFANTIL" -> Pair(R.drawable.cat_infantil_icon, R.string.cat_infantil_text)
         "PHILOSOPHY", "FILOSOFIA" -> Pair(R.drawable.cat_filosofia_icon, R.string.cat_filosofia_text)
         "POETRY", "POESIA" -> Pair(R.drawable.cat_poesia_icon, R.string.cat_poesia_text)
         "GRAPHIC_NOVEL", "NOVELA_GRAFICA" -> Pair(R.drawable.cat_novela_grafica_icon, R.string.cat_novela_grafica_text)
         "ADVENTURE", "AVENTURAS" -> Pair(R.drawable.cat_aventura_icon, R.string.cat_aventura_text)
-        "SCIFI", "CIENCIA_FICCION" -> Pair(R.drawable.cat_ciencia_ficcion_icon, R.string.cat_ciencia_ficcion_text)
         "RELIGION" -> Pair(R.drawable.cat_religion_icon, R.string.cat_religion_text)
-
-        // Fallback: Si llega un código nuevo que no conocemos
         else -> Pair(R.drawable.home_icon, null)
     }
 }
 
-// Función auxiliar para que si falla el mapeo, no se vea "CATEGORY_UNKNOWN" sino "Category Unknown"
 fun formatFallbackName(code: String): String {
     return code.lowercase()
         .replace("_", " ")
@@ -405,8 +384,7 @@ fun FriendProfileScreenPreview() {
         friendsCount = 42,
         reviewsCount = 12,
         booksCompleted = 7,
-        // Simulamos que la DB devuelve CÓDIGOS
-        favoriteGenres = listOf("FANTASY", "SCIFI", "HISTORY", "MANGA", "HORROR", "RELIGION")
+        favoriteGenres = listOf("FANTASY", "SCIFI", "HISTORY", "MANGA")
     )
 
     Scaffold(
