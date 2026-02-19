@@ -22,13 +22,13 @@ import com.example.topbooks.ui.category.CategoryDetailScreen
 import com.example.topbooks.ui.config.ConfigScreen
 import com.example.topbooks.ui.config.ConfigViewModel
 import com.example.topbooks.ui.friends.FriendProfileScreen
-import com.example.topbooks.ui.friends.FriendsActivityScreen
+import com.example.topbooks.ui.friends.SocialActivityScreen
 import com.example.topbooks.ui.home.RecommendedScreen
 import com.example.topbooks.ui.home.RecommendedSectionScreen
 import com.example.topbooks.ui.scanner.QRScannerScreen
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
 import com.example.topbooks.ui.tutorial.TutorialScreen
-import com.example.topbooks.ui.friends.SocialActivityScreen
+import com.example.topbooks.ui.reviews.ReviewsScreen
 
 @Composable
 fun AppNavigation(
@@ -97,16 +97,40 @@ fun AppNavigation(
                 onNavigateToScanner = { navController.navigate("scanner") },
                 onNavigateToAllCategories = { navController.navigate("all_categories") },
                 onNavigateToRecommended = { navController.navigate("recommended_screen") },
-                onNavigateToFriendsActivity = { navController.navigate("friends_activity") },
+                onNavigateToFriendsActivity = { navController.navigate("social_activity") },
                 onNavigateToFriendProfile = { userId -> navController.navigate("friend_profile/$userId") }
             )
         }
 
-        // --- PANTALLAS DE AMIGOS ---
-        composable("friends_activity") {
+        // --- RUTA DEL HILO (CORREGIDA: Ya no está vacía) ---
+        composable(
+            route = "reviews_thread/{bookId}/{commentId}",
+            arguments = listOf(
+                navArgument("bookId") { type = NavType.StringType },
+                navArgument("commentId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
+            val commentId = backStackEntry.arguments?.getString("commentId") ?: ""
+
+            // Inyectamos el ID del libro y del comentario para que la pantalla sepa qué mostrar
+            ReviewsScreen(
+                onBackClick = { navController.popBackStack() },
+                onBookClick = { id -> navController.navigate("book_detail/$id") },
+                bookId = bookId,
+                targetCommentId = commentId
+            )
+        }
+
+        composable("social_activity") {
             SocialActivityScreen(
                 onBackClick = { navController.popBackStack() },
-                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") }
+                onBookClick = { bookId: String ->
+                    navController.navigate("book_detail/$bookId")
+                },
+                onCommentClick = { bookId: String, commentId: String ->
+                    navController.navigate("reviews_thread/$bookId/$commentId")
+                }
             )
         }
 
@@ -121,7 +145,6 @@ fun AppNavigation(
             )
         }
 
-        // ... Resto de rutas ...
         composable("recommended_screen") {
             RecommendedScreen(
                 onBackClick = { navController.popBackStack() },

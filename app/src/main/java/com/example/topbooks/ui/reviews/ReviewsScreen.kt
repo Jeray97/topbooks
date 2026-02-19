@@ -31,45 +31,52 @@ import com.example.topbooks.utils.AvatarHelper
 fun ReviewsScreen(
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
-    viewModel: ReviewsViewModel = viewModel()
+    viewModel: ReviewsViewModel = viewModel(),
+    bookId: String? = null,         // <--- NUEVO
+    targetCommentId: String? = null // <--- NUEVO
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = R.drawable.reviews_background),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
+    // Si recibimos un bookId, cargamos ese libro específico nada más
+    LaunchedEffect(bookId) {
+        viewModel.loadSocialFeed(bookId, targetCommentId)
+    }
 
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = { TopBar(onBackClick = onBackClick) }
-        ) { padding ->
-            Column(modifier = Modifier.padding(padding).padding(horizontal = 16.dp)) {
+    Scaffold(
+        containerColor = ColorBackGroundGeneral,
+        topBar = { TopBar(onBackClick = onBackClick) }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
                 Text(
-                    text = "Interacciones por capítulos",
+                    text = if (bookId != null) "Hilo de conversación" else "Actividad de la Comunidad",
                     fontFamily = CenturyGotic,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ColorTituloTopBooks,
-                    modifier = Modifier.padding(vertical = 16.dp)
+                    fontSize = 24.sp,
+                    color = ColorArcMediumBrown,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
+            }
 
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
-                    contentPadding = PaddingValues(bottom = 80.dp)
-                ) {
-                    items(state.friendsReviews) { comment ->
-                        ChatStyleReviewCard(comment, onBookClick, onReply = { id, txt -> viewModel.postReply(id, txt) })
-                    }
-                    if (state.communityReviews.isNotEmpty()) {
-                        item { Text("Comunidad", color = ColorArcDarkBrown, fontWeight = FontWeight.Bold) }
-                        items(state.communityReviews) { comment ->
-                            ChatStyleReviewCard(comment, onBookClick, onReply = { id, txt -> viewModel.postReply(id, txt) })
-                        }
-                    }
+            if (state.isLoading) {
+                item { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = ColorArcMediumBrown) } }
+            } else {
+                // Mostramos las reseñas/comentarios mezclados
+                val allReviews = state.friendsReviews + state.communityReviews
+
+                items(allReviews.distinctBy { it.commentId }) { comment ->
+                    // Si este comentario es el objetivo del Deep Link, podemos darle un borde o color diferente
+                    val isHighlighted = comment.commentId == targetCommentId
+
+                    ReviewItem(
+                        comment = comment,
+                        onBookClick = { onBookClick(comment.bookId) },
+                        onReply = { text -> viewModel.addReply(comment.commentId, text) },
+                        isHighlighted = isHighlighted
+                    )
                 }
             }
         }
@@ -77,68 +84,58 @@ fun ReviewsScreen(
 }
 
 @Composable
-fun ChatStyleReviewCard(comment: Comment, onBookClick: (String) -> Unit, onReply: (String, String) -> Unit) {
+fun ReviewItem(
+    comment: Comment,
+    onBookClick: () -> Unit,
+    onReply: (String) -> Unit,
+    isHighlighted: Boolean = false
+) {
     var showReplyDialog by remember { mutableStateOf(false) }
 
     if (showReplyDialog) {
-        ReplyDialog(onDismiss = { showReplyDialog = false }, onConfirm = { onReply(comment.commentId, it) })
+        ReplyDialog(onDismiss = { showReplyDialog = false }, onConfirm = onReply)
     }
 
-    Row(modifier = Modifier.fillMaxWidth()) {
-        // Columna del Avatar Principal
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(70.dp)) {
-            Surface(color = Color.White, shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(bottom = 4.dp)) {
-                Text(comment.userName.split(" ").firstOrNull() ?: "", fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
-            }
-            Image(
-                painter = painterResource(AvatarHelper.getDrawableId(comment.userPhotoUrl)),
-                contentDescription = null,
-                modifier = Modifier.size(60.dp).clip(CircleShape).border(2.dp, Color.White, CircleShape),
-                contentScale = ContentScale.Crop
-            )
-        }
-
-        // Burbuja de Comentario
-        Card(
-            shape = RoundedCornerShape(4.dp, 16.dp, 16.dp, 16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFA1887F)),
-            modifier = Modifier.weight(1f).padding(start = 8.dp)
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                // Header: Libro y Capítulo
-                Text("- Libro: ${comment.bookTitle}", color = Color.White, fontSize = 12.sp)
-                if (comment.chapter.isNotEmpty()) {
-                    Text("- Capítulo: ${comment.chapter}", color = Color.White, fontSize = 12.sp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        // Si está resaltado, le ponemos un borde sutil
+        border = if (isHighlighted) androidx.compose.foundation.BorderStroke(2.dp, ColorArcMediumBrown) else null,
+        colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                UserAvatarItem(comment.userPhotoUrl, size = 45.dp)
+                Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
+                    Text(comment.userName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("en ${comment.bookTitle}", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp, modifier = Modifier.clickable { onBookClick() })
                 }
+            }
 
-                Spacer(Modifier.height(8.dp))
-                Text("${comment.userName} comentó:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Text(comment.text, color = Color.White, fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(comment.text, color = Color.White, fontSize = 14.sp)
 
-                // Hilo de Respuestas
+            // Respuestas del hilo
+            if (comment.replies.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
                 comment.replies.forEach { reply ->
-                    Row(modifier = Modifier.padding(top = 12.dp), verticalAlignment = Alignment.Top) {
-                        Image(
-                            painter = painterResource(AvatarHelper.getDrawableId(reply.userPhotoUrl)),
-                            contentDescription = null,
-                            modifier = Modifier.size(30.dp).clip(CircleShape).background(Color.White)
-                        )
+                    Row(modifier = Modifier.padding(start = 24.dp, top = 8.dp), verticalAlignment = Alignment.Top) {
+                        UserAvatarItem(reply.userPhotoUrl, size = 30.dp)
                         Column(modifier = Modifier.padding(start = 8.dp)) {
                             Text("${reply.userName} respondió:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             Text(reply.text, color = Color.White, fontSize = 12.sp)
                         }
                     }
                 }
-
-                // Botón Responder
-                Text(
-                    text = "Responder",
-                    color = Color(0xFFFFE082),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    modifier = Modifier.align(Alignment.End).clickable { showReplyDialog = true }.padding(top = 12.dp)
-                )
             }
+
+            Text(
+                text = "Responder",
+                color = Color(0xFFFFE082),
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                modifier = Modifier.align(Alignment.End).clickable { showReplyDialog = true }.padding(top = 12.dp)
+            )
         }
     }
 }
@@ -152,5 +149,16 @@ fun ReplyDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
         text = { OutlinedTextField(value = text, onValueChange = { text = it }, placeholder = { Text("Escribe algo...") }, modifier = Modifier.fillMaxWidth()) },
         confirmButton = { Button(onClick = { if(text.isNotEmpty()) onConfirm(text); onDismiss() }) { Text("Enviar") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
+}
+
+@Composable
+fun UserAvatarItem(photoUrl: String, size: androidx.compose.ui.unit.Dp = 70.dp) {
+    val resId = AvatarHelper.getDrawableId(photoUrl)
+    Image(
+        painter = painterResource(id = resId),
+        contentDescription = null,
+        modifier = Modifier.size(size).clip(CircleShape).background(Color.White).padding(2.dp).clip(CircleShape),
+        contentScale = ContentScale.Crop
     )
 }

@@ -21,10 +21,12 @@ import kotlinx.coroutines.tasks.await
 data class ReviewsFeedState(
     val friendsReviews: List<Comment> = emptyList(),
     val communityReviews: List<Comment> = emptyList(),
+    val targetReview: Comment? = null, // Para resaltar el hilo de Deep Link
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )
 
+//TODO MEJORAR EL DEEP LINKING
 class ReviewsViewModel : ViewModel() {
 
     private val db = FirebaseFirestore.getInstance()
@@ -33,71 +35,74 @@ class ReviewsViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ReviewsFeedState())
     val uiState: StateFlow<ReviewsFeedState> = _uiState.asStateFlow()
 
+    // Carga general por defecto
     init { loadSocialFeed() }
 
-    fun loadSocialFeed() {
+    fun loadSocialFeed(bookId: String? = null, targetCommentId: String? = null) {
         val uid = auth.currentUser?.uid ?: return
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
         viewModelScope.launch {
             try {
-                val friendsSnapshot = db.collection("users").document(uid)
-                    .collection("friends").get().await()
-
-                val socialIds = friendsSnapshot.documents.map { it.id }.toMutableList()
-                socialIds.add(0, uid) // Incluir al usuario actual
-
-                // 1. Cargar Reseñas Sociales (Tuyo + Amigos)
-                val socialComments = if (socialIds.isNotEmpty()) {
+                if (bookId != null) {
+                    // MODO DEEP LINK: Cargar solo comentarios de un libro
                     val query = db.collection("comments")
-                        .whereIn("userId", socialIds.take(10))
+                        .whereEqualTo("bookId", bookId)
                         .orderBy("createAt", Query.Direction.DESCENDING)
                         .get().await()
 
-                    enrichComments(query.toObjects(Comment::class.java))
-                } else { emptyList() }
+                    val allComments = enrichComments(query.toObjects(Comment::class.java))
 
-                // 2. Cargar Comunidad
-                val communityQuery = db.collection("comments")
-                    .orderBy("rating", Query.Direction.DESCENDING)
-                    .limit(20).get().await()
+                    // Si buscamos uno específico, lo ponemos al principio
+                    val sorted = if (targetCommentId != null) {
+                        allComments.sortedByDescending { it.commentId == targetCommentId }
+                    } else allComments
 
-                val communityComments = enrichComments(
-                    communityQuery.toObjects(Comment::class.java).filter {
-                        it.userId.isNotEmpty() && !socialIds.contains(it.userId)
+                    _uiState.update { it.copy(friendsReviews = sorted, isLoading = false) }
+                } else {
+                    // MODO NORMAL: Feed de amigos y comunidad
+                    val friendsSnapshot = db.collection("users").document(uid).collection("friends").get().await()
+                    val friendIds = friendsSnapshot.documents.map { it.id }
+
+                    if (friendIds.isNotEmpty()) {
+                        val friendsQuery = db.collection("comments")
+                            .whereIn("userId", friendIds.take(10))
+                            .orderBy("createAt", Query.Direction.DESCENDING)
+                            .limit(20).get().await()
+                        val enrichedFriends = enrichComments(friendsQuery.toObjects(Comment::class.java))
+                        _uiState.update { it.copy(friendsReviews = enrichedFriends) }
                     }
-                )
 
-                _uiState.update { it.copy(friendsReviews = socialComments, communityReviews = communityComments, isLoading = false) }
+                    val communityQuery = db.collection("comments")
+                        .orderBy("createAt", Query.Direction.DESCENDING)
+                        .limit(20).get().await()
+                    val enrichedCommunity = enrichComments(communityQuery.toObjects(Comment::class.java))
+
+                    _uiState.update { it.copy(communityReviews = enrichedCommunity, isLoading = false) }
+                }
             } catch (e: Exception) {
-                Log.e("ReviewsVM", "Error: ${e.message}")
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                Log.e("ReviewsVM", "Error: ${e.message}")
             }
         }
     }
 
-    // --- FUNCIÓN PARA RESPONDER Y ALMACENAR EN DB ---
-    fun postReply(commentId: String, text: String) {
+    fun addReply(commentId: String, text: String) {
         val user = auth.currentUser ?: return
         viewModelScope.launch {
             try {
-                // Obtenemos los datos frescos del usuario para la respuesta
-                val userDoc = db.collection("users").document(user.uid).get().await()
                 val reply = Reply(
                     userId = user.uid,
-                    userName = userDoc.getString("displayName") ?: "Usuario",
-                    userPhotoUrl = userDoc.getString("photoURL") ?: "capibara_1",
-                    text = text
+                    userName = user.displayName ?: "Usuario",
+                    userPhotoUrl = user.photoUrl?.toString() ?: "capibara_1",
+                    text = text,
+                    timestamp = System.currentTimeMillis()
                 )
-
                 db.collection("comments").document(commentId)
-                    .update("replies", FieldValue.arrayUnion(reply))
-                    .await()
+                    .update("replies", FieldValue.arrayUnion(reply)).await()
 
-                loadSocialFeed() // Recargar para mostrar respuesta
-            } catch (e: Exception) {
-                Log.e("ReviewsVM", "Error al responder: ${e.message}")
-            }
+                loadSocialFeed()
+            } catch (e: Exception) { Log.e("ReviewsVM", "Reply error") }
         }
     }
 
@@ -106,7 +111,6 @@ class ReviewsViewModel : ViewModel() {
             viewModelScope.async {
                 var enriched = comment
                 try {
-                    // CORRECCIÓN: Usando 'userDoc' consistentemente
                     val userDoc = db.collection("users").document(comment.userId).get().await()
                     if (userDoc.exists()) {
                         enriched = enriched.copy(

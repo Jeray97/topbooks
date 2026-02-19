@@ -14,7 +14,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect // <--- IMPORTADO
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -43,11 +43,11 @@ import com.example.topbooks.utils.Resource
 fun SocialActivityScreen(
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
+    onCommentClick: (String, String) -> Unit, // <--- NUEVO: (bookId, commentId)
     viewModel: SocialActivityViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    // LÓGICA DE ACTUALIZACIÓN: Refresca los datos cada vez que entras en esta pantalla
     LaunchedEffect(Unit) {
         viewModel.loadSocialFeed()
     }
@@ -81,7 +81,11 @@ fun SocialActivityScreen(
                             verticalArrangement = Arrangement.spacedBy(24.dp)
                         ) {
                             items(resource.data) { item ->
-                                SocialActivityCard(item = item, onBookClick = onBookClick)
+                                SocialActivityCard(
+                                    item = item,
+                                    onBookClick = onBookClick,
+                                    onCommentClick = onCommentClick // Pasamos el callback
+                                )
                             }
                         }
                     }
@@ -95,9 +99,12 @@ fun SocialActivityScreen(
     }
 }
 
-// ... El resto del archivo (SocialActivityCard, SmallAvatar, EmptySocialMessage) se mantiene EXACTAMENTE igual
 @Composable
-fun SocialActivityCard(item: SocialActivityItem, onBookClick: (String) -> Unit) {
+fun SocialActivityCard(
+    item: SocialActivityItem,
+    onBookClick: (String) -> Unit,
+    onCommentClick: (String, String) -> Unit
+) {
     val bubbleColor = when(item.type) {
         ActivityType.FAVORITE -> Color(0xFFFCE4EC)
         ActivityType.REPLY -> Color(0xFFE3F2FD)
@@ -108,6 +115,7 @@ fun SocialActivityCard(item: SocialActivityItem, onBookClick: (String) -> Unit) 
         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // CLIC EN PORTADA: Va al detalle del libro
         Card(
             modifier = Modifier.width(90.dp).height(140.dp)
                 .shadow(6.dp, RoundedCornerShape(8.dp))
@@ -130,8 +138,16 @@ fun SocialActivityCard(item: SocialActivityItem, onBookClick: (String) -> Unit) 
 
         Spacer(modifier = Modifier.width(12.dp))
 
+        // CLIC EN BURBUJA: Si es comentario/respuesta, va al hilo en ReviewsScreen
         Card(
-            modifier = Modifier.weight(1f).fillMaxHeight().padding(vertical = 4.dp),
+            modifier = Modifier.weight(1f).fillMaxHeight().padding(vertical = 4.dp)
+                .clickable {
+                    if (item.commentId != null) {
+                        onCommentClick(item.bookId, item.commentId)
+                    } else {
+                        onBookClick(item.bookId) // Fallback al libro si no hay id de comentario
+                    }
+                },
             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 2.dp),
             colors = CardDefaults.cardColors(containerColor = bubbleColor),
             elevation = CardDefaults.cardElevation(2.dp)

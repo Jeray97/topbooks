@@ -18,7 +18,7 @@ import kotlinx.coroutines.tasks.await
 import java.util.Date
 import java.util.UUID
 
-// Modelo de UI enriquecido para soportar hilos de conversación
+// Agregamos commentId para poder navegar al hilo específico
 data class SocialActivityItem(
     val id: String = UUID.randomUUID().toString(),
     val type: ActivityType,
@@ -30,9 +30,9 @@ data class SocialActivityItem(
     val content: String,
     val rating: Int,
     val timestamp: Date,
-    // Campos nuevos para el contexto de la respuesta
     val replyToName: String? = null,
-    val replyToContent: String? = null
+    val replyToContent: String? = null,
+    val commentId: String? = null // <--- NUEVO: ID del hilo original
 )
 
 enum class ActivityType { REVIEW, FAVORITE, COMMENT, REPLY }
@@ -50,14 +50,12 @@ class SocialActivityViewModel : ViewModel() {
         loadSocialFeed()
     }
 
-    // Función pública para permitir refrescos desde la UI
     fun loadSocialFeed() {
         val currentUser = auth.currentUser ?: return
         _uiState.value = Resource.Loading
 
         viewModelScope.launch {
             try {
-                // 1. Obtener amigos
                 val friendsSnapshot = db.collection("users").document(currentUser.uid)
                     .collection("friends").get().await()
 
@@ -78,40 +76,38 @@ class SocialActivityViewModel : ViewModel() {
                             val fName = userDoc.getString("displayName") ?: "Amigo"
                             val fPhoto = userDoc.getString("photoURL") ?: ""
 
-                            // A. RESEÑAS
+                            // 1. Reseñas
                             val reviews = db.collection("reviews")
                                 .whereEqualTo("userId", friendId)
                                 .orderBy("createAt", Query.Direction.DESCENDING)
                                 .limit(3).get().await()
 
                             reviews.documents.forEach { doc ->
-                                val bookId = doc.getString("bookId") ?: ""
-                                val (title, image) = getBookInfo(bookId)
+                                val (title, image) = getBookInfo(doc.getString("bookId") ?: "")
                                 activities.add(SocialActivityItem(
                                     type = ActivityType.REVIEW, friendName = fName, friendPhotoUrl = fPhoto,
-                                    bookId = bookId, bookTitle = title, bookImageUrl = image,
+                                    bookId = doc.getString("bookId") ?: "", bookTitle = title, bookImageUrl = image,
                                     content = doc.getString("text") ?: "",
                                     rating = doc.getLong("rating")?.toInt() ?: 0,
                                     timestamp = doc.getDate("createAt") ?: Date()
                                 ))
                             }
 
-                            // B. FAVORITOS
+                            // 2. Favoritos
                             val favorites = db.collection("users").document(friendId)
                                 .collection("favorites").limit(3).get().await()
 
                             favorites.documents.forEach { doc ->
-                                val bookId = doc.getString("bookId") ?: ""
-                                val (title, image) = getBookInfo(bookId)
+                                val (title, image) = getBookInfo(doc.getString("bookId") ?: "")
                                 activities.add(SocialActivityItem(
                                     type = ActivityType.FAVORITE, friendName = fName, friendPhotoUrl = fPhoto,
-                                    bookId = bookId, bookTitle = title, bookImageUrl = image,
+                                    bookId = doc.getString("bookId") ?: "", bookTitle = title, bookImageUrl = image,
                                     content = "Añadió este libro a sus favoritos.",
                                     rating = 0, timestamp = Date()
                                 ))
                             }
 
-                            // C. COMENTARIOS Y RESPUESTAS
+                            // 3. Comentarios y Respuestas (Ahora capturamos el doc.id como commentId)
                             val comments = db.collection("comments")
                                 .orderBy("createAt", Query.Direction.DESCENDING)
                                 .limit(20).get().await()
@@ -119,21 +115,28 @@ class SocialActivityViewModel : ViewModel() {
                             comments.documents.forEach { doc ->
                                 val bookId = doc.getString("bookId") ?: ""
                                 val bookData = getBookInfo(bookId)
+                                val currentCommentId = doc.id
 
-                                // Si el amigo es el autor del comentario principal
                                 if (doc.getString("userId") == friendId) {
                                     activities.add(SocialActivityItem(
                                         type = ActivityType.COMMENT, friendName = fName, friendPhotoUrl = fPhoto,
                                         bookId = bookId, bookTitle = bookData.first, bookImageUrl = bookData.second,
                                         content = doc.getString("text") ?: "",
-                                        rating = 0, timestamp = doc.getDate("createAt") ?: Date()
+                                        rating = 0, timestamp = doc.getDate("createAt") ?: Date(),
+                                        commentId = currentCommentId // Guardamos para navegar
                                     ))
                                 }
 
-                                // Buscamos si el amigo ha respondido dentro de este comentario
                                 val repliesRaw = doc.get("replies") as? List<Map<String, Any>>
                                 repliesRaw?.forEach { reply ->
                                     if (reply["userId"] == friendId) {
+                                        val rawTs = reply["timestamp"]
+                                        val finalDate = when (rawTs) {
+                                            is com.google.firebase.Timestamp -> rawTs.toDate()
+                                            is Long -> Date(rawTs)
+                                            else -> Date()
+                                        }
+
                                         activities.add(SocialActivityItem(
                                             type = ActivityType.REPLY,
                                             friendName = fName,
@@ -143,15 +146,16 @@ class SocialActivityViewModel : ViewModel() {
                                             bookImageUrl = bookData.second,
                                             content = reply["text"] as? String ?: "",
                                             rating = 0,
-                                            timestamp = Date(reply["timestamp"] as? Long ?: System.currentTimeMillis()),
+                                            timestamp = finalDate,
                                             replyToName = doc.getString("userName") ?: "Usuario",
-                                            replyToContent = doc.getString("text")
+                                            replyToContent = doc.getString("text"),
+                                            commentId = currentCommentId // El hilo es el comentario padre
                                         ))
                                     }
                                 }
                             }
                         } catch (e: Exception) {
-                            Log.e("SocialDebug", "Error cargando amigo $friendId: ${e.message}")
+                            Log.e("SocialDebug", "Error amigo $friendId: ${e.message}")
                         }
                         activities
                     }
@@ -163,7 +167,6 @@ class SocialActivityViewModel : ViewModel() {
                 _uiState.value = Resource.Success(allActivities)
 
             } catch (e: Exception) {
-                Log.e("SocialDebug", "Error general: ${e.message}")
                 _uiState.value = Resource.Error(e)
             }
         }

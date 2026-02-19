@@ -36,7 +36,6 @@ fun MainScreen(
     onNavigateToAllCategories: () -> Unit,
     onNavigateToRecommended: () -> Unit,
     onNavigateToFriendsActivity: () -> Unit,
-    // Callback para ir al perfil de un amigo
     onNavigateToFriendProfile: (String) -> Unit
 ) {
     val bottomNavController = rememberNavController()
@@ -129,7 +128,6 @@ fun MainScreen(
             composable(BottomNavItem.Friends.route) {
                 FriendsScreen(
                     onNavigateToProfile = onNavigateToFriendProfile,
-                    // SOLUCION: Añadimos la navegación aquí sin tocar tu diseño
                     onNavigateToActivity = onNavigateToFriendsActivity
                 )
             }
