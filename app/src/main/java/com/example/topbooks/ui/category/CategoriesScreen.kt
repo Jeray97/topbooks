@@ -44,6 +44,7 @@ fun CategoriesScreen(
     onScanClick: () -> Unit
 ) {
     val categories = listOf(
+        //TODO mejorar con Strings.xml
         // Fila 1
         CategoryUi("Historia", R.drawable.cat_historia_icon, "subject:history"),
         CategoryUi("Biografías", R.drawable.cat_documental_icon, "subject:biography"),
@@ -62,7 +63,7 @@ fun CategoriesScreen(
         // Fila 4
         CategoryUi("Aventuras", R.drawable.cat_aventura_icon, "subject:aventure"),
         CategoryUi("Ciencia Ficción", R.drawable.cat_ciencia_ficcion_icon, "subject:science fiction"),
-            CategoryUi("Bibliografía", R.drawable.cat_bibliografia_icon, "subject:bibliography"),
+        CategoryUi("Bibliografía", R.drawable.cat_bibliografia_icon, "subject:bibliography"),
         CategoryUi("Religión", R.drawable.cat_religion_icon, "subject:religion")
     )
 

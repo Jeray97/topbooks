@@ -260,7 +260,7 @@ fun UserAvatarItem(photoUrl: String) {
         .padding(2.dp)
         .clip(CircleShape)
 
-    // CORRECCIÓN: Detectamos si es URL web o nombre de recurso local
+    //Detectamos si es URL web o nombre de recurso local
     if (photoUrl.startsWith("http")) {
         AsyncImage(
             model = photoUrl,

@@ -14,6 +14,7 @@ data class User(
     val email: String = "",
     val photoURL: String = "capibara_1",
     val role: String? = "user",
+    val bio: String = "",
 
     // Preferencias y Tutorial
     val isTutorialCompleted: Boolean = false,
