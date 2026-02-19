@@ -50,6 +50,7 @@ class SocialActivityViewModel : ViewModel() {
         loadSocialFeed()
     }
 
+    // Función pública para permitir refrescos desde la UI
     fun loadSocialFeed() {
         val currentUser = auth.currentUser ?: return
         _uiState.value = Resource.Loading
@@ -143,7 +144,6 @@ class SocialActivityViewModel : ViewModel() {
                                             content = reply["text"] as? String ?: "",
                                             rating = 0,
                                             timestamp = Date(reply["timestamp"] as? Long ?: System.currentTimeMillis()),
-                                            // Contexto del comentario original
                                             replyToName = doc.getString("userName") ?: "Usuario",
                                             replyToContent = doc.getString("text")
                                         ))

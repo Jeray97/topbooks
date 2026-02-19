@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect // <--- IMPORTADO
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -45,6 +46,11 @@ fun SocialActivityScreen(
     viewModel: SocialActivityViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    // LÓGICA DE ACTUALIZACIÓN: Refresca los datos cada vez que entras en esta pantalla
+    LaunchedEffect(Unit) {
+        viewModel.loadSocialFeed()
+    }
 
     Scaffold(
         containerColor = ColorBackGroundGeneral,
@@ -89,11 +95,12 @@ fun SocialActivityScreen(
     }
 }
 
+// ... El resto del archivo (SocialActivityCard, SmallAvatar, EmptySocialMessage) se mantiene EXACTAMENTE igual
 @Composable
 fun SocialActivityCard(item: SocialActivityItem, onBookClick: (String) -> Unit) {
     val bubbleColor = when(item.type) {
         ActivityType.FAVORITE -> Color(0xFFFCE4EC)
-        ActivityType.REPLY -> Color(0xFFE3F2FD) // Azul suave para respuestas
+        ActivityType.REPLY -> Color(0xFFE3F2FD)
         else -> ColorHeaderBeige.copy(alpha = 0.9f)
     }
 
@@ -154,7 +161,6 @@ fun SocialActivityCard(item: SocialActivityItem, onBookClick: (String) -> Unit) 
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // BURBUJA DE RESPUESTA (CITA)
                 if (item.type == ActivityType.REPLY && item.replyToContent != null) {
                     Surface(
                         color = Color.Black.copy(alpha = 0.05f),

@@ -62,6 +62,13 @@ class FriendsViewModel : ViewModel() {
         loadSocialData()
     }
 
+    fun refreshRecentActivity() {
+        val ids = _uiState.value.friendsIds.toList()
+        if (ids.isNotEmpty()) {
+            loadRecentActivity(ids)
+        }
+    }
+
     private fun loadFriendsList() {
         val currentUser = auth.currentUser ?: return
         db.collection("users").document(currentUser.uid).collection("friends")
@@ -93,34 +100,60 @@ class FriendsViewModel : ViewModel() {
                         val fName = friendDoc.getString("displayName") ?: "Amigo"
                         val fPhoto = friendDoc.getString("photoURL") ?: ""
 
-                        // 1. Reseñas
-                        val reviews = db.collection("reviews").whereEqualTo("userId", friendId)
-                            .orderBy("createAt", Query.Direction.DESCENDING).limit(1).get().await()
+                        // 1. Reseñas (NUEVAS PRIMERO)
+                        val reviews = db.collection("reviews")
+                            .whereEqualTo("userId", friendId)
+                            .orderBy("createAt", Query.Direction.DESCENDING)
+                            .limit(1).get().await()
+
                         if (!reviews.isEmpty) {
                             val doc = reviews.documents.first()
                             val title = getBookTitle(doc.getString("bookId") ?: "")
-                            friendInteractions.add(Interaction(userId = friendId, userName = fName, userPhoto = fPhoto,
-                                actionText = "le dio ${doc.getLong("rating")} estrellas a", bookTitle = title, timestamp = doc.getDate("createAt")?.time ?: 0L))
+                            friendInteractions.add(Interaction(
+                                userId = friendId, userName = fName, userPhoto = fPhoto,
+                                actionText = "le dio estrellas a",
+                                bookTitle = title,
+                                timestamp = doc.getDate("createAt")?.time ?: System.currentTimeMillis()
+                            ))
                         }
 
                         // 2. Comentarios y Respuestas
-                        val comments = db.collection("comments").orderBy("createAt", Query.Direction.DESCENDING).limit(10).get().await()
+                        val comments = db.collection("comments")
+                            .orderBy("createAt", Query.Direction.DESCENDING)
+                            .limit(15).get().await()
+
                         comments.documents.forEach { doc ->
                             val bookTitle = getBookTitle(doc.getString("bookId") ?: "")
 
-                            // Si es autor
+                            // Si es el autor del comentario
                             if (doc.getString("userId") == friendId) {
-                                friendInteractions.add(Interaction(userId = friendId, userName = fName, userPhoto = fPhoto,
-                                    actionText = "comentó en", bookTitle = bookTitle, timestamp = doc.getDate("createAt")?.time ?: 0L))
+                                friendInteractions.add(Interaction(
+                                    userId = friendId, userName = fName, userPhoto = fPhoto,
+                                    actionText = "comentó en", bookTitle = bookTitle,
+                                    timestamp = doc.getDate("createAt")?.time ?: System.currentTimeMillis()
+                                ))
                             }
 
-                            // Si es respuesta
+                            // Si es una respuesta dentro de un hilo
                             val replies = doc.get("replies") as? List<Map<String, Any>>
                             replies?.forEach { reply ->
                                 if (reply["userId"] == friendId) {
                                     val originalUser = doc.getString("userName") ?: "Usuario"
-                                    friendInteractions.add(Interaction(userId = friendId, userName = fName, userPhoto = fPhoto,
-                                        actionText = "respondió a $originalUser en", bookTitle = bookTitle, timestamp = reply["timestamp"] as? Long ?: 0L))
+
+                                    // Extraer fecha de forma segura (Timestamp o Long)
+                                    val rawTs = reply["timestamp"]
+                                    val tsMs = when (rawTs) {
+                                        is com.google.firebase.Timestamp -> rawTs.toDate().time
+                                        is Long -> rawTs
+                                        else -> System.currentTimeMillis()
+                                    }
+
+                                    friendInteractions.add(Interaction(
+                                        userId = friendId, userName = fName, userPhoto = fPhoto,
+                                        actionText = "respondió a $originalUser en",
+                                        bookTitle = bookTitle,
+                                        timestamp = tsMs
+                                    ))
                                 }
                             }
                         }
@@ -128,7 +161,14 @@ class FriendsViewModel : ViewModel() {
                     friendInteractions
                 }
             }
-            val results = tasks.awaitAll().flatten().sortedByDescending { it.timestamp }.take(10)
+
+            // ORDENACIÓN FINAL: De la más reciente (mayor timestamp) a la más antigua
+            val results = tasks.awaitAll()
+                .flatten()
+                .distinctBy { it.userId + it.actionText + it.bookTitle } // Evitar duplicados visuales
+                .sortedByDescending { it.timestamp }
+                .take(10)
+
             _uiState.update { it.copy(recentInteractions = results) }
         }
     }
