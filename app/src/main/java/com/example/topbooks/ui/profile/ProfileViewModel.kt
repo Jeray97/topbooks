@@ -3,6 +3,9 @@ package com.example.topbooks.ui.profile
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.topbooks.data.model.Book
+import com.example.topbooks.data.model.Review
+import com.example.topbooks.data.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
@@ -11,128 +14,111 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.util.Locale
 
-data class UserProfile(
-    val displayName: String = "Cargando...",
-    val email: String = "",
-    val bio: String = "¡Hola! Soy nuevo en TopBooks.",
-    val friendsCount: Int = 0,
-    val booksCompleted: Int = 0,
-    val photoUrl: String? = "capibara_1",
+data class ProfileUiState(
+    val user: User = User(),
     val favoriteCovers: List<String> = emptyList(),
-    val favoriteIds: List<String> = emptyList()
+    val favoriteIds: List<String> = emptyList(),
+    val isLoading: Boolean = false,
+    val isMe: Boolean = false
 )
 
 class ProfileViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
-    private val _userProfile = MutableStateFlow(UserProfile())
-    val userProfile: StateFlow<UserProfile> = _userProfile
+    private val _uiState = MutableStateFlow(ProfileUiState())
+    val uiState: StateFlow<ProfileUiState> = _uiState
 
-    init {
-        loadUserProfileListener()
-    }
+    // Carga el perfil (si userId es null, carga el mío)
+    fun loadProfile(targetUserId: String? = null) {
+        val myUid = auth.currentUser?.uid ?: return
+        val finalUserId = targetUserId ?: myUid
+        val isMe = finalUserId == myUid
 
-    private fun loadUserProfileListener() {
-        val uid = auth.currentUser?.uid ?: return
+        _uiState.update { it.copy(isLoading = true, isMe = isMe) }
 
-        db.collection("users").document(uid)
-            .addSnapshotListener { snapshot, _ ->
+        // 1. Datos básicos y estadísticas (en tiempo real si es el mío)
+        val docRef = db.collection("users").document(finalUserId)
+
+        if (isMe) {
+            docRef.addSnapshotListener { snapshot, _ ->
                 snapshot?.let { doc ->
-                    _userProfile.update {
-                        it.copy(
-                            displayName = doc.getString("displayName") ?: "Usuario",
-                            email = doc.getString("email") ?: "",
-                            photoUrl = doc.getString("photoURL") ?: "capibara_1",
-                            bio = doc.getString("bio") ?: "¡Hola! Soy nuevo en TopBooks."
-                        )
-                    }
+                    val user = doc.toObject(User::class.java) ?: User()
+                    _uiState.update { it.copy(user = user, isLoading = false) }
                 }
             }
-
-        db.collection("users").document(uid).collection("favorites")
-            .whereEqualTo("list", "Favoritos")
-            .limit(3)
-            .addSnapshotListener { snapshot, _ ->
-                snapshot?.let { query ->
-                    val covers = query.documents.mapNotNull { it.getString("imageUrl") }
-                    val ids = query.documents.map { it.id }
-                    _userProfile.update { it.copy(favoriteCovers = covers, favoriteIds = ids) }
+            // También escuchamos cambios en favoritos/leídos/amigos para el contador
+            listenToCounts(finalUserId)
+        } else {
+            // Para otros, una sola descarga basta (o puedes poner otro listener si quieres)
+            viewModelScope.launch {
+                try {
+                    val doc = docRef.get().await()
+                    val user = doc.toObject(User::class.java) ?: User()
+                    _uiState.update { it.copy(user = user, isLoading = false) }
+                    loadExtraData(finalUserId)
+                } catch (e: Exception) {
+                    Log.e("ProfileVM", "Error loading profile: ${e.message}")
                 }
             }
+        }
+    }
 
-        db.collection("users").document(uid).collection("favorites")
-            .whereEqualTo("list", "Leídos")
-            .addSnapshotListener { snapshot, _ ->
-                _userProfile.update { it.copy(booksCompleted = snapshot?.size() ?: 0) }
-            }
+    private fun listenToCounts(uid: String) {
+        // Contador de Reseñas
+        db.collection("reviews").whereEqualTo("userId", uid)
+            .addSnapshotListener { snp, _ -> _uiState.update { it.copy(user = it.user.copy(reviewsCount = snp?.size() ?: 0)) } }
 
+        // Contador de Amigos
         db.collection("users").document(uid).collection("friends")
-            .addSnapshotListener { snapshot, _ ->
-                _userProfile.update { it.copy(friendsCount = snapshot?.size() ?: 0) }
+            .addSnapshotListener { snp, _ -> _uiState.update { it.copy(user = it.user.copy(friendsCount = snp?.size() ?: 0)) } }
+
+        // Contador de Leídos
+        db.collection("users").document(uid).collection("favorites").whereEqualTo("list", "Leídos")
+            .addSnapshotListener { snp, _ -> _uiState.update { it.copy(user = it.user.copy(booksCompleted = snp?.size() ?: 0)) } }
+
+        // Portadas de favoritos
+        db.collection("users").document(uid).collection("favorites").whereEqualTo("list", "Favoritos").limit(3)
+            .addSnapshotListener { snp, _ ->
+                val covers = snp?.documents?.mapNotNull { it.getString("imageUrl") } ?: emptyList()
+                val ids = snp?.documents?.map { it.id } ?: emptyList()
+                _uiState.update { it.copy(favoriteCovers = covers, favoriteIds = ids) }
             }
     }
 
-    // --- CAMBIAR AVATAR Y PROPAGAR ---
+    private suspend fun loadExtraData(uid: String) {
+        // Carga estática para perfiles ajenos
+        val favs = db.collection("users").document(uid).collection("favorites").whereEqualTo("list", "Favoritos").limit(3).get().await()
+        val covers = favs.documents.mapNotNull { it.getString("imageUrl") }
+        val ids = favs.documents.map { it.id }
+        _uiState.update { it.copy(favoriteCovers = covers, favoriteIds = ids) }
+    }
+
+    // Funciones de edición (solo funcionan si isMe es true)
     fun updateAvatar(avatarName: String) {
         val uid = auth.currentUser?.uid ?: return
-
-        // 1. Actualizar mi perfil
-        val update = mapOf("photoURL" to avatarName)
-        db.collection("users").document(uid).set(update, SetOptions.merge())
-
-        // 2. Propagar cambio a las listas de amigos de otros
-        propagateUserUpdateToFriends(uid, mapOf("photoUrl" to avatarName))
+        db.collection("users").document(uid).update("photoURL", avatarName)
+        propagateUpdate(uid, mapOf("photoUrl" to avatarName))
     }
 
-    // --- ACTUALIZAR DATOS DE TEXTO Y PROPAGAR ---
-    fun updateProfileData(newName: String, newBio: String) {
+    fun updateProfileData(name: String, bio: String) {
         val uid = auth.currentUser?.uid ?: return
-
-        // 1. Preparamos los datos incluyendo el lowercase para búsquedas
-        val updates = mapOf(
-            "displayName" to newName,
-            "displayNameLowercase" to newName.lowercase(Locale.getDefault()),
-            "bio" to newBio
-        )
-
-        // 2. Actualizamos mi perfil
-        db.collection("users").document(uid).set(updates, SetOptions.merge())
-
-        // 3. Propagar cambio de nombre a las listas de amigos de otros
-        // Nota: "bio" y "lowercase" normalmente no se guardan en la lista de amigos, solo el nombre visible.
-        propagateUserUpdateToFriends(uid, mapOf("displayName" to newName))
+        val updates = mapOf("displayName" to name, "displayNameLowercase" to name.lowercase(), "bio" to bio)
+        db.collection("users").document(uid).update(updates)
+        propagateUpdate(uid, mapOf("displayName" to name))
     }
 
-    /**
-     * Función avanzada: Busca en TODA la base de datos las subcolecciones "friends"
-     * que contengan un documento con mi ID y actualiza los datos duplicados.
-     */
-    private fun propagateUserUpdateToFriends(myUid: String, changes: Map<String, Any>) {
+    private fun propagateUpdate(uid: String, changes: Map<String, Any>) {
         viewModelScope.launch {
             try {
-                // collectionGroup busca en todas las colecciones llamadas "friends"
-                db.collectionGroup("friends")
-                    .whereEqualTo(FieldPath.documentId(), myUid) // Busca donde el ID del documento sea MI ID
-                    .get()
-                    .addOnSuccessListener { querySnapshot ->
-                        val batch = db.batch() // Usamos batch para ser eficientes
-
-                        for (document in querySnapshot.documents) {
-                            // Actualizamos la referencia en la lista del amigo
-                            batch.update(document.reference, changes)
-                        }
-
-                        // Ejecutamos todas las actualizaciones juntas
-                        batch.commit().addOnFailureListener { e ->
-                            Log.e("ProfileViewModel", "Error propagando actualización: ${e.message}")
-                        }
-                    }
-            } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error en consulta de grupo: ${e.message}")
-            }
+                val snp = db.collectionGroup("friends").whereEqualTo(FieldPath.documentId(), uid).get().await()
+                val batch = db.batch()
+                for (doc in snp.documents) batch.update(doc.reference, changes)
+                batch.commit()
+            } catch (e: Exception) { Log.e("ProfileVM", "Propagate error") }
         }
     }
 }

@@ -36,7 +36,8 @@ fun MainScreen(
     onNavigateToAllCategories: () -> Unit,
     onNavigateToRecommended: () -> Unit,
     onNavigateToFriendsActivity: () -> Unit,
-    onNavigateToFriendProfile: (String) -> Unit
+    onNavigateToFriendProfile: (String) -> Unit,
+    onNavigateToList: (String, String) -> Unit // <--- AGREGADO
 ) {
     val bottomNavController = rememberNavController()
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
@@ -121,7 +122,7 @@ fun MainScreen(
 
             composable(BottomNavItem.Progress.route) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Pantalla de Progreso (Próximamente)")
+                    Text("Pantalla de Progreso")
                 }
             }
 
@@ -141,8 +142,10 @@ fun MainScreen(
 
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
+                    userId = null, // Mi propio perfil
                     onNavigateToSettings = onNavigateToConfig,
-                    onNavigateToDetail = onNavigateToBookDetail
+                    onNavigateToDetail = onNavigateToBookDetail,
+                    onNavigateToList = onNavigateToList // Pasamos la función de listas
                 )
             }
         }

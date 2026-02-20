@@ -5,19 +5,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,306 +23,299 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.example.topbooks.R
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.AvatarHelper
+import java.util.Locale
 
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileViewModel = viewModel(),
+    userId: String? = null,
     onNavigateToSettings: () -> Unit,
-    onNavigateToDetail: (String) -> Unit
+    onNavigateToDetail: (String) -> Unit,
+    onNavigateToList: (String, String) -> Unit,
+    onBackClick: () -> Unit = {},
+    viewModel: ProfileViewModel = viewModel()
 ) {
-    val userProfile by viewModel.userProfile.collectAsState()
+    val state by viewModel.uiState.collectAsState()
+    val user = state.user
 
-    // Estados para los diálogos
+    LaunchedEffect(userId) {
+        viewModel.loadProfile(userId)
+    }
+
     var showAvatarDialog by remember { mutableStateOf(false) }
     var showEditProfileDialog by remember { mutableStateOf(false) }
 
-    // DIÁLOGO AVATAR
-    if (showAvatarDialog) {
-        AlertDialog(
-            onDismissRequest = { showAvatarDialog = false },
-            title = { Text("Elige tu avatar", fontFamily = CenturyGotic, color = ColorArcDarkBrown) },
-            text = {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(AvatarHelper.avatars) { (name, resId) ->
-                        Image(
-                            painter = painterResource(id = resId),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(70.dp)
-                                .clip(CircleShape)
-                                .border(
-                                    width = if (userProfile.photoUrl == name) 3.dp else 1.dp,
-                                    color = if (userProfile.photoUrl == name) ColorArcMediumBrown else Color.LightGray,
-                                    shape = CircleShape
-                                )
-                                .clickable {
-                                    viewModel.updateAvatar(name)
-                                    showAvatarDialog = false
-                                },
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showAvatarDialog = false }) { Text("Cancelar", color = ColorArcDarkBrown) }
-            },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(16.dp)
+    if (showAvatarDialog && state.isMe) {
+        AvatarSelectionDialog(
+            currentAvatar = user.photoURL,
+            onDismiss = { showAvatarDialog = false },
+            onSelect = { viewModel.updateAvatar(it) }
         )
     }
 
-    // DIÁLOGO EDITAR PERFIL (NOMBRE Y BIO)
-    if (showEditProfileDialog) {
+    if (showEditProfileDialog && state.isMe) {
         EditProfileDialog(
-            currentName = userProfile.displayName,
-            currentBio = userProfile.bio,
+            currentName = user.displayName,
+            currentBio = user.bio,
             onDismiss = { showEditProfileDialog = false },
-            onSave = { newName, newBio ->
-                viewModel.updateProfileData(newName, newBio)
-                showEditProfileDialog = false
-            }
+            onSave = { n, b -> viewModel.updateProfileData(n, b) }
         )
     }
 
-    ProfileContent(
-        userProfile = userProfile,
-        onSettingsClick = onNavigateToSettings,
-        onBookClick = onNavigateToDetail,
-        onAvatarClick = { showAvatarDialog = true },
-        onEditProfileClick = { showEditProfileDialog = true } // Nuevo evento
-    )
-}
-
-@Composable
-fun ProfileContent(
-    userProfile: UserProfile,
-    onSettingsClick: () -> Unit,
-    onBookClick: (String) -> Unit,
-    onAvatarClick: () -> Unit,
-    onEditProfileClick: () -> Unit // Nuevo parámetro
-) {
     Scaffold(
+        containerColor = ColorBackGroundGeneral,
         topBar = {
             Box(contentAlignment = Alignment.CenterEnd) {
-                TopBar(onBackClick = {})
-                IconButton(onClick = onSettingsClick, modifier = Modifier.padding(end = 8.dp)) {
-                    Icon(Icons.Default.Settings, "Configuración", tint = ColorArcDarkBrown, modifier = Modifier.size(28.dp))
+                TopBar(onBackClick = onBackClick)
+                if (state.isMe) {
+                    IconButton(onClick = onNavigateToSettings, modifier = Modifier.padding(end = 8.dp)) {
+                        Icon(Icons.Default.Settings, null, tint = ColorArcDarkBrown, modifier = Modifier.size(28.dp))
+                    }
                 }
             }
-        },
-        containerColor = ColorArcDarkBrown
-    ) { paddingValues ->
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Tu perfil", fontFamily = CenturyGotic, fontSize = 24.sp, color = Color.White)
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // --- INFO USUARIO ---
-            Row(verticalAlignment = Alignment.Top) {
-                // Avatar
-                Box(modifier = Modifier.clickable { onAvatarClick() }) {
-                    val photo = userProfile.photoUrl ?: "capibara_1"
-                    val avatarModifier = Modifier
-                        .size(90.dp)
+        }
+    ) { padding ->
+        if (state.isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = ColorArcMediumBrown)
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // AVATAR
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .padding(4.dp)
-                        .clip(CircleShape)
-
-                    if (photo.startsWith("http")) {
-                        AsyncImage(model = photo, contentDescription = "Avatar", contentScale = ContentScale.Crop, modifier = avatarModifier)
-                    } else {
-                        Image(painter = painterResource(id = AvatarHelper.getDrawableId(photo)), contentDescription = "Avatar", contentScale = ContentScale.Crop, modifier = avatarModifier)
-                    }
-
-                    Icon(Icons.Default.Edit, "Editar", tint = ColorArcMediumBrown, modifier = Modifier.align(Alignment.BottomEnd).background(Color.White, CircleShape).padding(4.dp).size(16.dp))
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    // Nombre + Icono Editar
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { onEditProfileClick() } // Clic en el nombre también abre editor
-                    ) {
-                        Text(
-                            text = userProfile.displayName,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            fontFamily = CenturyGotic
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        .border(2.dp, ColorArcMediumBrown, CircleShape)
+                        .clickable(enabled = state.isMe) { showAvatarDialog = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    ProfileImage(user.photoURL)
+                    if (state.isMe) {
                         Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Editar Perfil",
-                            tint = Color.White.copy(alpha = 0.7f),
-                            modifier = Modifier.size(16.dp)
+                            Icons.Default.Edit, null, tint = ColorArcMediumBrown,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .background(Color.White, CircleShape)
+                                .padding(4.dp)
+                                .size(18.dp)
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Biografía:", color = Color.White.copy(0.8f), fontSize = 14.sp)
-                    Text(userProfile.bio, color = Color.White, fontSize = 14.sp, lineHeight = 18.sp)
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // NOMBRE
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable(enabled = state.isMe) { showEditProfileDialog = true }
+                ) {
+                    Text(text = user.displayName, fontFamily = GuardianCity, fontSize = 28.sp, color = ColorTituloTopBooks, fontWeight = FontWeight.Bold)
+                    if (state.isMe) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(Icons.Default.Edit, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+                    }
+                }
+
+                // BIO
+                Text(
+                    text = if (user.bio.isNotEmpty()) user.bio else "Sin biografía aún.",
+                    fontFamily = GuardianCity, fontSize = 14.sp, color = Color.Gray, fontStyle = FontStyle.Italic, textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 32.dp).clickable(enabled = state.isMe) { showEditProfileDialog = true }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // ESTADÍSTICAS
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    StatBox("Amigos", user.friendsCount.toString()) { onNavigateToList("friends", user.uid) }
+                    StatBox("Reseñas", user.reviewsCount.toString()) { onNavigateToList("reviews", user.uid) }
+                    StatBox("Leídos", user.booksCompleted.toString()) { onNavigateToList("read", user.uid) }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // SECCIÓN GÉNEROS
+                ProfileGenresSection(user.favoriteGenres)
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // GRID DASHBOARD
+                ProfileDashboardGrid(state, onNavigateToDetail)
+
+                Spacer(modifier = Modifier.height(80.dp))
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Estadísticas
-            StatBar(title = "Amigos", value = "${userProfile.friendsCount}")
-            Spacer(modifier = Modifier.height(12.dp))
-            StatBar(title = "Libros completados", value = "${userProfile.booksCompleted}")
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Grid de Tarjetas (Igual que antes)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    DashboardCard("Tus favoritos") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            if (userProfile.favoriteCovers.isEmpty()) {
-                                Image(painterResource(R.drawable.cat_resenas_icon), null, Modifier.size(30.dp, 45.dp), alpha = 0.5f)
-                            } else {
-                                userProfile.favoriteCovers.forEachIndexed { i, url ->
-                                    val id = userProfile.favoriteIds.getOrNull(i)
-                                    AsyncImage(
-                                        model = url, contentDescription = null,
-                                        modifier = Modifier.size(30.dp, 45.dp).clip(RoundedCornerShape(4.dp)).clickable { if(id!=null) onBookClick(id) },
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    DashboardCard("Tus marcadores") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Icons.Default.Favorite, null, tint = Color.Gray)
-                            Icon(Icons.Default.Favorite, null, tint = Color(0xFFFFD54F))
-                            Icon(Icons.Default.Favorite, null, tint = Color.Gray)
-                        }
-                    }
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    DashboardCard("Tus reseñas") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Icons.Default.Star, null, tint = Color(0xFFFFD54F))
-                            Icon(Icons.Default.Star, null, tint = Color(0xFFFFD54F))
-                            Icon(Icons.Default.Star, null, tint = Color.Gray)
-                        }
-                    }
-                    DashboardCard("Tus comentarios") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Icon(Icons.Default.Favorite, null, tint = Color(0xFFE57373))
-                            Icon(Icons.Default.AccountCircle, null, tint = Color(0xFF9575CD))
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
-// --- NUEVO COMPONENTE: DIÁLOGO DE EDICIÓN DE TEXTO ---
 @Composable
-fun EditProfileDialog(
-    currentName: String,
-    currentBio: String,
-    onDismiss: () -> Unit,
-    onSave: (String, String) -> Unit
-) {
-    var name by remember { mutableStateOf(currentName) }
-    var bio by remember { mutableStateOf(currentBio) }
+fun ProfileImage(photoUrl: String) {
+    if (photoUrl.startsWith("http")) {
+        AsyncImage(model = photoUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+    } else {
+        Image(painter = painterResource(AvatarHelper.getDrawableId(photoUrl)), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+    }
+}
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Editar Perfil", fontFamily = CenturyGotic, color = ColorArcDarkBrown) },
+@Composable
+fun StatBox(label: String, value: String, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onClick() }) {
+        Text(text = value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
+        Text(text = label, fontSize = 12.sp, color = Color.Gray)
+    }
+}
+
+@Composable
+fun ProfileGenresSection(genres: List<String>) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.5f)), shape = RoundedCornerShape(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Géneros Favoritos", fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontSize = 16.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+            if (genres.isEmpty()) {
+                Text("No hay géneros seleccionados.", fontSize = 12.sp, color = Color.Gray)
+            } else {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    items(genres) { ProfileGenreItem(it) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileGenreItem(genreCode: String) {
+    val (iconRes, nameRes) = getCategoryResources(genreCode)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(60.dp)) {
+        Box(
+            modifier = Modifier
+                .size(50.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+                .border(1.dp, ColorArcMediumBrown, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(painter = painterResource(id = iconRes), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(28.dp))
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = if (nameRes != null) stringResource(id = nameRes) else formatFallbackName(genreCode),
+            fontSize = 11.sp, color = ColorArcDarkBrown, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, lineHeight = 12.sp, maxLines = 2
+        )
+    }
+}
+
+@Composable
+fun ProfileDashboardGrid(state: ProfileUiState, onNavigateToDetail: (String) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            DashboardItem(if(state.isMe) "Mis favoritos" else "Sus favoritos") {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    state.favoriteCovers.take(3).forEachIndexed { i, url ->
+                        AsyncImage(model = url, contentDescription = null, modifier = Modifier.size(30.dp, 45.dp).clip(RoundedCornerShape(4.dp)).clickable { onNavigateToDetail(state.favoriteIds[i]) }, contentScale = ContentScale.Crop)
+                    }
+                }
+            }
+            DashboardItem(if(state.isMe) "Mis marcadores" else "Sus marcadores") {
+                Icon(Icons.Default.Favorite, null, tint = Color(0xFFFFD54F))
+            }
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            DashboardItem(if(state.isMe) "Mis reseñas" else "Sus reseñas") {
+                Row { repeat(3) { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD54F), modifier = Modifier.size(16.dp)) } }
+            }
+            DashboardItem(if(state.isMe) "Mis comentarios" else "Sus comentarios") {
+                Icon(Icons.Default.AccountCircle, null, tint = Color(0xFF9575CD))
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardItem(title: String, content: @Composable () -> Unit) {
+    Surface(color = Color.White, shape = RoundedCornerShape(12.dp), shadowElevation = 2.dp, modifier = Modifier.fillMaxWidth().height(95.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Text(title, color = ColorArcDarkBrown, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
+        }
+    }
+}
+
+@Composable
+fun AvatarSelectionDialog(currentAvatar: String, onDismiss: () -> Unit, onSelect: (String) -> Unit) {
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Elige tu avatar") },
         text = {
-            Column {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Nombre") },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorArcMediumBrown,
-                        focusedLabelColor = ColorArcMediumBrown
-                    )
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = bio,
-                    onValueChange = { bio = it },
-                    label = { Text("Biografía") },
-                    maxLines = 3,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorArcMediumBrown,
-                        focusedLabelColor = ColorArcMediumBrown
-                    )
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSave(name, bio) },
-                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Guardar")
+                items(AvatarHelper.avatars) { (name, res) ->
+                    Image(painterResource(res), null, Modifier.size(60.dp).clip(CircleShape)
+                        .border(if(currentAvatar==name) 3.dp else 0.dp, ColorArcMediumBrown, CircleShape)
+                        .clickable { onSelect(name); onDismiss() })
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = ColorArcDarkBrown)
-            }
-        },
-        containerColor = Color.White,
-        shape = RoundedCornerShape(16.dp)
+        }, confirmButton = {}
     )
 }
 
 @Composable
-fun StatBar(title: String, value: String) {
-    Surface(color = Color(0xFFBCAAA4), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().height(45.dp)) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(title, color = ColorArcDarkBrown, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Text(value, color = ColorArcDarkBrown, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        }
+fun EditProfileDialog(currentName: String, currentBio: String, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
+    var n by remember { mutableStateOf(currentName) }; var b by remember { mutableStateOf(currentBio) }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Editar Perfil") },
+        text = {
+            Column {
+                OutlinedTextField(value = n, onValueChange = { n = it }, label = { Text("Nombre") })
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(value = b, onValueChange = { b = it }, label = { Text("Bio") })
+            }
+        },
+        confirmButton = { Button(onClick = { onSave(n, b); onDismiss() }) { Text("Guardar") } }
+    )
+}
+
+fun getCategoryResources(code: String): Pair<Int, Int?> {
+    return when (code.uppercase(Locale.ROOT).trim()) {
+        "HISTORY", "HISTORIA" -> Pair(R.drawable.cat_historia_icon, R.string.cat_historia_text)
+        "FANTASY", "FANTASIA" -> Pair(R.drawable.cat_fantasia_icon, R.string.cat_fantasia_text)
+        "SCIFI", "CIENCIA_FICCION" -> Pair(R.drawable.cat_ciencia_ficcion_icon, R.string.cat_ciencia_ficcion_text)
+        "ROMANCE" -> Pair(R.drawable.cat_romance_icon, R.string.cat_romance_text)
+        "MYSTERY", "MISTERIO" -> Pair(R.drawable.cat_misterio_icon, R.string.cat_misterio_text)
+        "MANGA" -> Pair(R.drawable.cat_manga_icon, R.string.cat_manga_text)
+        "KIDS", "INFANTIL" -> Pair(R.drawable.cat_infantil_icon, R.string.cat_infantil_text)
+        "PHILOSOPHY", "FILOSOFIA" -> Pair(R.drawable.cat_filosofia_icon, R.string.cat_filosofia_text)
+        "POETRY", "POESIA" -> Pair(R.drawable.cat_poesia_icon, R.string.cat_poesia_text)
+        "GRAPHIC_NOVEL", "NOVELA_GRAFICA" -> Pair(R.drawable.cat_novela_grafica_icon, R.string.cat_novela_grafica_text)
+        "ADVENTURE", "AVENTURAS" -> Pair(R.drawable.cat_aventura_icon, R.string.cat_aventura_text)
+        "RELIGION" -> Pair(R.drawable.cat_religion_icon, R.string.cat_religion_text)
+        else -> Pair(R.drawable.home_icon, null)
     }
 }
 
-@Composable
-fun DashboardCard(title: String, iconContent: @Composable () -> Unit) {
-    Surface(color = ColorHeaderBeige, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().height(95.dp)) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(title, color = ColorArcDarkBrown, fontFamily = CenturyGotic, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Box(Modifier.fillMaxWidth().padding(top = 4.dp), contentAlignment = Alignment.Center) { iconContent() }
-        }
-    }
+fun formatFallbackName(code: String): String {
+    return code.lowercase()
+        .replace("_", " ")
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
 }

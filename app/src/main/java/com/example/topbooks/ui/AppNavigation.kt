@@ -16,19 +16,15 @@ import com.example.topbooks.data.preferences.SettingsManager
 import com.example.topbooks.ui.auth.AuthViewModel
 import com.example.topbooks.ui.auth.LoginScreen
 import com.example.topbooks.ui.auth.RegisterScreen
-import com.example.topbooks.ui.book.BookDetailScreen
-import com.example.topbooks.ui.category.CategoriesScreen
-import com.example.topbooks.ui.category.CategoryDetailScreen
 import com.example.topbooks.ui.config.ConfigScreen
 import com.example.topbooks.ui.config.ConfigViewModel
-import com.example.topbooks.ui.friends.FriendProfileScreen
 import com.example.topbooks.ui.friends.SocialActivityScreen
-import com.example.topbooks.ui.home.RecommendedScreen
-import com.example.topbooks.ui.home.RecommendedSectionScreen
 import com.example.topbooks.ui.scanner.QRScannerScreen
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
 import com.example.topbooks.ui.tutorial.TutorialScreen
 import com.example.topbooks.ui.reviews.ReviewsScreen
+import com.example.topbooks.ui.profile.ProfileScreen
+import com.example.topbooks.ui.profile.UserListScreen
 
 @Composable
 fun AppNavigation(
@@ -98,11 +94,30 @@ fun AppNavigation(
                 onNavigateToAllCategories = { navController.navigate("all_categories") },
                 onNavigateToRecommended = { navController.navigate("recommended_screen") },
                 onNavigateToFriendsActivity = { navController.navigate("social_activity") },
-                onNavigateToFriendProfile = { userId -> navController.navigate("friend_profile/$userId") }
+                onNavigateToFriendProfile = { userId -> navController.navigate("profile/$userId") },
+                // Pasamos la nueva función de navegación a listas
+                onNavigateToList = { type, userId ->
+                    navController.navigate("user_list/$type/$userId")
+                }
             )
         }
 
-        // --- RUTA DEL HILO (CORREGIDA: Ya no está vacía) ---
+        // --- RUTA DEL PERFIL (PARA AMIGOS Y PARA TI MISMO) ---
+        composable(
+            route = "profile/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            ProfileScreen(
+                userId = userId,
+                onNavigateToSettings = { navController.navigate("config") },
+                onNavigateToDetail = { bookId -> navController.navigate("book_detail/$bookId") },
+                onNavigateToList = { type, id -> navController.navigate("user_list/$type/$id") },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // --- RUTA DEL HILO DE COMENTARIOS ---
         composable(
             route = "reviews_thread/{bookId}/{commentId}",
             arguments = listOf(
@@ -112,8 +127,6 @@ fun AppNavigation(
         ) { backStackEntry ->
             val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
             val commentId = backStackEntry.arguments?.getString("commentId") ?: ""
-
-            // Inyectamos el ID del libro y del comentario para que la pantalla sepa qué mostrar
             ReviewsScreen(
                 onBackClick = { navController.popBackStack() },
                 onBookClick = { id -> navController.navigate("book_detail/$id") },
@@ -122,98 +135,34 @@ fun AppNavigation(
             )
         }
 
+        // --- RUTA DE ACTIVIDAD SOCIAL (¡FIXED!) ---
         composable("social_activity") {
             SocialActivityScreen(
                 onBackClick = { navController.popBackStack() },
-                onBookClick = { bookId: String ->
-                    navController.navigate("book_detail/$bookId")
-                },
-                onCommentClick = { bookId: String, commentId: String ->
+                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") },
+                // AQUÍ ESTABA EL ERROR: Faltaba pasar este parámetro
+                onCommentClick = { bookId, commentId ->
                     navController.navigate("reviews_thread/$bookId/$commentId")
                 }
             )
         }
 
+        // --- RUTA PARA LISTAS (AMIGOS, LEÍDOS, RESEÑAS) ---
         composable(
-            route = "friend_profile/{userId}",
-            arguments = listOf(navArgument("userId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
-            FriendProfileScreen(
-                userId = userId,
-                onBackClick = { navController.popBackStack() }
-            )
-        }
-
-        composable("recommended_screen") {
-            RecommendedScreen(
-                onBackClick = { navController.popBackStack() },
-                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") },
-                onSectionClick = { type, genre, color ->
-                    navController.navigate("recommended_section/$type/$genre/$color")
-                }
-            )
-        }
-
-        composable(
-            route = "recommended_section/{type}/{genre}/{color}",
+            route = "user_list/{type}/{userId}",
             arguments = listOf(
                 navArgument("type") { type = NavType.StringType },
-                navArgument("genre") { type = NavType.StringType },
-                navArgument("color") { type = NavType.IntType }
+                navArgument("userId") { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            val type = backStackEntry.arguments?.getString("type") ?: "POPULAR"
-            val genre = backStackEntry.arguments?.getString("genre") ?: "General"
-            val color = backStackEntry.arguments?.getInt("color") ?: 0xFF000000.toInt()
-
-            RecommendedSectionScreen(
-                sectionType = type,
-                genre = genre,
-                colorArgb = color,
-                onBackClick = { navController.popBackStack() },
-                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") }
-            )
-        }
-
-        composable(
-            route = "book_detail/{bookId}",
-            arguments = listOf(navArgument("bookId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val bookId = backStackEntry.arguments?.getString("bookId") ?: return@composable
-            BookDetailScreen(
-                bookId = bookId,
-                onBackClick = { navController.popBackStack() }
-            )
-        }
-
-        composable(
-            route = "category_detail/{categoryName}/{query}",
-            arguments = listOf(
-                navArgument("categoryName") { type = NavType.StringType },
-                navArgument("query") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val categoryName = backStackEntry.arguments?.getString("categoryName") ?: ""
-            val query = backStackEntry.arguments?.getString("query") ?: ""
-
-            CategoryDetailScreen(
-                categoryName = categoryName,
-                query = query,
+            val type = backStackEntry.arguments?.getString("type") ?: "friends"
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            UserListScreen(
+                type = type,
+                userId = userId,
                 onBackClick = { navController.popBackStack() },
                 onBookClick = { bookId -> navController.navigate("book_detail/$bookId") },
-                onScanClick = { navController.navigate("scanner") }
-            )
-        }
-
-        composable("all_categories") {
-            CategoriesScreen(
-                onBackClick = { navController.popBackStack() },
-                onCategoryClick = { name, query ->
-                    navController.navigate("category_detail/$name/$query")
-                },
-                onBookClick = { bookId -> navController.navigate("book_detail/$bookId") },
-                onScanClick = { navController.navigate("scanner") }
+                onUserClick = { targetId -> navController.navigate("profile/$targetId") }
             )
         }
 
@@ -223,9 +172,7 @@ fun AppNavigation(
                 viewModel = viewModel,
                 onLogoutSuccess = {
                     authViewModel.signOut()
-                    navController.navigate("login") {
-                        popUpTo("main") { inclusive = true }
-                    }
+                    navController.navigate("login") { popUpTo("main") { inclusive = true } }
                 },
                 onBackClick = { navController.popBackStack() }
             )
@@ -234,9 +181,7 @@ fun AppNavigation(
         composable("scanner") {
             QRScannerScreen(
                 onBookFound = { bookId ->
-                    navController.navigate("book_detail/$bookId") {
-                        popUpTo("scanner") { inclusive = true }
-                    }
+                    navController.navigate("book_detail/$bookId") { popUpTo("scanner") { inclusive = true } }
                 }
             )
         }
