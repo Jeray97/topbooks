@@ -50,7 +50,7 @@ import kotlinx.coroutines.launch
 fun BookDetailScreen(
     bookId: String,
     onBackClick: () -> Unit,
-    onNavigateToJournal: (String) -> Unit,
+    onNavigateToJournal: (String, String, String, String, String) -> Unit, // Recibe 5 parámetros
     viewModel: BookDetailViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -62,40 +62,17 @@ fun BookDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showBookmarkDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(bookId) {
-        viewModel.getBook(bookId)
-    }
+    LaunchedEffect(bookId) { viewModel.getBook(bookId) }
 
-    // --- DIÁLOGOS REDISEÑADOS ---
-
+    // --- FORMULARIOS PREMIUM ---
     if (showReviewDialog && state.book != null) {
-        PremiumReviewDialog(
-            onDismiss = { showReviewDialog = false },
-            onSubmit = { rating, text ->
-                viewModel.saveReview(state.book!!, rating, text) { showReviewDialog = false }
-            }
-        )
+        PremiumReviewDialog(onDismiss = { showReviewDialog = false }, onSubmit = { r, t -> viewModel.saveReview(state.book!!, r, t) { showReviewDialog = false } })
     }
-
     if (showBookmarkDialog) {
-        PremiumAddBookmarkDialog(
-            onDismiss = { showBookmarkDialog = false },
-            onConfirm = { p, q, c, pub ->
-                viewModel.addBookmark(bookId, p, q, c, pub)
-                showBookmarkDialog = false
-            }
-        )
+        PremiumAddBookmarkDialog(onDismiss = { showBookmarkDialog = false }, onConfirm = { p, q, c, pub -> viewModel.addBookmark(bookId, p, q, c, pub); showBookmarkDialog = false })
     }
-
     if (showDeleteDialog && state.book != null) {
-        PremiumDeleteDialog(
-            listName = state.savedInList ?: "biblioteca",
-            onDismiss = { showDeleteDialog = false },
-            onConfirm = {
-                viewModel.removeFromList(state.book!!.id)
-                showDeleteDialog = false
-            }
-        )
+        PremiumDeleteDialog(listName = state.savedInList ?: "biblioteca", onDismiss = { showDeleteDialog = false }, onConfirm = { viewModel.removeFromList(state.book!!.id); showDeleteDialog = false })
     }
 
     Scaffold(
@@ -105,245 +82,48 @@ fun BookDetailScreen(
             if (state.book != null) {
                 Column(horizontalAlignment = Alignment.End) {
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                        SmallFabItem(Icons.Default.Call, "Diario de lectura") { isFabExpanded = false; onNavigateToJournal(bookId) }
+                        SmallFabItem(Icons.Default.Call, "Diario de lectura") {
+                            isFabExpanded = false
+                            // ENVIAMOS TODA LA INFO INCLUYENDO PÁGINAS
+                            onNavigateToJournal(
+                                state.book!!.id,
+                                state.book!!.title,
+                                state.book!!.authors.joinToString(", "),
+                                state.book!!.imageUrl,
+                                state.book!!.pageCount.toString()
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                        SmallFabItem(Icons.Default.Call, "Añadir marcador") { isFabExpanded = false; showBookmarkDialog = true }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                        SmallFabItem(Icons.Default.Edit, "Escribir reseña") { isFabExpanded = false; showReviewDialog = true }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                        SmallFabItem(Icons.Default.Search, "Ver opiniones") { isFabExpanded = false; coroutineScope.launch { listState.animateScrollToItem(2) } }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(Modifier.height(8.dp))
+                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Call, "Añadir marcador") { isFabExpanded = false; showBookmarkDialog = true } }
+                    Spacer(Modifier.height(8.dp))
+                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Edit, "Escribir reseña") { isFabExpanded = false; showReviewDialog = true } }
+                    Spacer(Modifier.height(8.dp))
+                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Search, "Ver opiniones") { isFabExpanded = false; coroutineScope.launch { listState.animateScrollToItem(2) } } }
+                    Spacer(Modifier.height(16.dp))
                     val rotation by animateFloatAsState(if (isFabExpanded) 45f else 0f)
-                    FloatingActionButton(
-                        onClick = { isFabExpanded = !isFabExpanded },
-                        containerColor = ColorArcMediumBrown,
-                        contentColor = Color.White,
-                        shape = CircleShape
-                    ) { Icon(Icons.Default.Add, "Menú", modifier = Modifier.rotate(rotation)) }
+                    FloatingActionButton(onClick = { isFabExpanded = !isFabExpanded }, containerColor = ColorArcMediumBrown, contentColor = Color.White, shape = CircleShape) { Icon(Icons.Default.Add, null, modifier = Modifier.rotate(rotation)) }
                 }
             }
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (state.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = ColorArcMediumBrown)
-            } else if (state.book != null) {
+            if (state.isLoading) { CircularProgressIndicator(Modifier.align(Alignment.Center), ColorArcMediumBrown) }
+            else if (state.book != null) {
                 val book = state.book!!
-                LazyColumn(
-                    state = listState,
-                    contentPadding = PaddingValues(bottom = 100.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    item {
-                        BookHeaderSection(
-                            book = book,
-                            savedInList = state.savedInList,
-                            onListAction = { targetList ->
-                                if (state.savedInList == targetList) showDeleteDialog = true
-                                else viewModel.addToList(book, targetList)
-                            }
-                        )
-                    }
+                LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 100.dp), modifier = Modifier.fillMaxSize()) {
+                    item { BookHeaderSection(book = book, savedInList = state.savedInList, onListAction = { if (state.savedInList == it) showDeleteDialog = true else viewModel.addToList(book, it) }) }
                     item { SynopsisSection(book.description) }
-                    item {
-                        Text(
-                            text = "Opiniones de la comunidad (${state.reviews.size})",
-                            fontFamily = CenturyGotic, fontSize = 20.sp, fontWeight = FontWeight.Bold,
-                            color = ColorTituloTopBooks, modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                        )
-                    }
-                    if (state.reviews.isEmpty()) {
-                        item { Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { Text("Nadie ha opinado todavía.", color = Color.Gray) } }
-                    } else {
-                        items(state.reviews) { ReviewItem(it) }
-                    }
+                    item { Text("Opiniones de la comunidad", fontFamily = CenturyGotic, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks, modifier = Modifier.padding(24.dp, 16.dp)) }
+                    if (state.reviews.isEmpty()) item { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text("Nadie ha opinado todavía.", color = Color.Gray) } }
+                    else items(state.reviews) { ReviewItem(it) }
                 }
             }
         }
     }
 }
 
-// --- FORMULARIOS PREMIUM (UNIFICADOS) ---
-
-@Composable
-fun PremiumReviewDialog(onDismiss: () -> Unit, onSubmit: (Int, String) -> Unit) {
-    var rating by remember { mutableIntStateOf(0) }
-    var reviewText by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Escribe tu opinión", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontSize = 20.sp)
-        },
-        text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Selector de estrellas Premium
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    for (i in 1..5) {
-                        val isSelected = i <= rating
-                        val starColor by animateColorAsState(if (isSelected) Color(0xFFFFD54F) else Color.LightGray.copy(alpha = 0.5f))
-                        IconButton(onClick = { rating = i }) {
-                            Icon(
-                                imageVector = if (isSelected) Icons.Default.Star else Icons.Outlined.Star,
-                                contentDescription = null,
-                                tint = starColor,
-                                modifier = Modifier.size(38.dp)
-                            )
-                        }
-                    }
-                }
-
-                OutlinedTextField(
-                    value = reviewText,
-                    onValueChange = { reviewText = it },
-                    label = { Text("Tu reseña") },
-                    placeholder = { Text("¿Qué te pareció esta historia?") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 4,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown, focusedLabelColor = ColorArcMediumBrown)
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSubmit(rating, reviewText) },
-                enabled = rating > 0 && reviewText.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
-                shape = RoundedCornerShape(12.dp)
-            ) { Text("Publicar reseña") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) } },
-        containerColor = Color.White,
-        shape = RoundedCornerShape(24.dp)
-    )
-}
-
-@Composable
-fun PremiumAddBookmarkDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, Boolean) -> Unit) {
-    var page by remember { mutableStateOf("") }
-    var quote by remember { mutableStateOf("") }
-    var chapter by remember { mutableStateOf("") }
-    var isPublic by remember { mutableStateOf(true) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Añadir Marcador", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontSize = 20.sp) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = page,
-                        onValueChange = { if(it.all { c -> c.isDigit() }) page = it },
-                        label = { Text("Pág *") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown, focusedLabelColor = ColorArcMediumBrown)
-                    )
-                    OutlinedTextField(
-                        value = chapter,
-                        onValueChange = { chapter = it },
-                        label = { Text("Capítulo") },
-                        modifier = Modifier.weight(2f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown, focusedLabelColor = ColorArcMediumBrown)
-                    )
-                }
-
-                OutlinedTextField(
-                    value = quote,
-                    onValueChange = { quote = it },
-                    label = { Text("Frase memorable *") },
-                    placeholder = { Text("Escribe una frase del libro...") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 3,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown, focusedLabelColor = ColorArcMediumBrown)
-                )
-
-                Text("Privacidad", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
-                PrivacyToggleButton(isPublic = isPublic, onToggle = { isPublic = it })
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(page, quote, chapter, isPublic) },
-                enabled = page.isNotEmpty() && quote.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
-                shape = RoundedCornerShape(12.dp)
-            ) { Text("Guardar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) } },
-        containerColor = Color.White,
-        shape = RoundedCornerShape(24.dp)
-    )
-}
-
-@Composable
-fun PremiumDeleteDialog(listName: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("¿Quitar libro?", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = Color.Red.copy(alpha = 0.8f))
-        },
-        text = {
-            Text("Se eliminará de tu lista '$listName'. ¿Estás seguro?", fontSize = 14.sp, color = Color.DarkGray)
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.7f)),
-                shape = RoundedCornerShape(12.dp)
-            ) { Text("Eliminar", color = Color.White) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Mantener", color = Color.Gray) }
-        },
-        containerColor = Color.White,
-        shape = RoundedCornerShape(24.dp)
-    )
-}
-
-@Composable
-fun PrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
-    val publicColor by animateColorAsState(if (isPublic) ColorArcMediumBrown else Color.Transparent)
-    val privateColor by animateColorAsState(if (!isPublic) ColorArcMediumBrown else Color.Transparent)
-    val publicTextColor by animateColorAsState(if (isPublic) Color.White else Color.Gray)
-    val privateTextColor by animateColorAsState(if (!isPublic) Color.White else Color.Gray)
-
-    Surface(
-        modifier = Modifier.fillMaxWidth().height(48.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = ColorHeaderBeige.copy(alpha = 0.5f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, ColorArcMediumBrown.copy(alpha = 0.3f))
-    ) {
-        Row(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(24.dp)).background(publicColor).clickable { onToggle(true) }, contentAlignment = Alignment.Center) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Call, null, tint = publicTextColor, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp)); Text("Público", color = publicTextColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                }
-            }
-            Box(modifier = Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(24.dp)).background(privateColor).clickable { onToggle(false) }, contentAlignment = Alignment.Center) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Lock, null, tint = privateTextColor, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp)); Text("Privado", color = privateTextColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                }
-            }
-        }
-    }
-}
-
-// --- RESTO DE COMPONENTES (HEADER, STATUS, SYNOPSIS, REVIEW ITEM) ---
+// --- COMPONENTES ORIGINALES ---
 
 @Composable
 fun BookHeaderSection(book: Book, savedInList: String?, onListAction: (String) -> Unit) {
@@ -389,7 +169,7 @@ fun SynopsisSection(description: String) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp)) {
         Text("Sinopsis", fontSize = 18.sp, fontFamily = CenturyGotic, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(description.ifBlank { "No hay descripción disponible." }, fontSize = 14.sp, lineHeight = 22.sp, color = Color.DarkGray, textAlign = TextAlign.Justify)
+        Text(if (description.isNotBlank()) description else "No hay descripción disponible.", fontSize = 14.sp, lineHeight = 22.sp, color = Color.DarkGray, textAlign = TextAlign.Justify)
     }
 }
 
@@ -405,6 +185,71 @@ fun ReviewItem(review: Review) {
                 Row { repeat(review.rating) { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD54F), modifier = Modifier.size(16.dp)) } }
             }
             if (review.text.isNotEmpty()) { Spacer(Modifier.height(8.dp)); Text(review.text, fontSize = 14.sp, color = Color.DarkGray, lineHeight = 20.sp) }
+        }
+    }
+}
+
+// --- FORMULARIOS PREMIUM ---
+
+@Composable
+fun PremiumReviewDialog(onDismiss: () -> Unit, onSubmit: (Int, String) -> Unit) {
+    var rating by remember { mutableIntStateOf(0) }; var reviewText by remember { mutableStateOf("") }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Escribe tu opinión", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    for (i in 1..5) {
+                        val isSel = i <= rating; val color by animateColorAsState(if (isSel) Color(0xFFFFD54F) else Color.LightGray.copy(alpha = 0.5f))
+                        IconButton(onClick = { rating = i }) { Icon(if (isSel) Icons.Default.Star else Icons.Outlined.Star, null, tint = color, modifier = Modifier.size(38.dp)) }
+                    }
+                }
+                OutlinedTextField(value = reviewText, onValueChange = { reviewText = it }, label = { Text("Tu reseña") }, modifier = Modifier.fillMaxWidth(), minLines = 4, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown, focusedLabelColor = ColorArcMediumBrown))
+            }
+        },
+        confirmButton = { Button(onClick = { onSubmit(rating, reviewText) }, enabled = rating > 0 && reviewText.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown), shape = RoundedCornerShape(12.dp)) { Text("Publicar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
+}
+
+@Composable
+fun PremiumAddBookmarkDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, Boolean) -> Unit) {
+    var p by remember { mutableStateOf("") }; var q by remember { mutableStateOf("") }; var c by remember { mutableStateOf("") }; var pub by remember { mutableStateOf(true) }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Añadir Marcador", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(value = p, onValueChange = { if(it.all { char -> char.isDigit() }) p = it }, label = { Text("Pág *") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = c, onValueChange = { c = it }, label = { Text("Capítulo") }, modifier = Modifier.weight(2f), singleLine = true, shape = RoundedCornerShape(12.dp))
+                }
+                OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text("Frase memorable *") }, modifier = Modifier.fillMaxWidth(), minLines = 3, shape = RoundedCornerShape(12.dp))
+                PrivacyToggleButton(isPublic = pub, onToggle = { pub = it })
+            }
+        },
+        confirmButton = { Button(onClick = { onConfirm(p, q, c, pub) }, enabled = p.isNotEmpty() && q.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown), shape = RoundedCornerShape(12.dp)) { Text("Guardar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
+}
+
+@Composable
+fun PremiumDeleteDialog(listName: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("¿Quitar libro?", fontFamily = GuardianCity, color = Color.Red.copy(0.7f)) },
+        text = { Text("Se eliminará de tu lista '$listName'.") },
+        confirmButton = { Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f)), shape = RoundedCornerShape(12.dp)) { Text("Eliminar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Mantener", color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
+}
+
+@Composable
+fun PrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
+    val pubCol by animateColorAsState(if (isPublic) ColorArcMediumBrown else Color.Transparent)
+    val privCol by animateColorAsState(if (!isPublic) ColorArcMediumBrown else Color.Transparent)
+    val pubText by animateColorAsState(if (isPublic) Color.White else Color.Gray)
+    val privText by animateColorAsState(if (!isPublic) Color.White else Color.Gray)
+    Surface(modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp), color = ColorHeaderBeige.copy(0.5f), border = androidx.compose.foundation.BorderStroke(1.dp, ColorArcMediumBrown.copy(0.3f))) {
+        Row {
+            Box(Modifier.weight(1f).fillMaxHeight().clip(CircleShape).background(pubCol).clickable { onToggle(true) }, Alignment.Center) {
+                Row { Icon(Icons.Default.Call, null, tint = pubText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Público", color = pubText, fontWeight = FontWeight.Bold) }
+            }
+            Box(Modifier.weight(1f).fillMaxHeight().clip(CircleShape).background(privCol).clickable { onToggle(false) }, Alignment.Center) {
+                Row { Icon(Icons.Default.Lock, null, tint = privText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Privado", color = privText, fontWeight = FontWeight.Bold) }
+            }
         }
     }
 }

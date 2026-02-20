@@ -25,7 +25,6 @@ data class BookDetailState(
     val error: String? = null,
     val isBookSaved: Boolean = false,
     val savedInList: String? = null,
-    val isReviewing: Boolean = false,
     val reviews: List<Review> = emptyList()
 )
 
@@ -50,22 +49,14 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
         }
     }
 
-    // --- LÓGICA DE MARCADORES (Página y Texto obligatorios, Capítulo opcional) ---
-    fun addBookmark(
-        bookId: String,
-        page: String,
-        quote: String,
-        chapter: String,
-        isPublic: Boolean
-    ) {
+    // --- NUEVA FUNCIÓN MARCADORES ---
+    fun addBookmark(bookId: String, page: String, quote: String, chapter: String, isPublic: Boolean) {
         val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
             try {
-                val bookmarkRef = db.collection("users").document(uid)
-                    .collection("bookmarks").document() // Genera ID automático
-
+                val ref = db.collection("users").document(uid).collection("bookmarks").document()
                 val data = hashMapOf(
-                    "id" to bookmarkRef.id,
+                    "id" to ref.id,
                     "bookId" to bookId,
                     "userId" to uid,
                     "page" to page,
@@ -74,59 +65,46 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
                     "isPublic" to isPublic,
                     "createdAt" to com.google.firebase.Timestamp.now()
                 )
-
-                bookmarkRef.set(data).await()
-
-                // Si es público, se guarda en la colección global para que otros lo vean
+                ref.set(data).await()
                 if (isPublic) {
-                    db.collection("public_bookmarks").document(bookmarkRef.id).set(data)
+                    db.collection("public_bookmarks").document(ref.id).set(data)
                 }
-            } catch (e: Exception) {
-                Log.e("BookDetailVM", "Error al guardar marcador: ${e.message}")
-            }
+            } catch (e: Exception) { Log.e("BookDetailVM", "Error bookmarking") }
         }
     }
 
-    // --- LÓGICA DE RESEÑAS Y LISTAS (Tus funciones originales) ---
+    // --- RESTO DE LÓGICA (TUS FUNCIONES) ---
     private fun fetchBookReviews(bookId: String) {
         viewModelScope.launch {
             try {
-                val result = db.collection("reviews")
-                    .whereEqualTo("bookId", bookId)
-                    .orderBy("createAt", Query.Direction.DESCENDING)
-                    .get().await()
-
-                val rawReviews = result.toObjects(Review::class.java)
-                val enrichedReviews = rawReviews.map { review ->
+                val res = db.collection("reviews").whereEqualTo("bookId", bookId).orderBy("createAt", Query.Direction.DESCENDING).get().await()
+                val raw = res.toObjects(Review::class.java)
+                val enriched = raw.map { review ->
                     async {
-                        var enriched = review
+                        var current = review
                         try {
                             if (review.userId.isNotEmpty()) {
                                 val userDoc = db.collection("users").document(review.userId).get().await()
                                 if (userDoc.exists()) {
-                                    enriched = enriched.copy(
+                                    current = current.copy(
                                         userName = userDoc.getString("displayName") ?: "Anónimo",
                                         userPhotoUrl = userDoc.getString("photoURL") ?: ""
                                     )
                                 }
                             }
                         } catch (e: Exception) { }
-                        enriched
+                        current
                     }
                 }.awaitAll()
-                _uiState.update { it.copy(reviews = enrichedReviews) }
-            } catch (e: Exception) { Log.e("BookDetailVM", "Error reviews") }
+                _uiState.update { it.copy(reviews = enriched) }
+            } catch (e: Exception) { }
         }
     }
 
     private fun checkIfBookIsSaved(bookId: String) {
         val uid = auth.currentUser?.uid ?: return
         db.collection("users").document(uid).collection("favorites").document(bookId).get().addOnSuccessListener { doc ->
-            if (doc.exists()) {
-                _uiState.update { it.copy(isBookSaved = true, savedInList = doc.getString("list")) }
-            } else {
-                _uiState.update { it.copy(isBookSaved = false, savedInList = null) }
-            }
+            _uiState.update { it.copy(isBookSaved = doc.exists(), savedInList = doc.getString("list")) }
         }
     }
 
@@ -134,10 +112,9 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
         val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
             try {
-                ensureBookInGlobalCollection(book)
-                val userFavRef = db.collection("users").document(uid).collection("favorites").document(book.id)
-                val userFavData = hashMapOf("bookId" to book.id, "title" to book.title, "imageUrl" to book.imageUrl, "list" to listName, "addedAt" to System.currentTimeMillis())
-                userFavRef.set(userFavData).await()
+                ensureBookInGlobal(book)
+                val data = hashMapOf("bookId" to book.id, "title" to book.title, "imageUrl" to book.imageUrl, "list" to listName, "addedAt" to System.currentTimeMillis())
+                db.collection("users").document(uid).collection("favorites").document(book.id).set(data).await()
                 _uiState.update { it.copy(isBookSaved = true, savedInList = listName) }
             } catch (e: Exception) { }
         }
@@ -155,25 +132,45 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
 
     fun saveReview(book: Book, rating: Int, text: String, onSuccess: () -> Unit) {
         val uid = auth.currentUser?.uid ?: return
-        _uiState.update { it.copy(isReviewing = true) }
         viewModelScope.launch {
             try {
-                ensureBookInGlobalCollection(book)
-                val newReviewRef = db.collection("reviews").document()
-                val reviewData = hashMapOf("id" to newReviewRef.id, "bookId" to book.id, "userId" to uid, "rating" to rating, "text" to text, "likes" to 0, "createAt" to com.google.firebase.Timestamp.now())
-                newReviewRef.set(reviewData).await()
+                ensureBookInGlobal(book)
+                val ref = db.collection("reviews").document()
+                val data = hashMapOf("id" to ref.id, "bookId" to book.id, "userId" to uid, "rating" to rating, "text" to text, "createAt" to com.google.firebase.Timestamp.now())
+                ref.set(data).await()
                 fetchBookReviews(book.id)
                 onSuccess()
             } catch (e: Exception) { }
-            finally { _uiState.update { it.copy(isReviewing = false) } }
         }
     }
 
-    private suspend fun ensureBookInGlobalCollection(book: Book) {
-        val globalBookRef = db.collection("books").document(book.id)
-        if (!globalBookRef.get().await().exists()) {
-            val globalData = hashMapOf("title" to book.title, "thumbnail" to book.imageUrl, "createdAt" to com.google.firebase.Timestamp.now())
-            globalBookRef.set(globalData).await()
+    private suspend fun ensureBookInGlobal(book: Book) {
+        val ref = db.collection("books").document(book.id)
+        if (!ref.get().await().exists()) {
+            ref.set(hashMapOf("title" to book.title, "thumbnail" to book.imageUrl, "createdAt" to com.google.firebase.Timestamp.now())).await()
         }
+    }
+
+    fun addToFavorites(bookId: String) {
+        val uid = auth.currentUser?.uid ?: return
+        val data = mapOf("bookId" to bookId, "list" to "Favoritos", "timestamp" to System.currentTimeMillis())
+        db.collection("users").document(uid).collection("favorites").document(bookId)
+            .set(data, SetOptions.merge())
+    }
+
+    // NUEVA FUNCIÓN PARA MARCADORES
+    fun addBookmark(bookId: String, pageInfo: String) {
+        val uid = auth.currentUser?.uid ?: return
+        val data = mapOf(
+            "bookId" to bookId,
+            "pageInfo" to pageInfo,
+            "updatedAt" to System.currentTimeMillis()
+        )
+
+        // Lo guardamos en una subcolección "bookmarks" para tener un historial si quisiéramos
+        db.collection("users").document(uid)
+            .collection("bookmarks").document(bookId)
+            .set(data, SetOptions.merge())
+            .addOnSuccessListener { Log.d("BookVM", "Marcador guardado!") }
     }
 }
