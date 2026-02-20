@@ -83,6 +83,7 @@ dependencies {
         implementation("androidx.constraintlayout:constraintlayout:2.1.4")
         implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
         implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
+        implementation("androidx.compose.material:material-icons-extended")
 
         // --- FIREBASE ---
         implementation(platform("com.google.firebase:firebase-bom:34.6.0"))

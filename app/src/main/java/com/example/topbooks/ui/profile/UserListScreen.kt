@@ -40,10 +40,14 @@ fun UserListScreen(
         viewModel.loadData(type, userId)
     }
 
+    // 1. AÑADIDOS LOS NUEVOS TÍTULOS
     val title = when(type) {
         "friends" -> "Amigos"
         "reviews" -> "Reseñas"
         "read" -> "Leídos"
+        "journals" -> "Mis Diarios"
+        "bookmarks" -> "Marcadores"
+        "comments" -> "Comentarios"
         else -> "Lista"
     }
 
@@ -68,16 +72,19 @@ fun UserListScreen(
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                    // 2. AÑADIDAS LAS NUEVAS RUTAS A LOS ITEMS
                     when(type) {
                         "friends" -> items(state.friends) { FriendItem(it, onUserClick) }
-                        "read" -> items(state.readBooks) { BookItem(it, onBookClick) }
-                        "reviews" -> items(state.reviews) { ReviewListItem(it, onBookClick) }
+                        "read", "bookmarks" -> items(state.readBooks) { BookItem(it, onBookClick) }
+                        "reviews", "journals", "comments" -> items(state.reviews) { ReviewListItem(it, onBookClick) }
                     }
 
+                    // 3. AÑADIDAS LAS NUEVAS RUTAS A LA LÓGICA DE VACÍO
                     val isEmpty = when(type) {
                         "friends" -> state.friends.isEmpty()
-                        "read" -> state.readBooks.isEmpty()
-                        "reviews" -> state.reviews.isEmpty()
+                        "read", "bookmarks" -> state.readBooks.isEmpty()
+                        "reviews", "journals", "comments" -> state.reviews.isEmpty()
                         else -> true
                     }
 
@@ -138,7 +145,6 @@ fun ReviewListItem(review: com.example.topbooks.data.model.Comment, onBookClick:
         colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown),
         shape = RoundedCornerShape(12.dp)
     ) {
-        // CAMBIO: Usamos una Row para incluir la portada a la izquierda
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.Top

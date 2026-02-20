@@ -49,27 +49,36 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
         }
     }
 
-    // --- NUEVA FUNCIÓN MARCADORES ---
     fun addBookmark(bookId: String, page: String, quote: String, chapter: String, isPublic: Boolean) {
         val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
             try {
-                val ref = db.collection("users").document(uid).collection("bookmarks").document()
+                // 1. Lo guardamos SIEMPRE en la colección privada del usuario
+                val privateRef = db.collection("users").document(uid).collection("bookmarks").document(bookId)
                 val data = hashMapOf(
-                    "id" to ref.id,
                     "bookId" to bookId,
                     "userId" to uid,
                     "page" to page,
                     "quote" to quote,
                     "chapter" to chapter,
                     "isPublic" to isPublic,
-                    "createdAt" to com.google.firebase.Timestamp.now()
+                    "updatedAt" to System.currentTimeMillis()
                 )
-                ref.set(data).await()
+                // Usamos SetOptions.merge() para que si ya existe, lo actualice
+                privateRef.set(data, SetOptions.merge()).await()
+                Log.d("BookDetailVM", "Marcador guardado en perfil de usuario")
+
+                // 2. Gestionamos la parte pública para el muro social
+                val publicRef = db.collection("public_bookmarks").document("${uid}_${bookId}")
                 if (isPublic) {
-                    db.collection("public_bookmarks").document(ref.id).set(data)
+                    publicRef.set(data, SetOptions.merge()).await()
+                } else {
+                    // Si el usuario cambia de opinión y lo hace privado, lo borramos de lo público
+                    publicRef.delete().await()
                 }
-            } catch (e: Exception) { Log.e("BookDetailVM", "Error bookmarking") }
+            } catch (e: Exception) {
+                Log.e("BookDetailVM", "Error al guardar el marcador: ${e.message}")
+            }
         }
     }
 
@@ -158,19 +167,5 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
             .set(data, SetOptions.merge())
     }
 
-    // NUEVA FUNCIÓN PARA MARCADORES
-    fun addBookmark(bookId: String, pageInfo: String) {
-        val uid = auth.currentUser?.uid ?: return
-        val data = mapOf(
-            "bookId" to bookId,
-            "pageInfo" to pageInfo,
-            "updatedAt" to System.currentTimeMillis()
-        )
 
-        // Lo guardamos en una subcolección "bookmarks" para tener un historial si quisiéramos
-        db.collection("users").document(uid)
-            .collection("bookmarks").document(bookId)
-            .set(data, SetOptions.merge())
-            .addOnSuccessListener { Log.d("BookVM", "Marcador guardado!") }
-    }
 }

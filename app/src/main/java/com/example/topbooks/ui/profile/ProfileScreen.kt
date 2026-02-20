@@ -161,8 +161,8 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // GRID DASHBOARD
-                ProfileDashboardGrid(state, onNavigateToDetail)
+                // GRID DASHBOARD - Ahora gestiona las 4 listas y la navegación
+                ProfileDashboardGrid(state, user.uid, onNavigateToList)
 
                 Spacer(modifier = Modifier.height(80.dp))
             }
@@ -226,35 +226,60 @@ fun ProfileGenreItem(genreCode: String) {
     }
 }
 
+// --- ACTUALIZADO: Dashboard con las 4 cajas requeridas y navegación ---
 @Composable
-fun ProfileDashboardGrid(state: ProfileUiState, onNavigateToDetail: (String) -> Unit) {
+fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList: (String, String) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+
+        // COLUMNA IZQUIERDA
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            DashboardItem(if(state.isMe) "Mis favoritos" else "Sus favoritos") {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    state.favoriteCovers.take(3).forEachIndexed { i, url ->
-                        AsyncImage(model = url, contentDescription = null, modifier = Modifier.size(30.dp, 45.dp).clip(RoundedCornerShape(4.dp)).clickable { onNavigateToDetail(state.favoriteIds[i]) }, contentScale = ContentScale.Crop)
-                    }
-                }
+            DashboardItem(
+                title = if(state.isMe) "Mis diarios" else "Sus diarios",
+                onClick = { onNavigateToList("journals", userId) }
+            ) {
+                // Icono representativo del diario
+                Icon(Icons.Default.Book, null, tint = Color(0xFF9575CD), modifier = Modifier.size(32.dp))
             }
-            DashboardItem(if(state.isMe) "Mis marcadores" else "Sus marcadores") {
-                Icon(Icons.Default.Favorite, null, tint = Color(0xFFFFD54F))
+
+            DashboardItem(
+                title = if(state.isMe) "Mis marcadores" else "Sus marcadores",
+                onClick = { onNavigateToList("bookmarks", userId) }
+            ) {
+                Icon(Icons.Default.Bookmark, null, tint = Color(0xFFFFD54F), modifier = Modifier.size(32.dp))
             }
         }
+
+        // COLUMNA DERECHA
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            DashboardItem(if(state.isMe) "Mis reseñas" else "Sus reseñas") {
-                Row { repeat(3) { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD54F), modifier = Modifier.size(16.dp)) } }
+            DashboardItem(
+                title = if(state.isMe) "Mis reseñas" else "Sus reseñas",
+                onClick = { onNavigateToList("reviews", userId) }
+            ) {
+                Row { repeat(3) { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD54F), modifier = Modifier.size(24.dp)) } }
             }
-            DashboardItem(if(state.isMe) "Mis comentarios" else "Sus comentarios") {
-                Icon(Icons.Default.AccountCircle, null, tint = Color(0xFF9575CD))
+
+            DashboardItem(
+                title = if(state.isMe) "Mis comentarios" else "Sus comentarios",
+                onClick = { onNavigateToList("comments", userId) }
+            ) {
+                Icon(Icons.Default.Comment, null, tint = Color(0xFF9575CD), modifier = Modifier.size(32.dp))
             }
         }
     }
 }
 
+// --- ACTUALIZADO: DashboardItem ahora es interactivo (onClick) ---
 @Composable
-fun DashboardItem(title: String, content: @Composable () -> Unit) {
-    Surface(color = Color.White, shape = RoundedCornerShape(12.dp), shadowElevation = 2.dp, modifier = Modifier.fillMaxWidth().height(95.dp)) {
+fun DashboardItem(title: String, onClick: () -> Unit, content: @Composable () -> Unit) {
+    Surface(
+        color = Color.White,
+        shape = RoundedCornerShape(12.dp),
+        shadowElevation = 2.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(95.dp)
+            .clickable { onClick() }
+    ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Text(title, color = ColorArcDarkBrown, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
