@@ -104,6 +104,9 @@ fun AppNavigation(
                 onNavigateToFriendProfile = { userId -> navController.navigate("profile/$userId") },
                 onNavigateToList = { type, userId ->
                     navController.navigate("user_list/$type/$userId")
+                },
+                onNavigateToJournal = { bookId ->
+                    navController.navigate("reading_journal/$bookId")
                 }
             )
         }

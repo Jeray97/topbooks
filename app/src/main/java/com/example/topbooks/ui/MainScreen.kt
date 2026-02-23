@@ -2,7 +2,6 @@ package com.example.topbooks.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -37,7 +36,8 @@ fun MainScreen(
     onNavigateToRecommended: () -> Unit,
     onNavigateToFriendsActivity: () -> Unit,
     onNavigateToFriendProfile: (String) -> Unit,
-    onNavigateToList: (String, String) -> Unit // <--- AGREGADO
+    onNavigateToList: (String, String) -> Unit,
+    onNavigateToJournal: (String) -> Unit
 ) {
     val bottomNavController = rememberNavController()
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
@@ -121,9 +121,18 @@ fun MainScreen(
             }
 
             composable(BottomNavItem.Progress.route) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Pantalla de Progreso")
-                }
+                com.example.topbooks.ui.progress.ProgressScreen(
+                    onNavigateToList = { type ->
+                        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                        onNavigateToList(type, uid)
+                    },
+                    onBookClick = onNavigateToBookDetail,
+                    onJournalClick = onNavigateToJournal, // Clic en diario existente
+                    onAddJournalClick = {
+                        val customBookId = "custom_${java.util.UUID.randomUUID()}"
+                        onNavigateToJournal(customBookId) // Clic en el botón '+'
+                    }
+                )
             }
 
             composable(BottomNavItem.Friends.route) {

@@ -22,42 +22,61 @@ class ReadingJournalViewModel : ViewModel() {
     private val _saveSuccess = MutableStateFlow(false)
     val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
 
+    private val _existingJournal = MutableStateFlow<Journal?>(null)
+    val existingJournal: StateFlow<Journal?> = _existingJournal.asStateFlow()
+
+    private val _isLoadingJournal = MutableStateFlow(false)
+    val isLoadingJournal: StateFlow<Boolean> = _isLoadingJournal.asStateFlow()
+
     fun saveJournal(journal: Journal) {
-        Log.d("JournalDebug", "1. Iniciando guardado... BookID: ${journal.bookId}")
-
-        val uid = auth.currentUser?.uid
-        if (uid == null) {
-            Log.e("JournalDebug", "ERROR FATAL: El usuario no está logueado (UID es null)")
-            return
-        }
-
+        val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
             _isSaving.value = true
-            Log.d("JournalDebug", "2. Estado de carga activado (isSaving = true).")
-
             try {
                 val finalJournal = journal.copy(userId = uid)
-                val path = "users/$uid/journals/${journal.bookId}"
-                Log.d("JournalDebug", "3. Intentando escribir en la ruta de Firebase: $path")
-
                 db.collection("users").document(uid)
                     .collection("journals").document(journal.bookId)
                     .set(finalJournal).await()
 
-                Log.d("JournalDebug", "4. ¡ESCRITURA EXITOSA EN FIREBASE!")
+                Log.d("JournalDebug", "¡Guardado con éxito en Firestore! Título: ${journal.title}")
                 _saveSuccess.value = true
-
             } catch (e: Exception) {
-                Log.e("JournalDebug", "5. ERROR CATCH: Falló la escritura en Firebase.", e)
-                Log.e("JournalDebug", "Mensaje de error: ${e.message}")
+                Log.e("JournalDebug", "Error al guardar el diario: ${e.message}")
             } finally {
                 _isSaving.value = false
-                Log.d("JournalDebug", "6. Fin del proceso de guardado (isSaving = false).")
             }
         }
     }
 
-    // Método vital para evitar que nos expulse nada más entrar
+    fun loadJournal(bookId: String) {
+        val uid = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            _isLoadingJournal.value = true
+
+            // Forzamos el borrado de la memoria para que no recicle datos viejos
+            _existingJournal.value = null
+
+            try {
+                Log.d("JournalDebug", "Buscando diario con ID: $bookId")
+                val doc = db.collection("users").document(uid)
+                    .collection("journals").document(bookId).get().await()
+
+                if (doc.exists()) {
+                    val loadedJournal = doc.toObject(Journal::class.java)
+                    Log.d("JournalDebug", "¡Diario encontrado! Título cargado: ${loadedJournal?.title}")
+                    _existingJournal.value = loadedJournal
+                } else {
+                    Log.d("JournalDebug", "No existe un diario previo. Se creará uno nuevo.")
+                    _existingJournal.value = null
+                }
+            } catch (e: Exception) {
+                Log.e("JournalDebug", "Error al descargar el diario: ${e.message}")
+            } finally {
+                _isLoadingJournal.value = false
+            }
+        }
+    }
+
     fun resetSuccessState() {
         _saveSuccess.value = false
     }
