@@ -10,6 +10,10 @@ import com.example.topbooks.data.repository.AuthRepositoryImpl
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import com.google.firebase.messaging.FirebaseMessaging
+import android.util.Log
+import com.google.firebase.Firebase
+import com.google.firebase.messaging.messaging
 
 class AuthViewModel(
     // Aquí inyectamos la implementación en la interfaz
@@ -83,6 +87,11 @@ class AuthViewModel(
             isAuthenticating = true
             repository.register(name, email, pass).onSuccess {
                 currentUser = repository.currentUser
+
+                currentUser?.uid?.let { uid ->
+                    updateFcmToken(uid)
+                }
+
                 // Al registrarse, el tutorial NO está completado
                 isTutorialCompleted = false
                 isAuthenticating = false
@@ -107,6 +116,22 @@ class AuthViewModel(
                 errorMessage = it.localizedMessage
                 isAuthenticating = false
             }
+        }
+    }
+
+    private fun updateFcmToken(uid: String) {
+        Firebase.messaging.token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                Log.w("FCM", "No se pudo obtener el token de FCM", task.exception)
+                return@addOnCompleteListener
+            }
+
+            val token = task.result
+
+            // Actualizamos solo el campo fcmToken del usuario en Firestore
+            FirebaseFirestore.getInstance().collection("users").document(uid)
+                .update("fcmToken", token)
+                .addOnSuccessListener { Log.d("FCM", "Token guardado en Firestore: $token") }
         }
     }
 

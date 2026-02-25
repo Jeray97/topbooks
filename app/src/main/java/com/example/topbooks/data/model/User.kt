@@ -28,9 +28,10 @@ data class User(
     val bookmarksCount: Int = 0,  // Total de libros guardados/pendientes
     val commentsCount: Int = 0,   // Total de comentarios en capítulos
     val friendsCount: Int = 0,    // Total de amigos seguidos
-
-    // --- NUEVO CAMPO AÑADIDO ---
     val booksCompleted: Int = 0,  // Total de libros marcados como "Leídos"
+
+    // Notificaciones
+    val fcmToken : String = "",
 
     // Fecha de creación (automática por Firestore)
     @ServerTimestamp

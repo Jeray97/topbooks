@@ -95,7 +95,7 @@ fun BookDetailScreen(
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Call, "Añadir marcador") { isFabExpanded = false; showBookmarkDialog = true } }
+                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Bookmark, "Añadir marcador") { isFabExpanded = false; showBookmarkDialog = true } }
                     Spacer(Modifier.height(8.dp))
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Edit, "Escribir reseña") { isFabExpanded = false; showReviewDialog = true } }
                     Spacer(Modifier.height(8.dp))
