@@ -105,7 +105,7 @@ fun ReviewItem(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
-            // 🟢 ETIQUETA DE DESTACADO (Deep Link)
+            // ETIQUETA DE DESTACADO (Deep Link)
             if (isHighlighted) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
                     Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD54F), modifier = Modifier.size(16.dp))
@@ -114,13 +114,21 @@ fun ReviewItem(
                 }
             }
 
-            // 🟢 CABECERA DEL COMENTARIO
+            // CABECERA DEL COMENTARIO (Con Capítulo)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 UserAvatarItem(comment.userPhotoUrl, size = 48.dp)
                 Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
                     Text(comment.userName, color = ColorArcDarkBrown, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+
+                    // Verificamos si hay capítulo para mostrarlo
+                    val subtitleText = if (comment.chapter.isNotBlank()) {
+                        "sobre ${comment.bookTitle} • Cap. ${comment.chapter}"
+                    } else {
+                        "sobre ${comment.bookTitle}"
+                    }
+
                     Text(
-                        text = "sobre ${comment.bookTitle}",
+                        text = subtitleText,
                         color = ColorArcMediumBrown,
                         fontSize = 12.sp,
                         modifier = Modifier.clickable { onBookClick() }
@@ -128,11 +136,11 @@ fun ReviewItem(
                 }
             }
 
-            // 🟢 TEXTO PRINCIPAL
+            // TEXTO PRINCIPAL
             Spacer(modifier = Modifier.height(12.dp))
             Text(comment.text, color = Color.DarkGray, fontSize = 15.sp, lineHeight = 22.sp)
 
-            // 🟢 BURBUJAS DE RESPUESTA
+            // BURBUJAS DE RESPUESTA
             if (comment.replies.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Column(
@@ -163,7 +171,7 @@ fun ReviewItem(
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f), thickness = 1.dp)
 
-            // 🟢 BOTÓN DE RESPONDER MEJORADO
+            // BOTÓN DE RESPONDER MEJORADO
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 horizontalArrangement = Arrangement.End

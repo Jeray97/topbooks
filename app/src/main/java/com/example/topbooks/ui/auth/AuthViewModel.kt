@@ -14,6 +14,7 @@ import android.util.Log
 import com.google.firebase.Firebase
 import com.google.firebase.messaging.messaging
 import com.google.firebase.firestore.SetOptions
+import com.example.topbooks.R
 
 class AuthViewModel(
     private val repository: AuthRepository = AuthRepositoryImpl()
@@ -31,7 +32,7 @@ class AuthViewModel(
     var isLoadingProfile by mutableStateOf(false)
         private set
 
-    var errorMessage by mutableStateOf<String?>(null)
+    var errorMessage by mutableStateOf<Int?>(null)
         private set
 
     init {
@@ -82,7 +83,7 @@ class AuthViewModel(
                 }
             }.onFailure {
                 Log.e("AUTH_DEBUG", "ERROR login: ${it.message}")
-                errorMessage = it.localizedMessage
+                errorMessage = translateAuthError(it)
                 isAuthenticating = false
             }
         }
@@ -105,7 +106,7 @@ class AuthViewModel(
                 onSuccess()
             }.onFailure {
                 Log.e("AUTH_DEBUG", "ERROR registro: ${it.message}")
-                errorMessage = it.localizedMessage
+                errorMessage = translateAuthError(it)
                 isAuthenticating = false
             }
         }
@@ -126,7 +127,7 @@ class AuthViewModel(
                 }
             }.onFailure {
                 Log.e("AUTH_DEBUG", "ERROR loginWithGoogle: ${it.message}")
-                errorMessage = it.localizedMessage
+                errorMessage = translateAuthError(it)
                 isAuthenticating = false
             }
         }
@@ -153,6 +154,25 @@ class AuthViewModel(
                 .addOnFailureListener { e ->
                     Log.e("FCM_DEBUG", "Error al guardar el token en Firestore: ${e.message}")
                 }
+        }
+    }
+
+    // TRADUCTOR DE ERRORES DE FIREBASE
+    private fun translateAuthError(e: Throwable): Int {
+        if (e !is com.google.firebase.auth.FirebaseAuthException) {
+            return R.string.error_network_generic
+        }
+        return when (e.errorCode) {
+            "ERROR_INVALID_CREDENTIAL", "auth/invalid-credential" -> R.string.error_auth_invalid_credential
+            "ERROR_USER_NOT_FOUND", "auth/user-not-found" -> R.string.error_auth_user_not_found
+            "ERROR_WRONG_PASSWORD", "auth/wrong-password" -> R.string.error_auth_wrong_password
+            "ERROR_EMAIL_ALREADY_IN_USE", "auth/email-already-in-use" -> R.string.error_auth_email_already_in_use
+            "ERROR_WEAK_PASSWORD", "auth/weak-password" -> R.string.error_auth_weak_password
+            "ERROR_INVALID_EMAIL", "auth/invalid-email" -> R.string.error_auth_invalid_email
+            "ERROR_USER_DISABLED", "auth/user-disabled" -> R.string.error_auth_user_disabled
+            "ERROR_TOO_MANY_REQUESTS", "auth/too-many-requests" -> R.string.error_auth_too_many_requests
+            "ERROR_OPERATION_NOT_ALLOWED", "auth/operation-not-allowed" -> R.string.error_auth_operation_not_allowed
+            else -> R.string.error_auth_generic
         }
     }
 

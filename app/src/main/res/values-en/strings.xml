@@ -14,6 +14,7 @@
     <string name="reviews_bottom">Reviews</string>
     <string name="profile_bottom">Profile</string>
     <string name="book_info">Book information</string>
+    <string name="error_network_generic">An authentication error has occurred. Please try again.</string>
     <string name="cat_romance_text">Romance</string>
     <string name="cat_aventura_text">Adventure</string>
     <string name="cat_bibliografia_text">Bibliography</string>
@@ -31,4 +32,14 @@
     <string name="cat_poesia_text">Poetry</string>
     <string name="cat_religion_text">Religion</string>
     <string name="cat_arte_text">Art</string>
+    <string name="error_auth_invalid_credential">The email address or password is incorrect.</string>
+    <string name="error_auth_user_not_found">There is no account with this email address.</string>
+    <string name="error_auth_wrong_password">The password is incorrect.</string>
+    <string name="error_auth_email_already_in_use">This email address is already registered.</string>
+    <string name="error_auth_weak_password">The password is too weak (minimum 6 characters).</string>
+    <string name="error_auth_invalid_email">The email format is invalid.</string>
+    <string name="error_auth_user_disabled">This account has been disabled.</string>
+    <string name="error_auth_too_many_requests">Too many failed attempts. Please try again later.</string>
+    <string name="error_auth_operation_not_allowed">The login is not configured correctly.</string>
+    <string name="error_auth_generic">An authentication error has occurred. Please try again.</string>
 </resources>

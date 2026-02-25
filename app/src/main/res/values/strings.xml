@@ -27,6 +27,17 @@
     <!-- REGISTRO -->
 
     <!-- LOGIN -->
+    <string name="error_auth_invalid_credential">El correo o la contraseña son incorrectos.</string>
+    <string name="error_auth_user_not_found">No existe ninguna cuenta con este correo.</string>
+    <string name="error_auth_wrong_password">La contraseña es incorrecta.</string>
+    <string name="error_auth_email_already_in_use">Este correo electrónico ya está registrado.</string>
+    <string name="error_auth_weak_password">La contraseña es demasiado débil (mínimo 6 caracteres).</string>
+    <string name="error_auth_invalid_email">El formato del correo electrónico no es válido.</string>
+    <string name="error_auth_user_disabled">Esta cuenta ha sido deshabilitada.</string>
+    <string name="error_auth_too_many_requests">Demasiados intentos fallidos. Inténtalo más tarde.</string>
+    <string name="error_auth_operation_not_allowed">El inicio de sesión no está configurado correctamente.</string>
+    <string name="error_auth_generic">Ha ocurrido un error de autenticación. Inténtalo de nuevo.</string>
+    <string name="error_network_generic">Error de conexión. Revisa tu internet e inténtalo de nuevo.</string>
 
     <!-- CATEGORIAS -->
     <string name="cat_romance_text">Romance</string>
