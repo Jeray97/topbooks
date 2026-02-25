@@ -59,6 +59,7 @@ fun BookDetailScreen(
 
     var isFabExpanded by remember { mutableStateOf(false) }
     var showReviewDialog by remember { mutableStateOf(false) }
+    var showCommentDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showBookmarkDialog by remember { mutableStateOf(false) }
 
@@ -68,9 +69,20 @@ fun BookDetailScreen(
     if (showReviewDialog && state.book != null) {
         PremiumReviewDialog(onDismiss = { showReviewDialog = false }, onSubmit = { r, t -> viewModel.saveReview(state.book!!, r, t) { showReviewDialog = false } })
     }
+
+    if (showCommentDialog && state.book != null) {
+        PremiumCommentDialog(
+            onDismiss = { showCommentDialog = false },
+            onSubmit = { text, chapter ->
+                viewModel.saveComment(state.book!!, text, chapter) { showCommentDialog = false }
+            }
+        )
+    }
+
     if (showBookmarkDialog) {
         PremiumAddBookmarkDialog(onDismiss = { showBookmarkDialog = false }, onConfirm = { p, q, c, pub -> viewModel.addBookmark(bookId, p, q, c, pub); showBookmarkDialog = false })
     }
+
     if (showDeleteDialog && state.book != null) {
         PremiumDeleteDialog(listName = state.savedInList ?: "biblioteca", onDismiss = { showDeleteDialog = false }, onConfirm = { viewModel.removeFromList(state.book!!.id); showDeleteDialog = false })
     }
@@ -99,6 +111,12 @@ fun BookDetailScreen(
                     Spacer(Modifier.height(8.dp))
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Edit, "Escribir reseña") { isFabExpanded = false; showReviewDialog = true } }
                     Spacer(Modifier.height(8.dp))
+
+                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                        SmallFabItem(Icons.Default.Send, "Escribir comentario") { isFabExpanded = false; showCommentDialog = true }
+                    }
+                    Spacer(Modifier.height(8.dp))
+
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Search, "Ver opiniones") { isFabExpanded = false; coroutineScope.launch { listState.animateScrollToItem(2) } } }
                     Spacer(Modifier.height(16.dp))
                     val rotation by animateFloatAsState(if (isFabExpanded) 45f else 0f)
@@ -252,4 +270,94 @@ fun PrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
             }
         }
     }
+}
+
+@Composable
+fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Unit) {
+    var commentText by remember { mutableStateOf("") }
+    var chapterText by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Chat,
+                    contentDescription = null,
+                    tint = ColorArcMediumBrown,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Unirse a la charla",
+                    fontFamily = GuardianCity,
+                    fontWeight = FontWeight.Bold,
+                    color = ColorArcDarkBrown,
+                    fontSize = 22.sp
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Comparte tus pensamientos. Puedes indicar en qué capítulo vas para dar contexto a los demás.",
+                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp
+                )
+
+                OutlinedTextField(
+                    value = chapterText,
+                    onValueChange = { chapterText = it },
+                    label = { Text("Capítulo (Opcional)") },
+                    leadingIcon = {
+                        Icon(Icons.Default.MenuBook, contentDescription = null, tint = ColorArcMediumBrown)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ColorArcMediumBrown,
+                        focusedLabelColor = ColorArcMediumBrown,
+                        cursorColor = ColorArcMediumBrown
+                    )
+                )
+
+                OutlinedTextField(
+                    value = commentText,
+                    onValueChange = { commentText = it },
+                    label = { Text("Tu comentario *") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 4,
+                    maxLines = 6,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ColorArcMediumBrown,
+                        focusedLabelColor = ColorArcMediumBrown,
+                        cursorColor = ColorArcMediumBrown
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(commentText, chapterText) },
+                enabled = commentText.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
+            ) { Text("Publicar", fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", color = Color.Gray, fontWeight = FontWeight.Bold)
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(24.dp),
+        tonalElevation = 10.dp
+    )
 }

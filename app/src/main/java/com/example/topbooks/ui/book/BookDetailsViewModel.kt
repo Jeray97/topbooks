@@ -167,5 +167,31 @@ class BookDetailViewModel(private val repository: BooksRepository = BooksReposit
             .set(data, SetOptions.merge())
     }
 
+    // Guardar comentario para el Feed Social
+    fun saveComment(book: Book, text: String, chapter: String, onSuccess: () -> Unit) {
+        val uid = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            try {
+                ensureBookInGlobal(book)
+
+                val ref = db.collection("comments").document()
+                val data = hashMapOf(
+                    "commentId" to ref.id,
+                    "bookId" to book.id,
+                    "userId" to uid,
+                    "text" to text,
+                    "chapter" to chapter,
+                    "createAt" to com.google.firebase.Timestamp.now(),
+                    "replies" to emptyList<Any>()
+                )
+
+                ref.set(data).await()
+                Log.d("BookDetailVM", "Comentario guardado con capítulo: $chapter")
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("BookDetailVM", "Error al guardar comentario: ${e.message}")
+            }
+        }
+    }
 
 }

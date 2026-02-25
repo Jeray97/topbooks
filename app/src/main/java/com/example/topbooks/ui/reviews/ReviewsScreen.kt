@@ -20,7 +20,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.topbooks.R
 import com.example.topbooks.data.model.Comment
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
@@ -31,8 +30,8 @@ fun ReviewsScreen(
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
     viewModel: ReviewsViewModel = viewModel(),
-    bookId: String? = null,         // <--- NUEVO
-    targetCommentId: String? = null // <--- NUEVO
+    bookId: String? = null,
+    targetCommentId: String? = null
 ) {
     val state by viewModel.uiState.collectAsState()
 
