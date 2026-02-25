@@ -7,7 +7,6 @@ import com.example.topbooks.data.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,14 +14,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.util.Locale
 
 data class ProfileUiState(
     val user: User = User(),
     val favoriteCovers: List<String> = emptyList(),
     val favoriteIds: List<String> = emptyList(),
     val isLoading: Boolean = false,
-    val isMe: Boolean = false
+    val isMe: Boolean = false,
+    val isFriend: Boolean = false
 )
 
 class ProfileViewModel : ViewModel() {
@@ -46,7 +45,8 @@ class ProfileViewModel : ViewModel() {
             docRef.addSnapshotListener { snapshot, _ ->
                 snapshot?.let { doc ->
                     val user = doc.toObject(User::class.java) ?: User()
-                    _uiState.update { it.copy(user = user, isLoading = false) }
+                    // 🟢 SOLUCIÓN 1: Inyectamos el ID (doc.id) por si no viene en los datos
+                    _uiState.update { it.copy(user = user.copy(uid = doc.id), isLoading = false) }
                 }
             }
             listenToRealtimeCounts(finalUserId)
@@ -63,15 +63,18 @@ class ProfileViewModel : ViewModel() {
                     val friendsTask = async { db.collection("users").document(finalUserId).collection("friends").get().await().size() }
                     val readTask = async { db.collection("users").document(finalUserId).collection("favorites").whereEqualTo("list", "Leídos").get().await().size() }
                     val favsTask = async { db.collection("users").document(finalUserId).collection("favorites").whereEqualTo("list", "Favoritos").limit(3).get().await() }
+                    val isFriendTask = async { db.collection("users").document(myUid).collection("friends").document(finalUserId).get().await() }
 
                     // Esperamos los resultados
                     val reviewsCount = reviewsTask.await()
                     val friendsCount = friendsTask.await()
                     val readCount = readTask.await()
                     val favsSnapshot = favsTask.await()
+                    val isFriendDoc = isFriendTask.await()
 
                     // Actualizamos el objeto user con los números reales
                     user = user.copy(
+                        uid = finalUserId, // 🟢 SOLUCIÓN 2: Inyectamos el ID para evitar el fallo de 3 segmentos
                         reviewsCount = reviewsCount,
                         friendsCount = friendsCount,
                         booksCompleted = readCount
@@ -82,7 +85,8 @@ class ProfileViewModel : ViewModel() {
                         user = user,
                         isLoading = false,
                         favoriteCovers = favsSnapshot.documents.mapNotNull { d -> d.getString("imageUrl") },
-                        favoriteIds = favsSnapshot.documents.map { d -> d.id }
+                        favoriteIds = favsSnapshot.documents.map { d -> d.id },
+                        isFriend = isFriendDoc.exists()
                     )}
 
                 } catch (e: Exception) {
@@ -147,6 +151,37 @@ class ProfileViewModel : ViewModel() {
                 for (doc in snp.documents) batch.update(doc.reference, changes)
                 batch.commit()
             } catch (e: Exception) { Log.e("ProfileVM", "Error propagando datos") }
+        }
+    }
+
+    fun toggleFriend(targetUserId: String, targetUserName: String, targetPhotoUrl: String) {
+        val myUid = auth.currentUser?.uid ?: return
+        val currentState = _uiState.value.isFriend
+        val newState = !currentState
+
+        // Cambiamos el botón al instante para que la app parezca muy rápida
+        _uiState.update { it.copy(isFriend = newState) }
+
+        viewModelScope.launch {
+            try {
+                val friendRef = db.collection("users").document(myUid).collection("friends").document(targetUserId)
+
+                if (newState) {
+                    // Agregar amigo (Guarda los datos básicos para la lista de amigos)
+                    friendRef.set(mapOf(
+                        "displayName" to targetUserName,
+                        "photoUrl" to targetPhotoUrl,
+                        "addedAt" to System.currentTimeMillis()
+                    )).await()
+                } else {
+                    // Eliminar amigo
+                    friendRef.delete().await()
+                }
+            } catch (e: Exception) {
+                Log.e("ProfileVM", "Error al cambiar amistad: ${e.message}")
+                // Si falla la red, devolvemos el botón a su estado original
+                _uiState.update { it.copy(isFriend = currentState) }
+            }
         }
     }
 }

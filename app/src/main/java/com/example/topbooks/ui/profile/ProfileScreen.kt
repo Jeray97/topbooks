@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,7 +29,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -140,10 +140,37 @@ fun ProfileScreen(
 
                 // BIO
                 Text(
-                    text = if (user.bio.isNotEmpty()) user.bio else "Sin biografía aún.",
+                    text = user.bio.ifEmpty { "Sin biografía aún." },
                     fontFamily = GuardianCity, fontSize = 14.sp, color = Color.Gray, fontStyle = FontStyle.Italic, textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp).clickable(enabled = state.isMe) { showEditProfileDialog = true }
                 )
+
+                if (!state.isMe) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(if (state.isFriend) Color.LightGray.copy(alpha = 0.3f) else ColorArcMediumBrown.copy(alpha = 0.1f))
+                            .clickable { viewModel.toggleFriend(user.uid, user.displayName, user.photoURL) }
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Image(
+                            // 👇 AQUÍ PONES TUS DRAWABLES
+                            painter = painterResource(id = if (state.isFriend) R.drawable.libro_abierto else R.drawable.libro_cerrado),
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (state.isFriend) "Eliminar amigo" else "Añadir a amigos",
+                            fontFamily = GuardianCity,
+                            fontWeight = FontWeight.Bold,
+                            color = if (state.isFriend) Color.Gray else ColorArcMediumBrown
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -262,7 +289,7 @@ fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList
                 title = if(state.isMe) "Mis comentarios" else "Sus comentarios",
                 onClick = { onNavigateToList("comments", userId) }
             ) {
-                Icon(Icons.Default.Comment, null, tint = Color(0xFF9575CD), modifier = Modifier.size(32.dp))
+                Icon(Icons.AutoMirrored.Filled.Comment, null, tint = Color(0xFF9575CD), modifier = Modifier.size(32.dp))
             }
         }
     }
