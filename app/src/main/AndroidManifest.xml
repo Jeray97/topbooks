@@ -4,7 +4,6 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
-
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -19,11 +18,19 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TopBooks">
 
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification_icon" />
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/ColorBackGroundGeneral" />
+
         <activity
             android:name=".MainActivity"
             android:windowSoftInputMode="adjustResize"
             android:exported="true"
-            android:theme="@style/Theme.TopBooks">
+            android:launchMode="singleTop" android:theme="@style/Theme.TopBooks">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

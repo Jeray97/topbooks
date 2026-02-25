@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -36,10 +37,9 @@ import com.example.topbooks.ui.profile.UserListScreen
 @Composable
 fun AppNavigation(
     settingsManager: SettingsManager,
+    navController: NavHostController = rememberNavController(),
     authViewModel: AuthViewModel = viewModel()
 ) {
-    val navController = rememberNavController()
-
     if (authViewModel.isLoadingProfile) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = ColorArcMediumBrown)
@@ -55,6 +55,7 @@ fun AppNavigation(
 
     NavHost(navController = navController, startDestination = startDestination) {
 
+        // --- AUTH & TUTORIAL ---
         composable("login") {
             LoginScreen(
                 viewModel = authViewModel,
@@ -88,6 +89,7 @@ fun AppNavigation(
             })
         }
 
+        // --- MAIN APP ---
         composable("main") {
             MainScreen(
                 onNavigateToConfig = { navController.navigate("config") },
@@ -111,6 +113,7 @@ fun AppNavigation(
             )
         }
 
+        // --- SOCIAL & PROFILES ---
         composable(
             route = "profile/{userId}",
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -168,6 +171,7 @@ fun AppNavigation(
             )
         }
 
+        // --- BOOKS & JOURNALS ---
         composable(
             route = "book_detail/{bookId}",
             arguments = listOf(navArgument("bookId") { type = NavType.StringType })
@@ -203,6 +207,7 @@ fun AppNavigation(
             )
         }
 
+        // --- CONFIG & SCANNER ---
         composable("config") {
             ConfigScreen(
                 viewModel = viewModel(factory = ConfigViewModel.Factory(settingsManager)),
@@ -222,6 +227,7 @@ fun AppNavigation(
             )
         }
 
+        // --- CATEGORIES & RECOMMENDED ---
         composable("all_categories") {
             CategoriesScreen(
                 onBackClick = { navController.popBackStack() },

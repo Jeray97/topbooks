@@ -1,5 +1,6 @@
 package com.example.topbooks
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,29 +15,29 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.navigation.compose.rememberNavController
 
 class MainActivity : ComponentActivity() {
 
+    //1. ESTADO REACTIVO: Compose "escuchará" esta variable
+    private var pendingFollowerId by mutableStateOf<String?>(null)
 
-    //MIRAR SI TENEMOS PERMISO PARA NOTIFICACIONES PUSH
+    // Manejador del permiso de notificaciones (Android 13+)
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            // Permiso concedido
             Toast.makeText(this, "¡Genial! Te avisaremos de las novedades.", Toast.LENGTH_SHORT).show()
         } else {
-            // Permiso denegado
-            Toast.makeText(
-                this,
-                "Notificaciones desactivadas. No recibirás avisos de tus amigos.",
-                Toast.LENGTH_LONG
-            ).show()
+            Toast.makeText(this, "Notificaciones desactivadas.", Toast.LENGTH_LONG).show()
         }
     }
 
-    //PEDIR PERMISO PARA NOTIFICACIONES PUSH
     private fun askNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
@@ -49,24 +50,53 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        askNotificationPermission()
 
-        askNotificationPermission() // <-- Requiere Andorid 13 o sup
-
-        // Inicializamos el SettingsManager (DataStore necesita el context)
         val settingsManager = SettingsManager(applicationContext)
 
+        //2. SI LA APP ESTABA CERRADA: Leemos el intent inicial
+        intent.getStringExtra("followerId")?.let {
+            pendingFollowerId = it
+            intent.removeExtra("followerId") // Lo borramos para que no se repita
+        }
+
         setContent {
+            val navController = rememberNavController()
+
+            // MAGIA DE COMPOSE: Si pendingFollowerId cambia, navegamos
+            LaunchedEffect(pendingFollowerId) {
+                pendingFollowerId?.let { id ->
+                    navController.navigate("profile/$id") {
+                        launchSingleTop = true // Evita abrir pantallas duplicadas
+                    }
+                    // Reseteamos el estado después de navegar
+                    pendingFollowerId = null
+                }
+            }
+
             MaterialTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Se lo pasamos a la navegación central
-                    AppNavigation(settingsManager = settingsManager)
+                    AppNavigation(
+                        navController = navController,
+                        settingsManager = settingsManager
+                    )
                 }
             }
         }
     }
 
+    // SI LA APP YA ESTABA ABIERTA (En segundo plano o usándose)
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
 
+        // Atrapamos el nuevo ID y actualizamos el estado
+        intent.getStringExtra("followerId")?.let {
+            pendingFollowerId = it
+            intent.removeExtra("followerId") // Lo borramos
+        }
+    }
 }
