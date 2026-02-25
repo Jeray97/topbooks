@@ -38,7 +38,7 @@
         </activity>
 
         <service
-            android:name=".services.TopBooksMessagingService"
+            android:name=".data.network.TopBooksMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />

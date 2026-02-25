@@ -84,12 +84,13 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
     implementation("androidx.compose.material:material-icons-extended")
 
-    // --- FIREBASE (Usamos solo 1 BoM actualizado) ---
+    // --- FIREBASE  ---
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.firebase:firebase-messaging") // <--- Notificaciones PUSH modernas
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-functions")
 
     // --- RED (Retrofit) ---
     implementation("com.squareup.retrofit2:retrofit:2.9.0")

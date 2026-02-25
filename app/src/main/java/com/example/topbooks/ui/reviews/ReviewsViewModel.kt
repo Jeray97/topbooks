@@ -17,16 +17,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.Firebase
+import com.google.firebase.functions.functions
 
 data class ReviewsFeedState(
     val friendsReviews: List<Comment> = emptyList(),
     val communityReviews: List<Comment> = emptyList(),
-    val targetReview: Comment? = null, // Para resaltar el hilo de Deep Link
+    val targetReview: Comment? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )
 
-//TODO MEJORAR EL DEEP LINKING
 class ReviewsViewModel : ViewModel() {
 
     private val db = FirebaseFirestore.getInstance()
@@ -35,7 +36,6 @@ class ReviewsViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ReviewsFeedState())
     val uiState: StateFlow<ReviewsFeedState> = _uiState.asStateFlow()
 
-    // Carga general por defecto
     init { loadSocialFeed() }
 
     fun loadSocialFeed(bookId: String? = null, targetCommentId: String? = null) {
@@ -44,23 +44,20 @@ class ReviewsViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
+                Log.d("ReviewsVM", "Cargando feed social. Modo DeepLink: ${bookId != null}")
                 if (bookId != null) {
-                    // MODO DEEP LINK: Cargar solo comentarios de un libro
                     val query = db.collection("comments")
                         .whereEqualTo("bookId", bookId)
                         .orderBy("createAt", Query.Direction.DESCENDING)
                         .get().await()
 
                     val allComments = enrichComments(query.toObjects(Comment::class.java))
-
-                    // Si buscamos uno específico, lo ponemos al principio
                     val sorted = if (targetCommentId != null) {
                         allComments.sortedByDescending { it.commentId == targetCommentId }
                     } else allComments
 
                     _uiState.update { it.copy(friendsReviews = sorted, isLoading = false) }
                 } else {
-                    // MODO NORMAL: Feed de amigos y comunidad
                     val friendsSnapshot = db.collection("users").document(uid).collection("friends").get().await()
                     val friendIds = friendsSnapshot.documents.map { it.id }
 
@@ -82,15 +79,23 @@ class ReviewsViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
-                Log.e("ReviewsVM", "Error: ${e.message}")
+                Log.e("ReviewsVM", "Error en loadSocialFeed: ${e.message}")
             }
         }
     }
 
-    fun addReply(commentId: String, text: String) {
-        val user = auth.currentUser ?: return
+    fun addReply(comment: Comment, text: String) {
+        val user = auth.currentUser ?: run {
+            Log.e("ReviewsVM", "❌ Error: Intento de respuesta sin usuario autenticado")
+            return
+        }
+
         viewModelScope.launch {
             try {
+                Log.d("ReviewsVM", "1. Iniciando addReply. Usuario: ${user.uid} -> Comentario: ${comment.commentId}")
+                Log.d("ReviewsVM", "   Contenido: '$text'")
+
+                // 1. Crear el objeto respuesta
                 val reply = Reply(
                     userId = user.uid,
                     userName = user.displayName ?: "Usuario",
@@ -98,11 +103,45 @@ class ReviewsViewModel : ViewModel() {
                     text = text,
                     timestamp = System.currentTimeMillis()
                 )
-                db.collection("comments").document(commentId)
+
+                // 2. Subirlo a Firestore
+                Log.d("ReviewsVM", "   2. Actualizando Firestore (FieldValue.arrayUnion)...")
+                db.collection("comments").document(comment.commentId)
                     .update("replies", FieldValue.arrayUnion(reply)).await()
+                Log.d("ReviewsVM", "   3. Firestore actualizado con éxito.")
+
+                Log.d("ReviewsVM", "   4. Verificando si notificamos: AutorOriginal=${comment.userId} | Respondedor=${user.uid}")
+
+                if (comment.userId != user.uid) {
+                    Log.d("ReviewsVM", "   5. Identidades diferentes. Llamando a Cloud Function 'enviarNotificacionRespuesta'...")
+
+                    val data = hashMapOf(
+                        "autorComentarioOriginalId" to comment.userId,
+                        "nombreRespondedor" to (user.displayName ?: "Alguien"),
+                        "bookId" to comment.bookId,
+                        "commentId" to comment.commentId
+                    )
+
+                    // Llamamos a la función
+                    Firebase.functions
+                        .getHttpsCallable("enviarNotificacionRespuesta")
+                        .call(data)
+                        .addOnSuccessListener { result ->
+                            val respuesta = result.data
+                            Log.d("ReviewsVM", "   6. EL SERVIDOR CONTESTÓ: $respuesta")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("ReviewsVM", "   6. ERROR DE RED/PERMISOS: ${e.message}")
+                        }
+                } else {
+                    Log.d("ReviewsVM", "   5. Auto-respuesta detectada. No se envía notificación al servidor.")
+                }
 
                 loadSocialFeed()
-            } catch (e: Exception) { Log.e("ReviewsVM", "Reply error") }
+            } catch (e: Exception) {
+                Log.e("ReviewsVM", "ERROR CRÍTICO en addReply: ${e.message}")
+                e.printStackTrace()
+            }
         }
     }
 
@@ -125,7 +164,9 @@ class ReviewsViewModel : ViewModel() {
                             bookImageUrl = bookDoc.getString("thumbnail") ?: ""
                         )
                     }
-                } catch (e: Exception) { }
+                } catch (e: Exception) {
+                    Log.e("ReviewsVM", "Error enriqueciendo comentario ${comment.commentId}: ${e.message}")
+                }
                 enriched
             }
         }.awaitAll()

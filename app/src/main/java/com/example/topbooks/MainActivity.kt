@@ -24,8 +24,8 @@ import androidx.navigation.compose.rememberNavController
 
 class MainActivity : ComponentActivity() {
 
-    //1. ESTADO REACTIVO: Compose "escuchará" esta variable
-    private var pendingFollowerId by mutableStateOf<String?>(null)
+    // 1. ESTADO REACTIVO: Ahora guarda la RUTA COMPLETA a la que queremos navegar
+    private var pendingRoute by mutableStateOf<String?>(null)
 
     // Manejador del permiso de notificaciones (Android 13+)
     private val requestPermissionLauncher = registerForActivityResult(
@@ -54,23 +54,20 @@ class MainActivity : ComponentActivity() {
 
         val settingsManager = SettingsManager(applicationContext)
 
-        //2. SI LA APP ESTABA CERRADA: Leemos el intent inicial
-        intent.getStringExtra("followerId")?.let {
-            pendingFollowerId = it
-            intent.removeExtra("followerId") // Lo borramos para que no se repita
-        }
+        // 2. SI LA APP ESTABA CERRADA: Procesamos el intent inicial
+        processIntent(intent)
 
         setContent {
             val navController = rememberNavController()
 
-            // MAGIA DE COMPOSE: Si pendingFollowerId cambia, navegamos
-            LaunchedEffect(pendingFollowerId) {
-                pendingFollowerId?.let { id ->
-                    navController.navigate("profile/$id") {
-                        launchSingleTop = true // Evita abrir pantallas duplicadas
+            // 3. MAGIA DE COMPOSE: Si pendingRoute cambia, navegamos a donde nos diga
+            LaunchedEffect(pendingRoute) {
+                pendingRoute?.let { route ->
+                    navController.navigate(route) {
+                        launchSingleTop = true
                     }
                     // Reseteamos el estado después de navegar
-                    pendingFollowerId = null
+                    pendingRoute = null
                 }
             }
 
@@ -88,15 +85,38 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // SI LA APP YA ESTABA ABIERTA (En segundo plano o usándose)
+    // 4. SI LA APP YA ESTABA ABIERTA (En segundo plano o usándose)
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        // Procesamos el nuevo intent que acaba de llegar
+        processIntent(intent)
+    }
 
-        // Atrapamos el nuevo ID y actualizamos el estado
-        intent.getStringExtra("followerId")?.let {
-            pendingFollowerId = it
-            intent.removeExtra("followerId") // Lo borramos
+    // 5. FUNCIÓN CENTRAL DE DEEP LINKING: Decide a qué ruta ir según el 'type'
+    private fun processIntent(intent: Intent) {
+        val type = intent.getStringExtra("type")
+
+        when (type) {
+            "NEW_FOLLOWER" -> {
+                val followerId = intent.getStringExtra("followerId")
+                if (!followerId.isNullOrEmpty()) {
+                    pendingRoute = "profile/$followerId" // Ruta al perfil
+                }
+            }
+            "NEW_REPLY" -> {
+                val bookId = intent.getStringExtra("bookId")
+                val commentId = intent.getStringExtra("commentId")
+                if (!bookId.isNullOrEmpty() && !commentId.isNullOrEmpty()) {
+                    pendingRoute = "reviews_thread/$bookId/$commentId" // Ruta a los comentarios
+                }
+            }
         }
+
+        // Limpiamos los extras para que no se re-dispare al rotar la pantalla
+        intent.removeExtra("type")
+        intent.removeExtra("followerId")
+        intent.removeExtra("bookId")
+        intent.removeExtra("commentId")
     }
 }

@@ -2,7 +2,6 @@ package com.example.topbooks.ui.reviews
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -74,7 +73,7 @@ fun ReviewsScreen(
                     ReviewItem(
                         comment = comment,
                         onBookClick = { onBookClick(comment.bookId) },
-                        onReply = { text -> viewModel.addReply(comment.commentId, text) },
+                        onReply = { text -> viewModel.addReply(comment, text) },
                         isHighlighted = isHighlighted
                     )
                 }

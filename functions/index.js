@@ -1,29 +1,25 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onCall } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
 
-// Esta función se dispara automáticamente cuando se CREA un nuevo documento en la colección de amigos
+// --- FUNCIÓN 1: SEGUIDORES ---
 exports.notificarNuevoSeguidor = onDocumentCreated('users/{miUid}/friends/{amigoUid}', async (event) => {
-
-    // 1. AHORA SÍ: miUid es el que pulsa el botón (Seguidor). amigoUid es el que lo recibe (Seguido).
     const seguidorId = event.params.miUid;
     const usuarioSeguidoId = event.params.amigoUid;
 
     try {
-        // 2. Sacamos el nombre del que acaba de dar a "seguir" (seguidorId)
         const seguidorDoc = await admin.firestore().collection('users').doc(seguidorId).get();
         const nombreSeguidor = seguidorDoc.data()?.displayName || "Un usuario";
 
-        // 3. Sacamos el TOKEN del amigo al que han empezado a seguir (usuarioSeguidoId)
         const seguidoDoc = await admin.firestore().collection('users').doc(usuarioSeguidoId).get();
         const fcmToken = seguidoDoc.data()?.fcmToken;
 
         if (!fcmToken) {
-            return console.log(`El usuario ${usuarioSeguidoId} no tiene token de notificaciones.`);
+            return console.log(`El usuario ${usuarioSeguidoId} no tiene token.`);
         }
 
-        // 4. Construimos la notificación Push
         const mensaje = {
             notification: {
                 title: "¡Tienes un nuevo seguidor! 🎉",
@@ -31,17 +27,56 @@ exports.notificarNuevoSeguidor = onDocumentCreated('users/{miUid}/friends/{amigo
             },
             data: {
                 type: "NEW_FOLLOWER",
-                // PASAMOS EL ID DEL SEGUIDOR (El que pulsó el botón) para el Deep Link
                 followerId: seguidorId
             },
             token: fcmToken
         };
 
-        // 5. ¡La disparamos al móvil del amigo!
         await admin.messaging().send(mensaje);
-        console.log(`Notificación enviada con éxito a ${usuarioSeguidoId}`);
+        console.log(`Notificación de seguidor enviada a ${usuarioSeguidoId}`);
 
     } catch (error) {
-        console.error("Error al enviar la notificación:", error);
+        console.error("Error en notificarNuevoSeguidor:", error);
+    }
+});
+
+// --- FUNCIÓN 2: RESPUESTAS ---
+exports.enviarNotificacionRespuesta = onCall(async (request) => {
+    // 🟢 MEGÁFONO: Estos logs nos dirán si la app llega al servidor
+    console.log("FUNCIÓN DESPERTADA");
+    console.log("Datos recibidos desde Android:", JSON.stringify(request.data));
+
+    const { autorComentarioOriginalId, nombreRespondedor, bookId, commentId } = request.data;
+
+    try {
+        const autorDoc = await admin.firestore().collection('users').doc(autorComentarioOriginalId).get();
+        const fcmToken = autorDoc.data()?.fcmToken;
+
+        if (!fcmToken) {
+            console.log(`ALERTA: El usuario ${autorComentarioOriginalId} no tiene token.`);
+            // Esto le devolverá un success=false a la app de Android
+            return { success: false, error: "Usuario sin token" };
+        }
+
+        const mensaje = {
+            notification: {
+                title: "¡Nuevas respuestas en tu reseña! 📚",
+                body: `${nombreRespondedor} ha comentado en tu reseña.`
+            },
+            data: {
+                type: "NEW_REPLY",
+                bookId: bookId,
+                commentId: commentId
+            },
+            token: fcmToken
+        };
+
+        await admin.messaging().send(mensaje);
+        console.log(`Notificación de respuesta enviada con éxito a ${autorComentarioOriginalId}`);
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error CRÍTICO en enviarNotificacionRespuesta:", error);
+        return { success: false, error: error.message };
     }
 });

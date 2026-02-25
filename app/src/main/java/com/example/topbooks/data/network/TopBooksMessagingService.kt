@@ -1,4 +1,4 @@
-package com.example.topbooks.services
+package com.example.topbooks.data.network
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -11,7 +11,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.topbooks.MainActivity
 import com.example.topbooks.R
-import com.example.topbooks.ui.theme.ColorBackGroundGeneral
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
@@ -20,17 +19,24 @@ class TopBooksMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
-        // 1. Extraer los datos del servidor (el 'data' de la Cloud Function)
+        // 1. Extraer TODOS los datos posibles del servidor
+        val type = remoteMessage.data["type"]
         val followerId = remoteMessage.data["followerId"]
+        val bookId = remoteMessage.data["bookId"]
+        val commentId = remoteMessage.data["commentId"]
 
         // 2. Extraer lo que el usuario va a leer
         val title = remoteMessage.notification?.title ?: "¡Novedad en TopBooks!"
         val body = remoteMessage.notification?.body ?: "Tienes una nueva notificación."
 
-        // 3. Configurar el Intent para el Deep Link
+        // 3. Configurar el Intent Universal para el Deep Link
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("followerId", followerId) // Aquí pasamos el ID al MainActivity
+            // Metemos TODO en el sobre. La MainActivity decidirá qué usar.
+            putExtra("type", type)
+            putExtra("followerId", followerId)
+            putExtra("bookId", bookId)
+            putExtra("commentId", commentId)
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -44,7 +50,7 @@ class TopBooksMessagingService : FirebaseMessagingService() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                channelId, "Notificaciones de amigos",
+                channelId, "Notificaciones de la comunidad",
                 NotificationManager.IMPORTANCE_HIGH
             )
             notificationManager.createNotificationChannel(channel)
