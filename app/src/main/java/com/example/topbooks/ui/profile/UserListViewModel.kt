@@ -84,7 +84,11 @@ class UserListViewModel : ViewModel() {
 
     private suspend fun fetchReviews(userId: String) {
         val snapshot = db.collection("reviews").whereEqualTo("userId", userId).get().await()
-        val rawReviews = snapshot.toObjects(Comment::class.java)
+
+        val rawReviews = snapshot.documents.mapNotNull { doc ->
+            doc.toObject(Comment::class.java)?.copy(commentId = doc.id)
+        }
+
         enrichAndSetReviews(rawReviews, userId)
     }
 
@@ -118,7 +122,6 @@ class UserListViewModel : ViewModel() {
         _uiState.update { it.copy(bookmarks = list, isLoading = false) }
     }
 
-    // 🟢 NUEVAS FUNCIONES DE ACTUALIZAR Y BORRAR MARCADOR
     fun updateBookmark(bookmark: BookmarkUI) {
         val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
@@ -155,7 +158,11 @@ class UserListViewModel : ViewModel() {
 
     private suspend fun fetchComments(userId: String) {
         val snapshot = db.collection("comments").whereEqualTo("userId", userId).get().await()
-        val rawComments = snapshot.toObjects(Comment::class.java)
+
+        val rawComments = snapshot.documents.mapNotNull { doc ->
+            doc.toObject(Comment::class.java)?.copy(commentId = doc.id)
+        }
+
         enrichAndSetReviews(rawComments, userId)
     }
 
@@ -205,6 +212,19 @@ class UserListViewModel : ViewModel() {
                 fetchComments(uid) // Recargar la lista al instante
             } catch (e: Exception) {
                 Log.e("UserListVM", "Error al borrar comentario: ${e.message}")
+            }
+        }
+    }
+
+    fun deleteReview(reviewId: String) {
+        val uid = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            try {
+                // Borramos el documento de la colección 'reviews'
+                db.collection("reviews").document(reviewId).delete().await()
+                fetchReviews(uid) // Recargamos la lista al instante
+            } catch (e: Exception) {
+                Log.e("UserListVM", "Error al borrar reseña: ${e.message}")
             }
         }
     }

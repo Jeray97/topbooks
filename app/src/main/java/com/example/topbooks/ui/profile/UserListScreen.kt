@@ -86,7 +86,14 @@ fun UserListScreen(
                         "read" -> items(state.readBooks) { BookItem(it, onBookClick) }
                         "bookmarks" -> items(state.bookmarks) { BookmarkListItem(it, onBookClick, viewModel, isMe) }
                         "journals" -> items(state.reviews) { ReviewListItem(it, onJournalClick) }
-                        "reviews" -> items(state.reviews) { ReviewListItem(it, onBookClick) }
+                        "reviews" -> items(state.reviews) {
+                            ReviewListItem(
+                                review = it,
+                                onBookClick = onBookClick,
+                                onDelete = { viewModel.deleteReview(it.commentId) }, // Ejecuta el borrado
+                                isMe = isMe // Controla si se ve la papelera
+                            )
+                        }
                         "comments" -> items(state.reviews) {
                             CommentListItem(
                                 comment = it,
@@ -264,7 +271,34 @@ fun BookItem(book: SimpleBook, onClick: (String) -> Unit) {
 }
 
 @Composable
-fun ReviewListItem(review: com.example.topbooks.data.model.Comment, onBookClick: (String) -> Unit) {
+fun ReviewListItem(
+    review: com.example.topbooks.data.model.Comment,
+    onBookClick: (String) -> Unit,
+    onDelete: (() -> Unit)? = null, // Función opcional para borrar
+    isMe: Boolean = false // 🟢Para saber si mostramos la papelera
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // DIÁLOGO DE CONFIRMACIÓN
+    if (showDeleteDialog && onDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Borrar reseña", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+            text = { Text("¿Estás seguro de que quieres borrar esta reseña de forma permanente?") },
+            confirmButton = {
+                Button(
+                    onClick = { onDelete(); showDeleteDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Borrar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar", color = Color.Gray) }
+            },
+            containerColor = Color.White, shape = RoundedCornerShape(24.dp)
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown),
@@ -294,10 +328,16 @@ fun ReviewListItem(review: com.example.topbooks.data.model.Comment, onBookClick:
                     }
                 }
             }
+
+            //BOTÓN DE PAPELERA (Solo visible si es mi perfil y se puede borrar)
+            if (isMe && onDelete != null) {
+                IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = "Borrar", tint = Color.White.copy(alpha = 0.7f))
+                }
+            }
         }
     }
 }
-
 @Composable
 fun CommentListItem(
     comment: com.example.topbooks.data.model.Comment,
