@@ -43,9 +43,14 @@ val ColorArcWhite = Color(0xFFF5ECE9)
 val ColorSurfaceTextRegister = Color(0xFFB9836B)
 val ColorConditionOk = Color(0xFF74BA32)
 
-
-
 //Textos
 val ColorTextPrimary = Color(0xFF5D4037)
 val ColorTituloTopBooks = Color(0xFF91604B)
 val ColorTituloCategoriaDetalle = Color(0xFF8E5D48)
+
+// COLORES DIARIO DE LECTURA
+val ColorJournalStar = Color(0xFFFFD54F)
+val ColorJournalRomance = Color(0xFFFF4081)
+val ColorJournalHappy = Color(0xFFFF9800)
+val ColorJournalSad = Color(0xFF2979FF)
+val ColorJournalSpicy = Color(0xFFD50000)

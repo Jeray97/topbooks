@@ -184,7 +184,8 @@ fun ReadingJournalScreen(
                                         Icon(
                                             imageVector = Icons.Default.Star,
                                             contentDescription = null,
-                                            tint = if (k <= mainRating) JournalDark else Color.Gray.copy(alpha = 0.3f),
+                                            // 🟢 APLICAMOS COLOR ESTRELLA AQUÍ
+                                            tint = if (k <= mainRating) ColorJournalStar else Color.Gray.copy(alpha = 0.3f),
                                             modifier = Modifier.size(20.dp).clickable { mainRating = k }
                                         )
                                     }
@@ -240,12 +241,13 @@ fun ReadingJournalScreen(
                         JournalSectionCard("Clasificación") {
                             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(modifier = Modifier.fillMaxWidth()) {
-                                    ClassificationRow("Romántico", rRomance, Icons.Default.Favorite, Modifier.weight(1f)) { rRomance = it }
-                                    ClassificationRow("Alegre", rHappy, Icons.Default.Face, Modifier.weight(1f)) { rHappy = it }
+                                    // 🟢 APLICAMOS COLORES ESPECÍFICOS A CADA FILA
+                                    ClassificationRow("Romántico", rRomance, Icons.Default.Favorite, Modifier.weight(1f), activeColor = ColorJournalRomance) { rRomance = it }
+                                    ClassificationRow("Alegre", rHappy, Icons.Default.Face, Modifier.weight(1f), activeColor = ColorJournalHappy) { rHappy = it }
                                 }
                                 Row(modifier = Modifier.fillMaxWidth()) {
-                                    ClassificationRow("Triste", rSad, Icons.Default.Opacity, Modifier.weight(1f)) { rSad = it }
-                                    ClassificationRow("Spicy", rSpicy, Icons.Default.LocalFireDepartment, Modifier.weight(1f)) { rSpicy = it }
+                                    ClassificationRow("Triste", rSad, Icons.Default.Opacity, Modifier.weight(1f), activeColor = ColorJournalSad) { rSad = it }
+                                    ClassificationRow("Spicy", rSpicy, Icons.Default.LocalFireDepartment, Modifier.weight(1f), activeColor = ColorJournalSpicy) { rSpicy = it }
                                 }
                             }
                         }
@@ -411,14 +413,20 @@ fun JournalSectionCard(t: String, c: @Composable () -> Unit) = Column(Modifier.f
     JournalBox { Column(Modifier.fillMaxWidth()) { c() } }
 }
 
+// 🟢 ACTUALIZADO: Ahora ClassificationRow acepta el color como parámetro (con un valor por defecto)
 @Composable
-fun ClassificationRow(l: String, r: Int, i: ImageVector, modifier: Modifier = Modifier, onR: (Int) -> Unit) {
+fun ClassificationRow(l: String, r: Int, i: ImageVector, modifier: Modifier = Modifier, activeColor: Color = JournalDark, onR: (Int) -> Unit) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(l, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = JournalDark, fontFamily = CenturyGotic)
         Spacer(modifier = Modifier.height(4.dp))
         Row(horizontalArrangement = Arrangement.Center) {
             for (k in 1..5) {
-                Icon(imageVector = i, contentDescription = null, tint = if (k <= r) JournalDark else Color.Gray.copy(alpha = 0.3f), modifier = Modifier.size(24.dp).clickable { onR(k) }.padding(2.dp))
+                Icon(
+                    imageVector = i,
+                    contentDescription = null,
+                    tint = if (k <= r) activeColor else Color.Gray.copy(alpha = 0.3f), // 🟢 Aplica el color aquí
+                    modifier = Modifier.size(24.dp).clickable { onR(k) }.padding(2.dp)
+                )
             }
         }
     }
