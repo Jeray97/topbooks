@@ -21,7 +21,8 @@ data class ProfileUiState(
     val favoriteIds: List<String> = emptyList(),
     val isLoading: Boolean = false,
     val isMe: Boolean = false,
-    val isFriend: Boolean = false
+    val isFriend: Boolean = false,
+    val isEmailVerified: Boolean = true
 )
 
 class ProfileViewModel : ViewModel() {
@@ -45,11 +46,16 @@ class ProfileViewModel : ViewModel() {
             docRef.addSnapshotListener { snapshot, _ ->
                 snapshot?.let { doc ->
                     val user = doc.toObject(User::class.java) ?: User()
-                    // 🟢 SOLUCIÓN 1: Inyectamos el ID (doc.id) por si no viene en los datos
                     _uiState.update { it.copy(user = user.copy(uid = doc.id), isLoading = false) }
                 }
             }
             listenToRealtimeCounts(finalUserId)
+
+
+            viewModelScope.launch {
+                auth.currentUser?.reload()?.await()
+                _uiState.update { it.copy(isEmailVerified = auth.currentUser?.isEmailVerified == true) }
+            }
         } else {
             // --- MODO: PERFIL DE AMIGO (Carga de datos y conteos manuales) ---
             viewModelScope.launch {
@@ -182,6 +188,15 @@ class ProfileViewModel : ViewModel() {
                 // Si falla la red, devolvemos el botón a su estado original
                 _uiState.update { it.copy(isFriend = currentState) }
             }
+        }
+    }
+
+    fun resendVerificationEmail(onResult: (String) -> Unit) {
+        val user = auth.currentUser
+        if (user != null && !user.isEmailVerified) {
+            user.sendEmailVerification()
+                .addOnSuccessListener { onResult("Correo de verificación reenviado.") }
+                .addOnFailureListener { onResult("Error al enviar el correo. Inténtalo más tarde.") }
         }
     }
 }

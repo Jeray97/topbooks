@@ -51,7 +51,10 @@ fun RegisterScreen(
     RegisterContent(
         isLoading = viewModel.isAuthenticating,
         onRegisterClick = { name, email, pass ->
-            viewModel.register(name, email, pass, onRegisterSuccess)
+            viewModel.register(name, email, pass) {
+                Toast.makeText(context, "Registro exitoso. Por favor, revisa tu correo para verificar tu cuenta.", Toast.LENGTH_LONG).show()
+                onRegisterSuccess()
+            }
         },
         onNavigateToLogin = onNavigateToLogin
     )

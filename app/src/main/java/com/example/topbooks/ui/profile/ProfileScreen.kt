@@ -138,6 +138,33 @@ fun ProfileScreen(
                     }
                 }
 
+                // AVISO DE VERIFICACIÓN DE CORREO
+                if (state.isMe && !state.isEmailVerified) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        color = Color(0xFFFFF3E0), // Fondo naranja clarito de advertencia
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .clickable {
+                                viewModel.resendVerificationEmail { msg ->
+                                    android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                                }
+                            }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = "Advertencia", tint = Color(0xFFFF9800), modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Verificar cuenta (Reenviar email)", color = Color(0xFFE65100), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 // BIO
                 Text(
                     text = user.bio.ifEmpty { "Sin biografía aún." },
@@ -157,7 +184,6 @@ fun ProfileScreen(
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                         Image(
-                            // 👇 AQUÍ PONES TUS DRAWABLES
                             painter = painterResource(id = if (state.isFriend) R.drawable.libro_abierto else R.drawable.libro_cerrado),
                             contentDescription = null,
                             modifier = Modifier.size(24.dp)
@@ -253,7 +279,6 @@ fun ProfileGenreItem(genreCode: String) {
     }
 }
 
-// --- ACTUALIZADO: Dashboard con las 4 cajas requeridas y navegación ---
 @Composable
 fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList: (String, String) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -264,7 +289,6 @@ fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList
                 title = if(state.isMe) "Mis diarios" else "Sus diarios",
                 onClick = { onNavigateToList("journals", userId) }
             ) {
-                // Icono representativo del diario
                 Icon(Icons.Default.Book, null, tint = Color(0xFF9575CD), modifier = Modifier.size(32.dp))
             }
 
@@ -295,7 +319,6 @@ fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList
     }
 }
 
-// --- ACTUALIZADO: DashboardItem ahora es interactivo (onClick) ---
 @Composable
 fun DashboardItem(title: String, onClick: () -> Unit, content: @Composable () -> Unit) {
     Surface(
