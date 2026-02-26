@@ -44,7 +44,6 @@ class ReviewsViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                Log.d("ReviewsVM", "Cargando feed social. Modo DeepLink: ${bookId != null}")
                 if (bookId != null) {
                     val query = db.collection("comments")
                         .whereEqualTo("bookId", bookId)
@@ -79,23 +78,32 @@ class ReviewsViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
-                Log.e("ReviewsVM", "Error en loadSocialFeed: ${e.message}")
+            }
+        }
+    }
+
+    // 🟢 NUEVA FUNCIÓN: Comprueba la verificación del correo
+    fun checkEmailVerification(onResult: (Boolean) -> Unit) {
+        val user = auth.currentUser
+        if (user == null) {
+            onResult(false)
+            return
+        }
+        viewModelScope.launch {
+            try {
+                user.reload().await()
+                onResult(user.isEmailVerified)
+            } catch (e: Exception) {
+                onResult(false)
             }
         }
     }
 
     fun addReply(comment: Comment, text: String) {
-        val user = auth.currentUser ?: run {
-            Log.e("ReviewsVM", "❌ Error: Intento de respuesta sin usuario autenticado")
-            return
-        }
+        val user = auth.currentUser ?: return
 
         viewModelScope.launch {
             try {
-                Log.d("ReviewsVM", "1. Iniciando addReply. Usuario: ${user.uid} -> Comentario: ${comment.commentId}")
-                Log.d("ReviewsVM", "   Contenido: '$text'")
-
-                // 1. Crear el objeto respuesta
                 val reply = Reply(
                     userId = user.uid,
                     userName = user.displayName ?: "Usuario",
@@ -104,43 +112,22 @@ class ReviewsViewModel : ViewModel() {
                     timestamp = System.currentTimeMillis()
                 )
 
-                // 2. Subirlo a Firestore
-                Log.d("ReviewsVM", "   2. Actualizando Firestore (FieldValue.arrayUnion)...")
                 db.collection("comments").document(comment.commentId)
                     .update("replies", FieldValue.arrayUnion(reply)).await()
-                Log.d("ReviewsVM", "   3. Firestore actualizado con éxito.")
-
-                Log.d("ReviewsVM", "   4. Verificando si notificamos: AutorOriginal=${comment.userId} | Respondedor=${user.uid}")
 
                 if (comment.userId != user.uid) {
-                    Log.d("ReviewsVM", "   5. Identidades diferentes. Llamando a Cloud Function 'enviarNotificacionRespuesta'...")
-
                     val data = hashMapOf(
                         "autorComentarioOriginalId" to comment.userId,
                         "nombreRespondedor" to (user.displayName ?: "Alguien"),
                         "bookId" to comment.bookId,
                         "commentId" to comment.commentId
                     )
-
-                    // Llamamos a la función
-                    Firebase.functions
-                        .getHttpsCallable("enviarNotificacionRespuesta")
-                        .call(data)
-                        .addOnSuccessListener { result ->
-                            val respuesta = result.data
-                            Log.d("ReviewsVM", "   6. EL SERVIDOR CONTESTÓ: $respuesta")
-                        }
-                        .addOnFailureListener { e ->
-                            Log.e("ReviewsVM", "   6. ERROR DE RED/PERMISOS: ${e.message}")
-                        }
-                } else {
-                    Log.d("ReviewsVM", "   5. Auto-respuesta detectada. No se envía notificación al servidor.")
+                    Firebase.functions.getHttpsCallable("enviarNotificacionRespuesta").call(data)
                 }
 
                 loadSocialFeed()
             } catch (e: Exception) {
                 Log.e("ReviewsVM", "ERROR CRÍTICO en addReply: ${e.message}")
-                e.printStackTrace()
             }
         }
     }
@@ -164,9 +151,7 @@ class ReviewsViewModel : ViewModel() {
                             bookImageUrl = bookDoc.getString("thumbnail") ?: ""
                         )
                     }
-                } catch (e: Exception) {
-                    Log.e("ReviewsVM", "Error enriqueciendo comentario ${comment.commentId}: ${e.message}")
-                }
+                } catch (e: Exception) { }
                 enriched
             }
         }.awaitAll()

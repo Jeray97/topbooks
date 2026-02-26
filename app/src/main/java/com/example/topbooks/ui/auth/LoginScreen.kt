@@ -33,7 +33,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 
 /**
- * Pantalla de inicio de sesión actualizada para el flujo de Onboarding.
+ * Pantalla de inicio de sesión actualizada para el flujo de Onboarding y Recuperación de contraseña.
  */
 @Composable
 fun LoginScreen(
@@ -46,7 +46,7 @@ fun LoginScreen(
     // Observamos mensajes de error globales del ViewModel
     LaunchedEffect(viewModel.errorMessage) {
         viewModel.errorMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(it), Toast.LENGTH_LONG).show()
             viewModel.clearError()
         }
     }
@@ -80,7 +80,8 @@ fun LoginScreen(
         isLoading = viewModel.isAuthenticating,
         onLoginClick = { email, pass -> viewModel.login(email, pass, onLoginSuccess) },
         onGoogleClick = { googleLauncher.launch(googleSignInClient.signInIntent) },
-        onNavigateToRegister = onNavigateToRegister
+        onNavigateToRegister = onNavigateToRegister,
+        viewModel = viewModel // 🟢 Pasamos el viewModel para usarlo en el Reset Dialog
     )
 }
 
@@ -89,11 +90,62 @@ fun LoginContent(
     isLoading: Boolean,
     onLoginClick: (String, String) -> Unit,
     onGoogleClick: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    viewModel: AuthViewModel
 ) {
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
+
+    // 🟢 ESTADO PARA EL DIÁLOGO DE CONTRASEÑA OLVIDADA
+    var showResetDialog by remember { mutableStateOf(false) }
+
+    if (showResetDialog) {
+        var resetEmail by remember { mutableStateOf(email) } // Pre-rellena con el email escrito
+        var isSending by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            title = { Text("Recuperar contraseña", fontFamily = GuardianCity, fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("Introduce tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.", color = Color.Gray, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = resetEmail,
+                        onValueChange = { resetEmail = it },
+                        label = { Text("Correo electrónico") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown, focusedLabelColor = ColorArcMediumBrown)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isSending = true
+                        viewModel.resetPassword(resetEmail) { success, msg ->
+                            isSending = false
+                            showResetDialog = false
+                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                        }
+                    },
+                    enabled = resetEmail.isNotBlank() && !isSending,
+                    colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)
+                ) {
+                    if (isSending) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                    else Text("Enviar enlace")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) { Text("Cancelar", color = Color.Gray) }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Image(
@@ -167,6 +219,17 @@ fun LoginContent(
                     unfocusedContainerColor = Color.White.copy(alpha = 0.8f)
                 )
             )
+
+            // 🟢 BOTÓN DE OLVIDÉ MI CONTRASEÑA
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                Text(
+                    text = "¿Has olvidado tu contraseña?",
+                    color = Color.DarkGray,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 8.dp).clickable { showResetDialog = true }
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

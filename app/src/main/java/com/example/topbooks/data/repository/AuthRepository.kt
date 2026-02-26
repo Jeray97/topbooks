@@ -7,13 +7,18 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.util.Locale
 
-// 1. DEFINICIÓN DE LA INTERFAZ (Esto faltaba o no se encontraba)
+// 1. DEFINICIÓN DE LA INTERFAZ
 interface AuthRepository {
     val currentUser: com.google.firebase.auth.FirebaseUser?
     suspend fun login(email: String, pass: String): Result<Boolean>
     suspend fun register(name: String, email: String, pass: String): Result<Boolean>
     fun logout()
     suspend fun loginWithGoogle(idToken: String): Result<Boolean>
+
+    // 🟢 NUEVAS FUNCIONES DE SEGURIDAD
+    suspend fun sendPasswordResetEmail(email: String): Result<Boolean>
+    suspend fun sendEmailVerification(): Result<Boolean>
+    suspend fun reloadUser(): Result<Boolean>
 }
 
 // 2. IMPLEMENTACIÓN DE LA INTERFAZ
@@ -97,5 +102,35 @@ class AuthRepositoryImpl : AuthRepository {
 
     override fun logout() {
         auth.signOut()
+    }
+
+    // 🟢 IMPLEMENTACIÓN DE RECUPERACIÓN DE CONTRASEÑA
+    override suspend fun sendPasswordResetEmail(email: String): Result<Boolean> {
+        return try {
+            auth.sendPasswordResetEmail(email).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // 🟢 IMPLEMENTACIÓN DE VERIFICACIÓN DE EMAIL
+    override suspend fun sendEmailVerification(): Result<Boolean> {
+        return try {
+            auth.currentUser?.sendEmailVerification()?.await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // 🟢 ACTUALIZAR ESTADO DEL USUARIO DESDE FIREBASE
+    override suspend fun reloadUser(): Result<Boolean> {
+        return try {
+            auth.currentUser?.reload()?.await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

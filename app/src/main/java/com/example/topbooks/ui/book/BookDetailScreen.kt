@@ -1,5 +1,6 @@
 package com.example.topbooks.ui.book
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -20,7 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,10 +57,12 @@ fun BookDetailScreen(
     val state by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current // 🟢 Necesario para los Toasts
 
     var isFabExpanded by remember { mutableStateOf(false) }
     var showReviewDialog by remember { mutableStateOf(false) }
     var showCommentDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     var showBookmarkDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(bookId) { viewModel.getBook(bookId) }
@@ -71,11 +73,18 @@ fun BookDetailScreen(
     }
 
     if (showCommentDialog && state.book != null) {
-        PremiumCommentDialog(onDismiss = { showCommentDialog = false }, onSubmit = { text, chapter -> viewModel.saveComment(state.book!!, text, chapter) { showCommentDialog = false } })
+        PremiumCommentDialog(
+            onDismiss = { showCommentDialog = false },
+            onSubmit = { text, chapter -> viewModel.saveComment(state.book!!, text, chapter) { showCommentDialog = false } }
+        )
     }
 
     if (showBookmarkDialog) {
         PremiumAddBookmarkDialog(onDismiss = { showBookmarkDialog = false }, onConfirm = { p, q, c, pub -> viewModel.addBookmark(bookId, p, q, c, pub); showBookmarkDialog = false })
+    }
+
+    if (showDeleteDialog && state.book != null) {
+        PremiumDeleteDialog(listName = state.savedInList ?: "biblioteca", onDismiss = { showDeleteDialog = false }, onConfirm = { viewModel.removeFromList(state.book!!.id); showDeleteDialog = false })
     }
 
     Scaffold(
@@ -93,13 +102,33 @@ fun BookDetailScreen(
                     Spacer(Modifier.height(8.dp))
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Call, "Añadir marcador") { isFabExpanded = false; showBookmarkDialog = true } }
                     Spacer(Modifier.height(8.dp))
-                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Edit, "Escribir reseña") { isFabExpanded = false; showReviewDialog = true } }
+
+                    // 🟢 COMPROBAMOS VERIFICACIÓN ANTES DE ESCRIBIR RESEÑA
+                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                        SmallFabItem(Icons.Default.Edit, "Escribir reseña") {
+                            isFabExpanded = false
+                            viewModel.checkEmailVerification { isVerified ->
+                                if (isVerified) showReviewDialog = true
+                                else Toast.makeText(context, "Verifica tu correo electrónico para poder opinar.", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
                     Spacer(Modifier.height(8.dp))
-                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Send, "Escribir comentario") { isFabExpanded = false; showCommentDialog = true } }
+
+                    // 🟢 COMPROBAMOS VERIFICACIÓN ANTES DE ESCRIBIR COMENTARIO
+                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                        SmallFabItem(Icons.Default.Send, "Escribir comentario") {
+                            isFabExpanded = false
+                            viewModel.checkEmailVerification { isVerified ->
+                                if (isVerified) showCommentDialog = true
+                                else Toast.makeText(context, "Verifica tu correo electrónico para participar en la charla.", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
                     Spacer(Modifier.height(8.dp))
+
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Search, "Ver opiniones") { isFabExpanded = false; coroutineScope.launch { listState.animateScrollToItem(2) } } }
                     Spacer(Modifier.height(16.dp))
-
                     val rotation by animateFloatAsState(if (isFabExpanded) 45f else 0f)
                     FloatingActionButton(onClick = { isFabExpanded = !isFabExpanded }, containerColor = ColorArcMediumBrown, contentColor = Color.White, shape = CircleShape) { Icon(Icons.Default.Add, null, modifier = Modifier.rotate(rotation)) }
                 }
@@ -111,17 +140,7 @@ fun BookDetailScreen(
             else if (state.book != null) {
                 val book = state.book!!
                 LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 100.dp), modifier = Modifier.fillMaxSize()) {
-
-                    item {
-                        BookHeaderSection(
-                            book = book,
-                            isFavorite = state.isFavorite,
-                            readingStatus = state.readingStatus,
-                            onToggleFavorite = { viewModel.toggleFavorite(book) },
-                            onToggleStatus = { status -> viewModel.toggleReadingStatus(book, status) }
-                        )
-                    }
-
+                    item { BookHeaderSection(book = book, savedInList = state.savedInList, onListAction = { if (state.savedInList == it) showDeleteDialog = true else viewModel.addToList(book, it) }) }
                     item { SynopsisSection(book.description) }
                     item { Text("Opiniones de la comunidad", fontFamily = CenturyGotic, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks, modifier = Modifier.padding(24.dp, 16.dp)) }
                     if (state.reviews.isEmpty()) item { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text("Nadie ha opinado todavía.", color = Color.Gray) } }
@@ -132,16 +151,10 @@ fun BookDetailScreen(
     }
 }
 
-// --- COMPONENTES ACTUALIZADOS ---
+// --- COMPONENTES ORIGINALES ---
 
 @Composable
-fun BookHeaderSection(
-    book: Book,
-    isFavorite: Boolean,
-    readingStatus: String?,
-    onToggleFavorite: () -> Unit,
-    onToggleStatus: (String) -> Unit
-) {
+fun BookHeaderSection(book: Book, savedInList: String?, onListAction: (String) -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
         Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(10.dp), modifier = Modifier.width(170.dp).height(260.dp)) {
             AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(book.imageUrl).crossfade(true).error(com.example.topbooks.R.drawable.icon_codigodebarras).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -150,29 +163,10 @@ fun BookHeaderSection(
         Text(book.title, fontSize = 24.sp, fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks, textAlign = TextAlign.Center, lineHeight = 28.sp, modifier = Modifier.padding(horizontal = 24.dp))
         Text(book.authors.joinToString(", "), fontSize = 16.sp, fontFamily = CenturyGotic, color = ColorArcDarkBrown, modifier = Modifier.padding(top = 8.dp))
         Spacer(modifier = Modifier.height(24.dp))
-
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            StatusButton(
-                label = "Favoritos",
-                isActive = isFavorite,
-                activeIcon = Icons.Default.Favorite,
-                inactiveIcon = Icons.Default.FavoriteBorder,
-                onClick = onToggleFavorite
-            )
-            StatusButton(
-                label = "Leídos",
-                isActive = readingStatus == "Leídos",
-                activeIcon = Icons.Default.CheckCircle,
-                inactiveIcon = Icons.Outlined.CheckCircle,
-                onClick = { onToggleStatus("Leídos") }
-            )
-            StatusButton(
-                label = "Pendientes",
-                isActive = readingStatus == "Pendientes",
-                activeIcon = Icons.Default.Info,
-                inactiveIcon = Icons.Outlined.Info,
-                onClick = { onToggleStatus("Pendientes") }
-            )
+            StatusButton(label = "Favoritos", isActive = savedInList == "Favoritos", activeIcon = Icons.Default.Favorite, inactiveIcon = Icons.Default.FavoriteBorder, onClick = { onListAction("Favoritos") })
+            StatusButton(label = "Leídos", isActive = savedInList == "Leídos", activeIcon = Icons.Default.CheckCircle, inactiveIcon = Icons.Outlined.CheckCircle, onClick = { onListAction("Leídos") })
+            StatusButton(label = "Pendientes", isActive = savedInList == "Pendientes", activeIcon = Icons.Default.Info, inactiveIcon = Icons.Default.Info, onClick = { onListAction("Pendientes") })
         }
     }
 }
@@ -223,8 +217,6 @@ fun ReviewItem(review: Review) {
     }
 }
 
-// --- FORMULARIOS PREMIUM ---
-
 @Composable
 fun PremiumReviewDialog(onDismiss: () -> Unit, onSubmit: (Int, String) -> Unit) {
     var rating by remember { mutableIntStateOf(0) }; var reviewText by remember { mutableStateOf("") }
@@ -260,6 +252,14 @@ fun PremiumAddBookmarkDialog(onDismiss: () -> Unit, onConfirm: (String, String, 
         },
         confirmButton = { Button(onClick = { onConfirm(p, q, c, pub) }, enabled = p.isNotEmpty() && q.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown), shape = RoundedCornerShape(12.dp)) { Text("Guardar") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
+}
+
+@Composable
+fun PremiumDeleteDialog(listName: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("¿Quitar libro?", fontFamily = GuardianCity, color = Color.Red.copy(0.7f)) },
+        text = { Text("Se eliminará de tu lista '$listName'.") },
+        confirmButton = { Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f)), shape = RoundedCornerShape(12.dp)) { Text("Eliminar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Mantener", color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
 }
 
 @Composable

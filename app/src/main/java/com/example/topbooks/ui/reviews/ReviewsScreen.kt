@@ -1,5 +1,6 @@
 package com.example.topbooks.ui.reviews
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,7 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,29 +41,8 @@ fun ReviewsScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    // Controlador para mover la lista
-    val listState = rememberLazyListState()
-
     LaunchedEffect(bookId) {
         viewModel.loadSocialFeed(bookId, targetCommentId)
-    }
-
-    // Unificamos las reseñas aquí arriba para poder buscar en ellas antes de pintar la lista
-    val allReviews = remember(state.friendsReviews, state.communityReviews) {
-        (state.friendsReviews + state.communityReviews).distinctBy { it.commentId }
-    }
-
-    // Efecto que se dispara cuando los comentarios terminan de cargar
-    LaunchedEffect(allReviews, targetCommentId) {
-        if (targetCommentId != null && allReviews.isNotEmpty()) {
-            // Buscamos en qué posición (índice) está nuestro comentario
-            val index = allReviews.indexOfFirst { it.commentId == targetCommentId }
-            if (index != -1) {
-                // Hacemos scroll suave hasta ese ítem.
-                // Sumamos +1 porque el "item" del título principal ("Hilo de conversación") ocupa la posición 0.
-                listState.animateScrollToItem(index + 1)
-            }
-        }
     }
 
     Scaffold(
@@ -70,10 +50,9 @@ fun ReviewsScreen(
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         LazyColumn(
-            state = listState, //Enganchamos el controlador a la lista
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp) // Un poco más de espacio entre tarjetas
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item {
                 Text(
@@ -89,13 +68,16 @@ fun ReviewsScreen(
             if (state.isLoading) {
                 item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = ColorArcMediumBrown) } }
             } else {
-                items(allReviews) { comment ->
+                val allReviews = state.friendsReviews + state.communityReviews
+
+                items(allReviews.distinctBy { it.commentId }) { comment ->
                     val isHighlighted = comment.commentId == targetCommentId
 
                     ReviewItem(
                         comment = comment,
                         onBookClick = { onBookClick(comment.bookId) },
                         onReply = { text -> viewModel.addReply(comment, text) },
+                        onCheckVerification = { callback -> viewModel.checkEmailVerification(callback) }, // 🟢 PASAMOS LA FUNCIÓN DE VERIFICACIÓN
                         isHighlighted = isHighlighted
                     )
                 }
@@ -109,9 +91,11 @@ fun ReviewItem(
     comment: Comment,
     onBookClick: () -> Unit,
     onReply: (String) -> Unit,
+    onCheckVerification: ((Boolean) -> Unit) -> Unit,
     isHighlighted: Boolean = false
 ) {
     var showReplyDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current // 🟢 Necesario para el Toast
 
     if (showReplyDialog) {
         ReplyDialog(onDismiss = { showReplyDialog = false }, onConfirm = onReply)
@@ -122,11 +106,11 @@ fun ReviewItem(
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isHighlighted) 8.dp else 2.dp),
         border = if (isHighlighted) androidx.compose.foundation.BorderStroke(2.dp, ColorArcMediumBrown) else null,
-        colors = CardDefaults.cardColors(containerColor = Color.White) // FONDOS BLANCOS
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
-            // ETIQUETA DE DESTACADO (Deep Link)
+            // ETIQUETA DE DESTACADO
             if (isHighlighted) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
                     Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD54F), modifier = Modifier.size(16.dp))
@@ -135,13 +119,12 @@ fun ReviewItem(
                 }
             }
 
-            // CABECERA DEL COMENTARIO (Con Capítulo)
+            // CABECERA DEL COMENTARIO
             Row(verticalAlignment = Alignment.CenterVertically) {
                 UserAvatarItem(comment.userPhotoUrl, size = 48.dp)
                 Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
                     Text(comment.userName, color = ColorArcDarkBrown, fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
-                    // Verificamos si hay capítulo para mostrarlo
                     val subtitleText = if (comment.chapter.isNotBlank()) {
                         "sobre ${comment.bookTitle} • Cap. ${comment.chapter}"
                     } else {
@@ -169,11 +152,10 @@ fun ReviewItem(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     comment.replies.forEach { reply ->
-                        // La burbuja de respuesta
                         Surface(
-                            color = Color(0xFFF5F5F5), // Gris muy clarito
+                            color = Color(0xFFF5F5F5),
                             shape = RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
-                            modifier = Modifier.padding(start = 16.dp) // Indentación
+                            modifier = Modifier.padding(start = 16.dp)
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -192,13 +174,18 @@ fun ReviewItem(
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f), thickness = 1.dp)
 
-            // BOTÓN DE RESPONDER MEJORADO
+            // 🟢 BOTÓN DE RESPONDER CON VERIFICACIÓN
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(
-                    onClick = { showReplyDialog = true },
+                    onClick = {
+                        onCheckVerification { isVerified ->
+                            if (isVerified) showReplyDialog = true
+                            else Toast.makeText(context, "Verifica tu correo electrónico para responder.", Toast.LENGTH_LONG).show()
+                        }
+                    },
                     colors = ButtonDefaults.textButtonColors(contentColor = ColorArcMediumBrown)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Reply, contentDescription = "Responder", modifier = Modifier.size(18.dp))

@@ -97,6 +97,12 @@ class AuthViewModel(
                 currentUser = repository.currentUser
                 Log.d("AUTH_DEBUG", "Registro exitoso. UID: ${currentUser?.uid}")
 
+                repository.sendEmailVerification().onSuccess {
+                    Log.d("AUTH_DEBUG", "¡Correo de verificación ENVIADO al servidor de Firebase!")
+                }.onFailure {
+                    Log.e("AUTH_DEBUG", "¡FALLO al enviar correo de verificación! Motivo: ${it.message}")
+                }
+
                 currentUser?.uid?.let { uid ->
                     updateFcmToken(uid)
                 }
@@ -129,6 +135,33 @@ class AuthViewModel(
                 Log.e("AUTH_DEBUG", "ERROR loginWithGoogle: ${it.message}")
                 errorMessage = translateAuthError(it)
                 isAuthenticating = false
+            }
+        }
+    }
+
+    // 🟢 NUEVA FUNCIÓN: Recuperar contraseña
+    fun resetPassword(email: String, onResult: (Boolean, String) -> Unit) {
+        if (email.isBlank()) {
+            onResult(false, "Por favor, introduce tu correo electrónico.")
+            return
+        }
+        viewModelScope.launch {
+            repository.sendPasswordResetEmail(email).onSuccess {
+                onResult(true, "Se ha enviado un correo para restablecer tu contraseña.")
+            }.onFailure {
+                onResult(false, "No pudimos enviar el correo. Comprueba que está bien escrito.")
+            }
+        }
+    }
+
+    // 🟢 NUEVA FUNCIÓN: Comprobar si el email está verificado (Para usar antes de comentar)
+    fun isEmailVerified(onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            repository.reloadUser().onSuccess {
+                val verified = repository.currentUser?.isEmailVerified == true
+                onResult(verified)
+            }.onFailure {
+                onResult(false)
             }
         }
     }
