@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,8 +40,29 @@ fun ReviewsScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
+    // Controlador para mover la lista
+    val listState = rememberLazyListState()
+
     LaunchedEffect(bookId) {
         viewModel.loadSocialFeed(bookId, targetCommentId)
+    }
+
+    // Unificamos las reseñas aquí arriba para poder buscar en ellas antes de pintar la lista
+    val allReviews = remember(state.friendsReviews, state.communityReviews) {
+        (state.friendsReviews + state.communityReviews).distinctBy { it.commentId }
+    }
+
+    // Efecto que se dispara cuando los comentarios terminan de cargar
+    LaunchedEffect(allReviews, targetCommentId) {
+        if (targetCommentId != null && allReviews.isNotEmpty()) {
+            // Buscamos en qué posición (índice) está nuestro comentario
+            val index = allReviews.indexOfFirst { it.commentId == targetCommentId }
+            if (index != -1) {
+                // Hacemos scroll suave hasta ese ítem.
+                // Sumamos +1 porque el "item" del título principal ("Hilo de conversación") ocupa la posición 0.
+                listState.animateScrollToItem(index + 1)
+            }
+        }
     }
 
     Scaffold(
@@ -48,6 +70,7 @@ fun ReviewsScreen(
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         LazyColumn(
+            state = listState, //Enganchamos el controlador a la lista
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp) // Un poco más de espacio entre tarjetas
@@ -66,9 +89,7 @@ fun ReviewsScreen(
             if (state.isLoading) {
                 item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = ColorArcMediumBrown) } }
             } else {
-                val allReviews = state.friendsReviews + state.communityReviews
-
-                items(allReviews.distinctBy { it.commentId }) { comment ->
+                items(allReviews) { comment ->
                     val isHighlighted = comment.commentId == targetCommentId
 
                     ReviewItem(
@@ -101,7 +122,7 @@ fun ReviewItem(
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isHighlighted) 8.dp else 2.dp),
         border = if (isHighlighted) androidx.compose.foundation.BorderStroke(2.dp, ColorArcMediumBrown) else null,
-        colors = CardDefaults.cardColors(containerColor = Color.White) // 🟢 FONDOS BLANCOS
+        colors = CardDefaults.cardColors(containerColor = Color.White) // FONDOS BLANCOS
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
