@@ -1,29 +1,36 @@
 package com.example.topbooks.ui.profile
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun UserListScreen(
@@ -32,20 +39,23 @@ fun UserListScreen(
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
     onUserClick: (String) -> Unit,
+    onJournalClick: (String) -> Unit = {},
+    onCommentClick: (String, String) -> Unit = { _, _ -> },
     viewModel: UserListViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val auth = FirebaseAuth.getInstance()
+    val isMe = auth.currentUser?.uid == userId
 
     LaunchedEffect(type, userId) {
         viewModel.loadData(type, userId)
     }
 
-    // 1. AÑADIDOS LOS NUEVOS TÍTULOS
     val title = when(type) {
         "friends" -> "Amigos"
         "reviews" -> "Reseñas"
         "read" -> "Leídos"
-        "journals" -> "Mis Diarios"
+        "journals" -> "Diarios"
         "bookmarks" -> "Marcadores"
         "comments" -> "Comentarios"
         else -> "Lista"
@@ -67,23 +77,30 @@ fun UserListScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (state.isLoading) {
-                Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    CircularProgressIndicator(color = ColorArcMediumBrown)
-                }
+                Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = ColorArcMediumBrown) }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-                    // 2. AÑADIDAS LAS NUEVAS RUTAS A LOS ITEMS
                     when(type) {
                         "friends" -> items(state.friends) { FriendItem(it, onUserClick) }
-                        "read", "bookmarks" -> items(state.readBooks) { BookItem(it, onBookClick) }
-                        "reviews", "journals", "comments" -> items(state.reviews) { ReviewListItem(it, onBookClick) }
+                        "read" -> items(state.readBooks) { BookItem(it, onBookClick) }
+                        "bookmarks" -> items(state.bookmarks) { BookmarkListItem(it, onBookClick, viewModel, isMe) }
+                        "journals" -> items(state.reviews) { ReviewListItem(it, onJournalClick) }
+                        "reviews" -> items(state.reviews) { ReviewListItem(it, onBookClick) }
+                        "comments" -> items(state.reviews) {
+                            CommentListItem(
+                                comment = it,
+                                onCommentClick = onCommentClick,
+                                onDelete = { viewModel.deleteComment(it.commentId) },
+                                isMe = isMe
+                            )
+                        }
                     }
 
-                    // 3. AÑADIDAS LAS NUEVAS RUTAS A LA LÓGICA DE VACÍO
                     val isEmpty = when(type) {
                         "friends" -> state.friends.isEmpty()
-                        "read", "bookmarks" -> state.readBooks.isEmpty()
+                        "read" -> state.readBooks.isEmpty()
+                        "bookmarks" -> state.bookmarks.isEmpty()
                         "reviews", "journals", "comments" -> state.reviews.isEmpty()
                         else -> true
                     }
@@ -96,6 +113,114 @@ fun UserListScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun BookmarkListItem(bookmark: BookmarkUI, onBookClick: (String) -> Unit, viewModel: UserListViewModel, isMe: Boolean) {
+    var showEditDialog by remember { mutableStateOf(false) }
+
+    if (showEditDialog) {
+        EditBookmarkDialog(
+            bookmark = bookmark,
+            onDismiss = { showEditDialog = false },
+            onSave = { updated -> viewModel.updateBookmark(updated); showEditDialog = false },
+            onDelete = { viewModel.deleteBookmark(bookmark.id, bookmark.bookId); showEditDialog = false }
+        )
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable {
+            if (isMe) showEditDialog = true else onBookClick(bookmark.bookId)
+        },
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+            Icon(Icons.Default.Bookmark, contentDescription = null, tint = ColorArcMediumBrown, modifier = Modifier.size(32.dp))
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = bookmark.bookTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = ColorArcDarkBrown,
+                    fontSize = 16.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.clickable { onBookClick(bookmark.bookId) }
+                )
+                Spacer(Modifier.height(4.dp))
+                Text("«${bookmark.quote}»", fontStyle = FontStyle.Italic, color = Color.DarkGray, fontSize = 14.sp)
+                Spacer(Modifier.height(8.dp))
+
+                // Footer con Capítulo y Página
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    val chapText = if (bookmark.chapter.isNotBlank()) "Cap. ${bookmark.chapter}" else ""
+                    val pageText = if (bookmark.page.isNotBlank()) "Pág. ${bookmark.page}" else ""
+                    val combined = listOf(chapText, pageText).filter { it.isNotBlank() }.joinToString(" • ")
+
+                    Text(combined, color = ColorArcMediumBrown, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+
+                    if (!bookmark.isPublic && isMe) {
+                        Icon(Icons.Default.Lock, null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun EditBookmarkDialog(bookmark: BookmarkUI, onDismiss: () -> Unit, onSave: (BookmarkUI) -> Unit, onDelete: () -> Unit) {
+    var p by remember { mutableStateOf(bookmark.page) }
+    var c by remember { mutableStateOf(bookmark.chapter) }
+    var q by remember { mutableStateOf(bookmark.quote) }
+    var pub by remember { mutableStateOf(bookmark.isPublic) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Editar Marcador", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(value = p, onValueChange = { if(it.all { char -> char.isDigit() }) p = it }, label = { Text("Pág *") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = c, onValueChange = { c = it }, label = { Text("Capítulo") }, modifier = Modifier.weight(2f), singleLine = true, shape = RoundedCornerShape(12.dp))
+                }
+                OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text("Frase memorable *") }, modifier = Modifier.fillMaxWidth(), minLines = 3, shape = RoundedCornerShape(12.dp))
+                DialogPrivacyToggleButton(isPublic = pub, onToggle = { pub = it })
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onSave(bookmark.copy(page = p, chapter = c, quote = q, isPublic = pub)) }, enabled = p.isNotEmpty() && q.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown), shape = RoundedCornerShape(12.dp)) { Text("Guardar") }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onDelete) { Text("Borrar", color = Color.Red.copy(0.7f)) }
+                TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
+            }
+        },
+        containerColor = Color.White, shape = RoundedCornerShape(24.dp)
+    )
+}
+
+// Subcomponente reciclado para el botón Privado/Público
+@Composable
+fun DialogPrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
+    val pubCol by animateColorAsState(if (isPublic) ColorArcMediumBrown else Color.Transparent)
+    val privCol by animateColorAsState(if (!isPublic) ColorArcMediumBrown else Color.Transparent)
+    val pubText by animateColorAsState(if (isPublic) Color.White else Color.Gray)
+    val privText by animateColorAsState(if (!isPublic) Color.White else Color.Gray)
+    Surface(modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp), color = ColorHeaderBeige.copy(0.5f), border = androidx.compose.foundation.BorderStroke(1.dp, ColorArcMediumBrown.copy(0.3f))) {
+        Row {
+            Box(Modifier.weight(1f).fillMaxHeight().clip(CircleShape).background(pubCol).clickable { onToggle(true) }, Alignment.Center) {
+                Row { Icon(Icons.Default.Call, null, tint = pubText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Público", color = pubText, fontWeight = FontWeight.Bold) }
+            }
+            Box(Modifier.weight(1f).fillMaxHeight().clip(CircleShape).background(privCol).clickable { onToggle(false) }, Alignment.Center) {
+                Row { Icon(Icons.Default.Lock, null, tint = privText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Privado", color = privText, fontWeight = FontWeight.Bold) }
             }
         }
     }
@@ -145,49 +270,94 @@ fun ReviewListItem(review: com.example.topbooks.data.model.Comment, onBookClick:
         colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            // PORTADA DEL LIBRO
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
             AsyncImage(
                 model = review.bookImageUrl,
                 contentDescription = null,
-                modifier = Modifier
-                    .size(50.dp, 75.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .clickable { if(review.bookId.isNotEmpty()) onBookClick(review.bookId) },
+                modifier = Modifier.size(50.dp, 75.dp).clip(RoundedCornerShape(4.dp)).clickable { if(review.bookId.isNotEmpty()) onBookClick(review.bookId) },
                 contentScale = ContentScale.Crop
             )
-
             Spacer(Modifier.width(12.dp))
-
-            // CONTENIDO DE LA RESEÑA
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = review.bookTitle.ifEmpty { "Libro: ${review.bookId}" },
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
+                    color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp,
                     modifier = Modifier.clickable { if(review.bookId.isNotEmpty()) onBookClick(review.bookId) }
                 )
-
                 Spacer(Modifier.height(4.dp))
-
-                Text(
-                    text = review.text,
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontSize = 13.sp,
-                    lineHeight = 16.sp
-                )
-
+                Text(text = review.text, color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp, lineHeight = 16.sp)
                 Spacer(Modifier.height(8.dp))
-
                 Row {
                     repeat(5) { i ->
                         val color = if(i < review.rating) Color(0xFFFFD54F) else Color.White.copy(alpha = 0.3f)
                         Icon(Icons.Default.Star, null, tint = color, modifier = Modifier.size(14.dp))
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CommentListItem(
+    comment: com.example.topbooks.data.model.Comment,
+    onCommentClick: (String, String) -> Unit,
+    onDelete: () -> Unit,
+    isMe: Boolean
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Borrar comentario", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+            text = { Text("¿Estás seguro de que quieres borrar este comentario? También desaparecerá de la comunidad.") },
+            confirmButton = {
+                Button(
+                    onClick = { onDelete(); showDeleteDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Borrar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar", color = Color.Gray) }
+            },
+            containerColor = Color.White, shape = RoundedCornerShape(24.dp)
+        )
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onCommentClick(comment.bookId, comment.commentId) },
+        colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
+            AsyncImage(
+                model = comment.bookImageUrl,
+                contentDescription = null,
+                modifier = Modifier.size(50.dp, 75.dp).clip(RoundedCornerShape(4.dp)),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = comment.bookTitle.ifEmpty { "Libro: ${comment.bookId}" },
+                    color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(text = "«${comment.text}»", color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp, fontStyle = FontStyle.Italic, maxLines = 3, overflow = TextOverflow.Ellipsis)
+
+                // Si el comentario tiene respuestas, se lo indicamos
+                if (comment.replies.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(text = "💬 ${comment.replies.size} respuestas", color = Color(0xFFFFD54F), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            // Icono de la papelera solo si el perfil es el mío
+            if (isMe) {
+                IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = "Borrar", tint = Color.White.copy(alpha = 0.7f))
                 }
             }
         }

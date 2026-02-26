@@ -142,7 +142,11 @@ fun AppNavigation(
                 userId = userId,
                 onBackClick = { navController.popBackStack() },
                 onBookClick = { id -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
-                onUserClick = { targetId -> navController.navigate("profile/$targetId") }
+                onUserClick = { targetId -> navController.navigate("profile/$targetId") },
+                onJournalClick = { id -> if (id.isNotEmpty()) navController.navigate("reading_journal/$id") },
+                onCommentClick = { bid, cid ->
+                    if (bid.isNotEmpty() && cid.isNotEmpty()) navController.navigate("reviews_thread/$bid/$cid")
+                }
             )
         }
 
