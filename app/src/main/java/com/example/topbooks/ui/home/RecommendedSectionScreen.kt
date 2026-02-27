@@ -95,7 +95,7 @@ fun RecommendedSectionContent(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    // CAMBIO 3: Usamos weight(1f) para que ocupe todo el espacio restante
+                    // CAMBIO 3: Usamos weight(1f) para que ocupe to-do el espacio restante
                     .weight(1f),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(

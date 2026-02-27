@@ -217,7 +217,7 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // FAVORITOS (Mantenemos la funcionalidad actual pero con diseño limpio)
+                // FAVORITOS
                 if (state.favoriteCovers.isNotEmpty()) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(
