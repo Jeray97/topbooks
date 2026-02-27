@@ -18,7 +18,7 @@
 
     <!-- BOTONES DE NAVEGACIÓN -->
     <string name="home_bottom">Inicio</string>
-    <string name="progress_bottom">Progreso</string>
+    <string name="progress_bottom">Mi Colección</string>
     <string name="social_bottom">Social</string>
     <string name="reviews_bottom">Reseñas</string>
     <string name="profile_bottom">Perfil</string>
@@ -52,7 +52,7 @@
     <string name="cat_horror_text">Horror</string>
     <string name="cat_infantil_text">Infantil</string>
     <string name="cat_manga_text">Manga</string>
-    <string name="cat_misterio_text">Misterio</string>
+    <string name="cat_misterio_text">Thriller</string>
     <string name="cat_novela_grafica_text">Novela Grafica</string>
     <string name="cat_poesia_text">Poesia</string>
     <string name="cat_religion_text">Religión</string>
