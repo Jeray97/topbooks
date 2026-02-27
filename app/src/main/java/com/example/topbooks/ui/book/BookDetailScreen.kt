@@ -65,7 +65,8 @@ fun BookDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showBookmarkDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(bookId) { viewModel.getBook(bookId) }
+    // 🟢 CORRECCIÓN: Usamos loadBook en lugar de getBook
+    LaunchedEffect(bookId) { viewModel.loadBook(bookId) }
 
     // --- FORMULARIOS ---
     if (showReviewDialog && state.book != null) {
@@ -79,12 +80,26 @@ fun BookDetailScreen(
         )
     }
 
-    if (showBookmarkDialog) {
-        PremiumAddBookmarkDialog(onDismiss = { showBookmarkDialog = false }, onConfirm = { p, q, c, pub -> viewModel.addBookmark(bookId, p, q, c, pub); showBookmarkDialog = false })
+    if (showBookmarkDialog && state.book != null) {
+        // 🟢 CORRECCIÓN: Usamos saveBookmark y le pasamos el libro completo
+        PremiumAddBookmarkDialog(
+            onDismiss = { showBookmarkDialog = false },
+            onConfirm = { p, q, c, pub ->
+                viewModel.saveBookmark(state.book!!, p, q, c, pub) { showBookmarkDialog = false }
+            }
+        )
     }
 
     if (showDeleteDialog && state.book != null) {
-        PremiumDeleteDialog(listName = state.savedInList ?: "biblioteca", onDismiss = { showDeleteDialog = false }, onConfirm = { viewModel.removeFromList(state.book!!.id); showDeleteDialog = false })
+        PremiumDeleteDialog(
+            listName = state.savedInList ?: "biblioteca",
+            onDismiss = { showDeleteDialog = false },
+            onConfirm = {
+                // 🟢 CORRECCIÓN: removeFromList necesita bookId y listName
+                viewModel.removeFromList(state.book!!.id, state.savedInList ?: "")
+                showDeleteDialog = false
+            }
+        )
     }
 
     Scaffold(
@@ -103,7 +118,6 @@ fun BookDetailScreen(
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Call, "Añadir marcador") { isFabExpanded = false; showBookmarkDialog = true } }
                     Spacer(Modifier.height(8.dp))
 
-                    // 🟢 COMPROBAMOS VERIFICACIÓN ANTES DE ESCRIBIR RESEÑA
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                         SmallFabItem(Icons.Default.Edit, "Escribir reseña") {
                             isFabExpanded = false
@@ -115,7 +129,6 @@ fun BookDetailScreen(
                     }
                     Spacer(Modifier.height(8.dp))
 
-                    // 🟢 COMPROBAMOS VERIFICACIÓN ANTES DE ESCRIBIR COMENTARIO
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                         SmallFabItem(Icons.Default.Send, "Escribir comentario") {
                             isFabExpanded = false

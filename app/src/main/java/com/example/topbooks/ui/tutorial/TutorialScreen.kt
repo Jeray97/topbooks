@@ -107,7 +107,7 @@ fun TutorialScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
                     shape = RoundedCornerShape(12.dp),
-                    // Deshabilitar si está en pag 2 y no eligió géneros
+                    // Deshabilitar si está en pág. 2 y no eligió géneros o si está guardando
                     enabled = (pagerState.currentPage != 1 || uiState.selectedGenres.isNotEmpty()) && !uiState.isSaving
                 ) {
                     if (uiState.isSaving) {

@@ -41,9 +41,9 @@ fun RecommendedSectionScreen(
     val state by viewModel.booksState.collectAsState()
 
     val title = when(sectionType) {
-        "POPULAR" -> "Populares y Nuevos"
-        "TASTES" -> "Para ti: $genre"
-        "FRIENDS" -> "Actividad de Amigos"
+        "popular" -> "Populares y Nuevos" // Adaptado a los types pasados por AppNavigation
+        "tastes" -> "Para ti: $genre"
+        "friends" -> "Actividad de Amigos"
         else -> "Libros"
     }
 
@@ -53,7 +53,8 @@ fun RecommendedSectionScreen(
         backgroundColor = backgroundColor,
         onBackClick = onBackClick,
         onBookClick = onBookClick,
-        onLoadMore = { viewModel.loadNextPage() }
+        // CORRECCIÓN: Usamos el nombre real de tu ViewModel (loadMore)
+        onLoadMore = { viewModel.loadMore() }
     )
 }
 
@@ -108,8 +109,6 @@ fun RecommendedSectionContent(
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // (El título ya no está aquí dentro)
-
                     when (state) {
                         is Resource.Loading -> {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

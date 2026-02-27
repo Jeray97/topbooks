@@ -1,24 +1,20 @@
 package com.example.topbooks.ui.friends
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.topbooks.data.repository.BooksRepository
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import com.example.topbooks.data.repository.CommunityRepository
+import com.example.topbooks.data.repository.CommunityRepositoryImpl
+import com.example.topbooks.data.repository.UserRepository
+import com.example.topbooks.data.repository.UserRepositoryImpl
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import java.util.Locale
-import java.util.UUID
 
+// Conservamos las data classes originales para no romper tu UI
 data class SocialUser(
     val uid: String = "",
     val displayName: String = "",
@@ -27,218 +23,127 @@ data class SocialUser(
     val tastes: List<String> = emptyList()
 )
 
-data class Interaction(
-    val id: String = UUID.randomUUID().toString(),
-    val userId: String = "",
-    val userName: String = "",
-    val userPhoto: String = "",
-    val actionText: String = "",
-    val bookTitle: String = "",
-    val timestamp: Long = 0
-)
-
 data class FriendsState(
     val searchQuery: String = "",
     val searchResults: List<SocialUser> = emptyList(),
     val friendsIds: Set<String> = emptySet(),
-    val myFriends: List<SocialUser> = emptyList(),
-    val sameTastes: List<SocialUser> = emptyList(),
-    val recentInteractions: List<Interaction> = emptyList(),
-    val isSearching: Boolean = false,
-    val isLoading: Boolean = false
+    val suggestedUsers: List<SocialUser> = emptyList(),
+    val isLoading: Boolean = false,
+    val isSearching: Boolean = false
 )
 
-class FriendsViewModel : ViewModel() {
-    private val auth = FirebaseAuth.getInstance()
-    private val db = FirebaseFirestore.getInstance()
-    private val booksRepository = BooksRepository()
-    private var searchJob: Job? = null
+class FriendsViewModel(
+    // Inyectamos nuestros dos repositorios limpios
+    private val communityRepository: CommunityRepository = CommunityRepositoryImpl(),
+    private val userRepository: UserRepository = UserRepositoryImpl()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FriendsState())
-    val uiState: StateFlow<FriendsState> = _uiState
+    val uiState: StateFlow<FriendsState> = _uiState.asStateFlow()
+
+    private var searchJob: Job? = null
 
     init {
-        loadFriendsList()
-        loadSocialData()
+        loadInitialData()
     }
 
-    fun refreshRecentActivity() {
-        val ids = _uiState.value.friendsIds.toList()
-        if (ids.isNotEmpty()) {
-            loadRecentActivity(ids)
-        }
-    }
-
-    private fun loadFriendsList() {
-        val currentUser = auth.currentUser ?: return
-        db.collection("users").document(currentUser.uid).collection("friends")
-            .addSnapshotListener { snapshot, _ ->
-                val ids = snapshot?.documents?.map { it.id }?.toSet() ?: emptySet()
-                _uiState.update { currentState ->
-                    val filteredSuggestions = currentState.sameTastes.filter { !ids.contains(it.uid) }
-                    currentState.copy(friendsIds = ids, sameTastes = filteredSuggestions)
-                }
-                fetchFriendsProfiles(ids.toList())
-                loadRecentActivity(ids.toList())
-                if (_uiState.value.searchQuery.isNotEmpty()) updateSearchResultsWithFriends(ids)
-            }
-    }
-
-    private fun loadRecentActivity(friendsIds: List<String>) {
-        if (friendsIds.isEmpty()) {
-            _uiState.update { it.copy(recentInteractions = emptyList()) }
-            return
-        }
-
+    private fun loadInitialData() {
         viewModelScope.launch {
-            val activeFriends = friendsIds.take(10)
-            val tasks = activeFriends.map { friendId ->
-                async {
-                    val friendInteractions = mutableListOf<Interaction>()
-                    try {
-                        val friendDoc = db.collection("users").document(friendId).get().await()
-                        val fName = friendDoc.getString("displayName") ?: "Amigo"
-                        val fPhoto = friendDoc.getString("photoURL") ?: ""
+            _uiState.update { it.copy(isLoading = true) }
 
-                        // 1. Reseñas (NUEVAS PRIMERO)
-                        val reviews = db.collection("reviews")
-                            .whereEqualTo("userId", friendId)
-                            .orderBy("createAt", Query.Direction.DESCENDING)
-                            .limit(1).get().await()
+            // 1. Obtenemos mis amigos
+            val friendsIds = communityRepository.getMyFriendsIds().getOrDefault(emptySet())
+            _uiState.update { it.copy(friendsIds = friendsIds) }
 
-                        if (!reviews.isEmpty) {
-                            val doc = reviews.documents.first()
-                            val title = getBookTitle(doc.getString("bookId") ?: "")
-                            friendInteractions.add(Interaction(
-                                userId = friendId, userName = fName, userPhoto = fPhoto,
-                                actionText = "le dio estrellas a",
-                                bookTitle = title,
-                                timestamp = doc.getDate("createAt")?.time ?: System.currentTimeMillis()
-                            ))
-                        }
+            // 2. Obtenemos sugerencias
+            val currentUserId = userRepository.getCurrentUserId()
+            val suggested = communityRepository.getSuggestedUsers(15).getOrDefault(emptyList())
 
-                        // 2. Comentarios y Respuestas
-                        val comments = db.collection("comments")
-                            .orderBy("createAt", Query.Direction.DESCENDING)
-                            .limit(15).get().await()
-
-                        comments.documents.forEach { doc ->
-                            val bookTitle = getBookTitle(doc.getString("bookId") ?: "")
-
-                            // Si es el autor del comentario
-                            if (doc.getString("userId") == friendId) {
-                                friendInteractions.add(Interaction(
-                                    userId = friendId, userName = fName, userPhoto = fPhoto,
-                                    actionText = "comentó en", bookTitle = bookTitle,
-                                    timestamp = doc.getDate("createAt")?.time ?: System.currentTimeMillis()
-                                ))
-                            }
-
-                            // Si es una respuesta dentro de un hilo
-                            val replies = doc.get("replies") as? List<Map<String, Any>>
-                            replies?.forEach { reply ->
-                                if (reply["userId"] == friendId) {
-                                    val originalUser = doc.getString("userName") ?: "Usuario"
-
-                                    // Extraer fecha de forma segura (Timestamp o Long)
-                                    val rawTs = reply["timestamp"]
-                                    val tsMs = when (rawTs) {
-                                        is com.google.firebase.Timestamp -> rawTs.toDate().time
-                                        is Long -> rawTs
-                                        else -> System.currentTimeMillis()
-                                    }
-
-                                    friendInteractions.add(Interaction(
-                                        userId = friendId, userName = fName, userPhoto = fPhoto,
-                                        actionText = "respondió a $originalUser en",
-                                        bookTitle = bookTitle,
-                                        timestamp = tsMs
-                                    ))
-                                }
-                            }
-                        }
-                    } catch (e: Exception) { Log.e("FriendsVM", "Error: ${e.message}") }
-                    friendInteractions
-                }
+            val socialSuggested = suggested.filter {
+                it.uid != currentUserId && !friendsIds.contains(it.uid)
+            }.map { user ->
+                SocialUser(
+                    uid = user.uid,
+                    displayName = user.displayName,
+                    photoUrl = user.photoURL,
+                    isFriend = false
+                )
             }
 
-            // ORDENACIÓN FINAL: De la más reciente (mayor timestamp) a la más antigua
-            val results = tasks.awaitAll()
-                .flatten()
-                .distinctBy { it.userId + it.actionText + it.bookTitle } // Evitar duplicados visuales
-                .sortedByDescending { it.timestamp }
-                .take(10)
-
-            _uiState.update { it.copy(recentInteractions = results) }
+            _uiState.update { it.copy(suggestedUsers = socialSuggested, isLoading = false) }
         }
     }
 
-    private suspend fun getBookTitle(bookId: String): String {
-        return try {
-            val doc = db.collection("books").document(bookId).get().await()
-            doc.getString("title") ?: booksRepository.getBookDetail(bookId).getOrNull()?.title ?: "Libro"
-        } catch (e: Exception) { "Libro" }
-    }
+    fun onSearchQueryChanged(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+        searchJob?.cancel() // Cancelamos la búsqueda anterior si teclea rápido
 
-    private fun fetchFriendsProfiles(ids: List<String>) {
-        if (ids.isEmpty()) return
-        db.collection("users").whereIn("__name__", ids.take(10)).get().addOnSuccessListener { snapshot ->
-            val profiles = snapshot.documents.mapNotNull { doc ->
-                SocialUser(uid = doc.id, displayName = doc.getString("displayName") ?: "", photoUrl = doc.getString("photoURL") ?: "", isFriend = true)
-            }
-            _uiState.update { it.copy(myFriends = profiles) }
-        }
-    }
-
-    private fun updateSearchResultsWithFriends(friendsIds: Set<String>) {
-        val updatedResults = _uiState.value.searchResults.map { user -> user.copy(isFriend = friendsIds.contains(user.uid)) }
-        _uiState.update { it.copy(searchResults = updatedResults) }
-    }
-
-    fun onSearchQueryChange(newQuery: String) {
-        _uiState.update { it.copy(searchQuery = newQuery) }
-        searchJob?.cancel()
-        if (newQuery.isBlank()) {
+        if (query.isBlank()) {
             _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
             return
         }
-        searchJob = viewModelScope.launch { delay(500); performSearch(newQuery) }
-    }
 
-    private fun performSearch(query: String) {
-        _uiState.update { it.copy(isSearching = true) }
-        val currentUser = auth.currentUser?.uid
-        val queryLower = query.lowercase(Locale.getDefault())
-        db.collection("users").whereGreaterThanOrEqualTo("displayNameLowercase", queryLower)
-            .whereLessThanOrEqualTo("displayNameLowercase", queryLower + "\uf8ff").limit(10).get()
-            .addOnSuccessListener { snapshot ->
-                val friends = _uiState.value.friendsIds
-                val results = snapshot.documents.mapNotNull { doc ->
-                    if (doc.id == currentUser) return@mapNotNull null
-                    SocialUser(uid = doc.id, displayName = doc.getString("displayName") ?: "", photoUrl = doc.getString("photoURL") ?: "", isFriend = friends.contains(doc.id))
-                }
-                _uiState.update { it.copy(searchResults = results, isSearching = false) }
+        searchJob = viewModelScope.launch {
+            delay(500) // Debounce: Esperamos medio segundo antes de ir a Firebase
+            _uiState.update { it.copy(isSearching = true) }
+
+            val users = communityRepository.searchUsers(query).getOrDefault(emptyList())
+            val friendsIds = _uiState.value.friendsIds
+
+            val results = users.map { user ->
+                SocialUser(
+                    uid = user.uid,
+                    displayName = user.displayName,
+                    photoUrl = user.photoURL,
+                    isFriend = friendsIds.contains(user.uid)
+                )
             }
-            .addOnFailureListener { _uiState.update { it.copy(isSearching = false) } }
+
+            _uiState.update { it.copy(searchResults = results, isSearching = false) }
+        }
     }
 
     fun toggleFriend(user: SocialUser) {
-        val currentUser = auth.currentUser ?: return
-        val friendRef = db.collection("users").document(currentUser.uid).collection("friends").document(user.uid)
-        if (user.isFriend) friendRef.delete()
-        else friendRef.set(mapOf("displayName" to user.displayName, "photoURL" to user.photoUrl, "timestamp" to System.currentTimeMillis()))
+        val myUid = userRepository.getCurrentUserId() ?: return
+        val isCurrentlyFriend = user.isFriend
+        val newFriendStatus = !isCurrentlyFriend
+
+        // UI Optimista: Cambiamos el estado visualmente al instante
+        updateUserFriendStatus(user.uid, newFriendStatus)
+
+        viewModelScope.launch {
+            // Reutilizamos la función del UserRepository que hicimos antes. ¡Magia!
+            userRepository.toggleFriendship(
+                myUid = myUid,
+                targetUid = user.uid,
+                targetName = user.displayName,
+                targetPhoto = user.photoUrl,
+                isAdding = newFriendStatus
+            ).onFailure {
+                // Si falla el internet, deshacemos el cambio visual
+                updateUserFriendStatus(user.uid, isCurrentlyFriend)
+            }
+        }
     }
 
-    private fun loadSocialData() {
-        val currentUser = auth.currentUser ?: return
-        _uiState.update { it.copy(isLoading = true) }
-        db.collection("users").limit(10).addSnapshotListener { snapshot, _ ->
-            val friends = _uiState.value.friendsIds
-            val users = snapshot?.documents?.mapNotNull { doc ->
-                if (doc.id != currentUser.uid && !friends.contains(doc.id)) SocialUser(uid = doc.id, displayName = doc.getString("displayName") ?: "Usuario", photoUrl = doc.getString("photoURL") ?: "")
-                else null
-            } ?: emptyList()
-            _uiState.update { it.copy(sameTastes = users, isLoading = false) }
+    // Función auxiliar para actualizar listas sin repetir código
+    private fun updateUserFriendStatus(uid: String, isFriend: Boolean) {
+        _uiState.update { state ->
+            val newFriendsIds = if (isFriend) state.friendsIds + uid else state.friendsIds - uid
+
+            val newSearch = state.searchResults.map {
+                if (it.uid == uid) it.copy(isFriend = isFriend) else it
+            }
+
+            val newSuggested = state.suggestedUsers.map {
+                if (it.uid == uid) it.copy(isFriend = isFriend) else it
+            }
+
+            state.copy(
+                friendsIds = newFriendsIds,
+                searchResults = newSearch,
+                suggestedUsers = newSuggested
+            )
         }
     }
 }

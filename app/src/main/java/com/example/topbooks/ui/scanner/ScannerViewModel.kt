@@ -1,89 +1,80 @@
 package com.example.topbooks.ui.scanner
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.repository.BooksRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+// 1. ESTADO DE LA UI DEL ESCÁNER
+data class ScannerUiState(
+    val isLoading: Boolean = false,
+    val notFoundIsbn: String? = null,
+    val foundBook: Book? = null,
+    val uiLog: String = "Esperando detección...\n"
+)
 
 class ScannerViewModel(private val repository: BooksRepository = BooksRepository()) : ViewModel() {
 
-    // --- ESTADOS DE LA UI ---
-    var isLoading = mutableStateOf(false)
-        private set
-
-    var notFoundIsbn = mutableStateOf<String?>(null)
-        private set
-
-    // 1. VARIABLE QUE GUARDA EL LIBRO ENCONTRADO
-    var foundBook = mutableStateOf<Book?>(null)
-        private set
-
-    // Variable para la "consola" en pantalla
-    var uiLog = mutableStateOf("Esperando detección...\n")
-        private set
-
-    // --- LÓGICA ---
+    // 2. CONFIGURAMOS STATEFLOW
+    private val _uiState = MutableStateFlow(ScannerUiState())
+    val uiState: StateFlow<ScannerUiState> = _uiState.asStateFlow()
 
     fun onIsbnDetected(isbn: String) {
-        // Bloqueamos si ya estamos ocupados O SI YA TENEMOS UN LIBRO EN PANTALLA
-        if (isLoading.value || notFoundIsbn.value != null || foundBook.value != null) return
+        val currentState = _uiState.value
+        // Bloqueamos si ya estamos ocupados o si ya tenemos un libro
+        if (currentState.isLoading || currentState.notFoundIsbn != null || currentState.foundBook != null) return
 
         viewModelScope.launch {
             logToUi("CÁMARA: Detectado código $isbn")
-
-            isLoading.value = true
+            _uiState.update { it.copy(isLoading = true) }
             logToUi("API: Buscando...")
 
-            // INTENTO 1: Búsqueda estricta
             var result = repository.getBooks("isbn:$isbn")
             var books = result.getOrDefault(emptyList())
 
-            // INTENTO 2: Búsqueda genérica
             if (books.isEmpty()) {
                 logToUi("API: Reintentando búsqueda genérica...")
                 result = repository.getBooks(isbn)
                 books = result.getOrDefault(emptyList())
             }
 
-            isLoading.value = false
-
             if (books.isNotEmpty()) {
-                // Buscamos el mejor resultado (el que tenga descripción o el primero)
                 val bestMatch = books.find { it.description.length > 50 } ?: books.first()
-
                 logToUi("ÉXITO: Libro '${bestMatch.title}' cargado.")
 
-                // 2. AQUÍ ES DONDE GUARDAMOS EL LIBRO PARA QUE LA PANTALLA LO MUESTRE
-                foundBook.value = bestMatch
-
+                _uiState.update {
+                    it.copy(isLoading = false, foundBook = bestMatch)
+                }
             } else {
                 logToUi("ERROR: Sin datos para $isbn")
-                notFoundIsbn.value = isbn
+                _uiState.update {
+                    it.copy(isLoading = false, notFoundIsbn = isbn)
+                }
             }
         }
     }
 
     fun dismissError() {
-        notFoundIsbn.value = null
+        _uiState.update { it.copy(notFoundIsbn = null) }
         logToUi("Alerta cerrada. Escáner listo.")
     }
 
-    // Función para cerrar la tarjeta y seguir escaneando
     fun dismissBookInfo() {
-        foundBook.value = null
+        _uiState.update { it.copy(foundBook = null) }
         logToUi("Info cerrada. Escáner listo.")
     }
 
     private fun logToUi(message: String) {
-        val currentLog = uiLog.value
-        val lines = currentLog.split("\n").toMutableList()
-        lines.add(message)
-        // Guardamos solo las últimas 5 líneas para que no ocupe toda la pantalla
-        if (lines.size > 5) {
-            lines.removeAt(0)
+        _uiState.update { currentState ->
+            val lines = currentState.uiLog.split("\n").toMutableList()
+            lines.add(message)
+            if (lines.size > 5) lines.removeAt(0)
+            currentState.copy(uiLog = lines.joinToString("\n"))
         }
-        uiLog.value = lines.joinToString("\n")
     }
 }

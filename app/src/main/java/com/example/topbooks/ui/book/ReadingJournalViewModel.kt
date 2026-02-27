@@ -1,83 +1,62 @@
 package com.example.topbooks.ui.book
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Journal
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.topbooks.data.repository.JournalRepository
+import com.example.topbooks.data.repository.JournalRepositoryImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
-class ReadingJournalViewModel : ViewModel() {
-    private val db = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
+// 1. AGRUPAMOS EL ESTADO DE LA UI
+data class JournalUiState(
+    val existingJournal: Journal? = null,
+    val isLoadingJournal: Boolean = false,
+    val isSaving: Boolean = false,
+    val saveSuccess: Boolean = false,
+    val errorMessage: String? = null
+)
 
-    private val _isSaving = MutableStateFlow(false)
-    val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+class ReadingJournalViewModel(
+    // 2. INYECTAMOS EL REPOSITORIO (Por defecto usamos la implementación de Firebase)
+    private val repository: JournalRepository = JournalRepositoryImpl()
+) : ViewModel() {
 
-    private val _saveSuccess = MutableStateFlow(false)
-    val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
+    private val _uiState = MutableStateFlow(JournalUiState())
+    val uiState: StateFlow<JournalUiState> = _uiState.asStateFlow()
 
-    private val _existingJournal = MutableStateFlow<Journal?>(null)
-    val existingJournal: StateFlow<Journal?> = _existingJournal.asStateFlow()
-
-    private val _isLoadingJournal = MutableStateFlow(false)
-    val isLoadingJournal: StateFlow<Boolean> = _isLoadingJournal.asStateFlow()
-
-    fun saveJournal(journal: Journal) {
-        val uid = auth.currentUser?.uid ?: return
+    fun loadJournal(bookId: String) {
         viewModelScope.launch {
-            _isSaving.value = true
-            try {
-                val finalJournal = journal.copy(userId = uid)
-                db.collection("users").document(uid)
-                    .collection("journals").document(journal.bookId)
-                    .set(finalJournal).await()
+            _uiState.update { it.copy(isLoadingJournal = true, existingJournal = null, errorMessage = null) }
 
-                Log.d("JournalDebug", "¡Guardado con éxito en Firestore! Título: ${journal.title}")
-                _saveSuccess.value = true
-            } catch (e: Exception) {
-                Log.e("JournalDebug", "Error al guardar el diario: ${e.message}")
-            } finally {
-                _isSaving.value = false
+            repository.getJournal(bookId).onSuccess { journal ->
+                _uiState.update { it.copy(isLoadingJournal = false, existingJournal = journal) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isLoadingJournal = false, errorMessage = error.message) }
             }
         }
     }
 
-    fun loadJournal(bookId: String) {
-        val uid = auth.currentUser?.uid ?: return
+    fun saveJournal(journal: Journal) {
         viewModelScope.launch {
-            _isLoadingJournal.value = true
+            _uiState.update { it.copy(isSaving = true, errorMessage = null) }
 
-            // Forzamos el borrado de la memoria para que no recicle datos viejos
-            _existingJournal.value = null
-
-            try {
-                Log.d("JournalDebug", "Buscando diario con ID: $bookId")
-                val doc = db.collection("users").document(uid)
-                    .collection("journals").document(bookId).get().await()
-
-                if (doc.exists()) {
-                    val loadedJournal = doc.toObject(Journal::class.java)
-                    Log.d("JournalDebug", "¡Diario encontrado! Título cargado: ${loadedJournal?.title}")
-                    _existingJournal.value = loadedJournal
-                } else {
-                    Log.d("JournalDebug", "No existe un diario previo. Se creará uno nuevo.")
-                    _existingJournal.value = null
-                }
-            } catch (e: Exception) {
-                Log.e("JournalDebug", "Error al descargar el diario: ${e.message}")
-            } finally {
-                _isLoadingJournal.value = false
+            repository.saveJournal(journal).onSuccess {
+                _uiState.update { it.copy(isSaving = false, saveSuccess = true) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isSaving = false, errorMessage = error.message) }
             }
         }
     }
 
     fun resetSuccessState() {
-        _saveSuccess.value = false
+        _uiState.update { it.copy(saveSuccess = false) }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
     }
 }

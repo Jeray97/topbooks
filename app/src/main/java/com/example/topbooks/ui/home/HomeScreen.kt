@@ -40,7 +40,7 @@ fun HomeScreen(
     onScanClick: () -> Unit,
     onSeeAllCategoriesClick: () -> Unit,
     onRecommendedClick: () -> Unit,
-    onFriendsActivityClick: () -> Unit // NUEVO PARÁMETRO
+    onFriendsActivityClick: () -> Unit
 ) {
     val recommendedState by viewModel.recommendedBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
@@ -99,7 +99,6 @@ fun HomeScreen(
             SectionContainer(
                 title = stringResource(id = R.string.section_friends_favorites),
                 backgroundColor = ColorBackGroundFavoritesSection,
-                // AQUÍ CONECTAMOS LA NAVEGACIÓN
                 onArrowClick = onFriendsActivityClick
             ) {
                 when (val state = friendsState) {
@@ -107,10 +106,9 @@ fun HomeScreen(
                         if (state.data.isEmpty()) {
                             EmptyFriendsMessage()
                         } else {
-                            // CORRECCIÓN DE TIPO: Extraemos el libro del objeto FriendBookRecommendation
+                            // Extraemos el libro del objeto FriendBookRecommendation
                             // para pasárselo a tu componente visual original que espera List<Book>
                             val books = state.data.map { it.book }
-
                             BookListRowContent(books = books, onBookClick = onBookClick)
                         }
                     }

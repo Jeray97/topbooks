@@ -40,17 +40,17 @@ import com.example.topbooks.utils.AvatarHelper
 import com.example.topbooks.utils.Resource
 
 @Composable
-fun SocialActivityScreen(
+    fun SocialActivityScreen(
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
-    onCommentClick: (String, String) -> Unit, // <--- NUEVO: (bookId, commentId)
+    onCommentClick: (String, String) -> Unit,
     viewModel: SocialActivityViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadSocialFeed()
-    }
+        LaunchedEffect(Unit) {
+            viewModel.loadActivityFeed()
+        }
 
     Scaffold(
         containerColor = ColorBackGroundGeneral,
@@ -84,7 +84,7 @@ fun SocialActivityScreen(
                                 SocialActivityCard(
                                     item = item,
                                     onBookClick = onBookClick,
-                                    onCommentClick = onCommentClick // Pasamos el callback
+                                    onCommentClick = onCommentClick
                                 )
                             }
                         }
@@ -115,7 +115,6 @@ fun SocialActivityCard(
         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // CLIC EN PORTADA: Va al detalle del libro
         Card(
             modifier = Modifier.width(90.dp).height(140.dp)
                 .shadow(6.dp, RoundedCornerShape(8.dp))
@@ -138,14 +137,13 @@ fun SocialActivityCard(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // CLIC EN BURBUJA: Si es comentario/respuesta, va al hilo en ReviewsScreen
         Card(
             modifier = Modifier.weight(1f).fillMaxHeight().padding(vertical = 4.dp)
                 .clickable {
                     if (item.commentId != null) {
                         onCommentClick(item.bookId, item.commentId)
                     } else {
-                        onBookClick(item.bookId) // Fallback al libro si no hay id de comentario
+                        onBookClick(item.bookId)
                     }
                 },
             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 2.dp),

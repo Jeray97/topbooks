@@ -5,10 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Comment
 import com.example.topbooks.data.model.Reply
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import com.example.topbooks.data.repository.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,9 +13,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import com.google.firebase.Firebase
-import com.google.firebase.functions.functions
 
 data class ReviewsFeedState(
     val friendsReviews: List<Comment> = emptyList(),
@@ -28,106 +22,100 @@ data class ReviewsFeedState(
     val errorMessage: String? = null
 )
 
-class ReviewsViewModel : ViewModel() {
-
-    private val db = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
+class ReviewsViewModel(
+    private val feedRepository: SocialFeedRepository = SocialFeedRepositoryImpl(),
+    private val communityRepository: CommunityRepository = CommunityRepositoryImpl(),
+    private val userRepository: UserRepository = UserRepositoryImpl(),
+    private val booksRepository: BooksRepository = BooksRepository()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReviewsFeedState())
     val uiState: StateFlow<ReviewsFeedState> = _uiState.asStateFlow()
 
-    init { loadSocialFeed() }
+    private var currentBookId: String? = null
 
+    init {
+        loadSocialFeed()
+    }
+
+    // 🟢 Modificado para aceptar bookId opcional
     fun loadSocialFeed(bookId: String? = null, targetCommentId: String? = null) {
-        val uid = auth.currentUser?.uid ?: return
-        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        currentBookId = bookId
 
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                if (bookId != null) {
-                    val query = db.collection("comments")
-                        .whereEqualTo("bookId", bookId)
-                        .orderBy("createAt", Query.Direction.DESCENDING)
-                        .get().await()
+                // Obtenemos los amigos
+                val myFriends = communityRepository.getMyFriendsIds().getOrDefault(emptySet()).toList()
+                val friendsComments = mutableListOf<Comment>()
 
-                    val allComments = enrichComments(query.toObjects(Comment::class.java))
-                    val sorted = if (targetCommentId != null) {
-                        allComments.sortedByDescending { it.commentId == targetCommentId }
-                    } else allComments
-
-                    _uiState.update { it.copy(friendsReviews = sorted, isLoading = false) }
-                } else {
-                    val friendsSnapshot = db.collection("users").document(uid).collection("friends").get().await()
-                    val friendIds = friendsSnapshot.documents.map { it.id }
-
-                    if (friendIds.isNotEmpty()) {
-                        val friendsQuery = db.collection("comments")
-                            .whereIn("userId", friendIds.take(10))
-                            .orderBy("createAt", Query.Direction.DESCENDING)
-                            .limit(20).get().await()
-                        val enrichedFriends = enrichComments(friendsQuery.toObjects(Comment::class.java))
-                        _uiState.update { it.copy(friendsReviews = enrichedFriends) }
+                if (myFriends.isNotEmpty()) {
+                    val deferredFriends = myFriends.map { friendId ->
+                        async { feedRepository.getUserComments(friendId).getOrDefault(emptyList()) }
                     }
+                    friendsComments.addAll(deferredFriends.awaitAll().flatten())
+                }
 
-                    val communityQuery = db.collection("comments")
-                        .orderBy("createAt", Query.Direction.DESCENDING)
-                        .limit(20).get().await()
-                    val enrichedCommunity = enrichComments(communityQuery.toObjects(Comment::class.java))
+                // Obtenemos los globales
+                val globalComments = feedRepository.getCommunityComments(50).getOrDefault(emptyList()) // Subí el límite a 50 para que haya más de donde filtrar
 
-                    _uiState.update { it.copy(communityReviews = enrichedCommunity, isLoading = false) }
+                // Filtramos si hay un bookId
+                val filteredFriends = if (bookId != null) friendsComments.filter { it.bookId == bookId } else friendsComments
+                val filteredGlobal = if (bookId != null) globalComments.filter { it.bookId == bookId } else globalComments
+
+                // Enriquecemos (añadimos nombre de usuario y título del libro)
+                val enrichedFriends = enrichComments(filteredFriends)
+                val enrichedGlobal = enrichComments(filteredGlobal)
+
+                _uiState.update {
+                    it.copy(
+                        friendsReviews = enrichedFriends.sortedByDescending { c -> c.createAt },
+                        communityReviews = enrichedGlobal.sortedByDescending { c -> c.createAt },
+                        isLoading = false
+                    )
                 }
             } catch (e: Exception) {
+                Log.e("ReviewsVM", "Error: ${e.message}")
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
         }
     }
 
-    // 🟢 NUEVA FUNCIÓN: Comprueba la verificación del correo
+    // 🟢 NUEVA FUNCIÓN PARA VERIFICAR EL EMAIL
     fun checkEmailVerification(onResult: (Boolean) -> Unit) {
-        val user = auth.currentUser
-        if (user == null) {
-            onResult(false)
-            return
-        }
-        viewModelScope.launch {
-            try {
-                user.reload().await()
-                onResult(user.isEmailVerified)
-            } catch (e: Exception) {
-                onResult(false)
-            }
-        }
+        val isVerified = userRepository.isEmailVerified()
+        onResult(isVerified)
     }
 
-    fun addReply(comment: Comment, text: String) {
-        val user = auth.currentUser ?: return
+    fun openReplyDialog(comment: Comment) {
+        _uiState.update { it.copy(targetReview = comment) }
+    }
+
+    fun closeReplyDialog() {
+        _uiState.update { it.copy(targetReview = null) }
+    }
+
+    // 🟢 Adaptada para que funcione como la esperas en la UI (recibe el comment y el text)
+    fun addReply(targetComment: Comment, text: String) {
+        val myUid = userRepository.getCurrentUserId() ?: return
 
         viewModelScope.launch {
             try {
-                val reply = Reply(
-                    userId = user.uid,
-                    userName = user.displayName ?: "Usuario",
-                    userPhotoUrl = user.photoUrl?.toString() ?: "capibara_1",
-                    text = text,
-                    timestamp = System.currentTimeMillis()
-                )
+                val me = userRepository.getUserProfile(myUid).getOrNull()
+                val myName = me?.displayName ?: "Usuario"
+                val myPhoto = me?.photoURL ?: "capibara_1"
 
-                db.collection("comments").document(comment.commentId)
-                    .update("replies", FieldValue.arrayUnion(reply)).await()
+                val newReply = Reply(userId = myUid, userName = myName, userPhotoUrl = myPhoto, text = text)
 
-                if (comment.userId != user.uid) {
-                    val data = hashMapOf(
-                        "autorComentarioOriginalId" to comment.userId,
-                        "nombreRespondedor" to (user.displayName ?: "Alguien"),
-                        "bookId" to comment.bookId,
-                        "commentId" to comment.commentId
-                    )
-                    Firebase.functions.getHttpsCallable("enviarNotificacionRespuesta").call(data)
-                }
+                val targetUser = userRepository.getUserProfile(targetComment.userId).getOrNull()
+                val targetToken = targetUser?.fcmToken
 
-                loadSocialFeed()
+                feedRepository.addReply(targetComment.commentId, newReply, targetToken, targetComment.bookId)
+
+                // Recargamos manteniendo el bookId si estábamos en uno
+                loadSocialFeed(currentBookId)
             } catch (e: Exception) {
-                Log.e("ReviewsVM", "ERROR CRÍTICO en addReply: ${e.message}")
+                Log.e("ReviewsVM", "Error al enviar respuesta: ${e.message}")
             }
         }
     }
@@ -136,22 +124,15 @@ class ReviewsViewModel : ViewModel() {
         return comments.map { comment ->
             viewModelScope.async {
                 var enriched = comment
-                try {
-                    val userDoc = db.collection("users").document(comment.userId).get().await()
-                    if (userDoc.exists()) {
-                        enriched = enriched.copy(
-                            userName = userDoc.getString("displayName") ?: "Anónimo",
-                            userPhotoUrl = userDoc.getString("photoURL") ?: "capibara_1"
-                        )
-                    }
-                    val bookDoc = db.collection("books").document(comment.bookId).get().await()
-                    if (bookDoc.exists()) {
-                        enriched = enriched.copy(
-                            bookTitle = bookDoc.getString("title") ?: "Sin título",
-                            bookImageUrl = bookDoc.getString("thumbnail") ?: ""
-                        )
-                    }
-                } catch (e: Exception) { }
+                val user = userRepository.getUserProfile(comment.userId).getOrNull()
+                if (user != null) {
+                    enriched = enriched.copy(userName = user.displayName, userPhotoUrl = user.photoURL)
+                }
+
+                val book = booksRepository.getBookDetail(comment.bookId).getOrNull()
+                if (book != null) {
+                    enriched = enriched.copy(bookTitle = book.title, bookImageUrl = book.imageUrl)
+                }
                 enriched
             }
         }.awaitAll()

@@ -40,16 +40,18 @@ fun RegisterScreen(
 ) {
     val context = LocalContext.current
 
-    // Observamos errores del proceso de registro
-    LaunchedEffect(viewModel.errorMessage) {
-        viewModel.errorMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+    // 🟢 Extraemos el estado
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let {
+            Toast.makeText(context, context.getString(it), Toast.LENGTH_LONG).show()
             viewModel.clearError()
         }
     }
 
     RegisterContent(
-        isLoading = viewModel.isAuthenticating,
+        isLoading = uiState.isAuthenticating, // 🟢 Usamos el estado reactivo
         onRegisterClick = { name, email, pass ->
             viewModel.register(name, email, pass) {
                 Toast.makeText(context, "Registro exitoso. Por favor, revisa tu correo para verificar tu cuenta.", Toast.LENGTH_LONG).show()
@@ -71,7 +73,6 @@ fun RegisterContent(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
-    // Validación de seguridad de contraseña
     val hasUpperCase = remember(password) { password.any { it.isUpperCase() } }
     val hasNumber = remember(password) { password.any { it.isDigit() } }
     val hasSpecialChar = remember(password) { password.any { !it.isLetterOrDigit() } }

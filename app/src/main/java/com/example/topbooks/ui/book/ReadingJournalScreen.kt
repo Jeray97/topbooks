@@ -50,6 +50,13 @@ fun ReadingJournalScreen(
     onBackClick: () -> Unit,
     viewModel: ReadingJournalViewModel = viewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    val isSaving = uiState.isSaving
+    val saveSuccess = uiState.saveSuccess
+    val existingJournal = uiState.existingJournal
+    val isLoadingJournal = uiState.isLoadingJournal
+
     // --- ESTADOS PRINCIPALES ---
     var title by remember { mutableStateOf(initialTitle) }
     var author by remember { mutableStateOf(initialAuthor) }
@@ -72,12 +79,7 @@ fun ReadingJournalScreen(
     var nicknames by remember { mutableStateOf("") }
     var quotes by remember { mutableStateOf("") }
     var moments by remember { mutableStateOf("") }
-
-    // --- ESTADOS DEL VIEWMODEL ---
-    val isSaving by viewModel.isSaving.collectAsState()
-    val saveSuccess by viewModel.saveSuccess.collectAsState()
-    val existingJournal by viewModel.existingJournal.collectAsState()
-    val isLoadingJournal by viewModel.isLoadingJournal.collectAsState()
+    var notes by remember { mutableStateOf("") } // 🟢 AÑADIDO: Estado para notes
 
     // Buscador
     var showSearchDialog by remember { mutableStateOf(false) }
@@ -110,6 +112,7 @@ fun ReadingJournalScreen(
             nicknames = journal.nicknames
             quotes = journal.quotes
             moments = journal.moments
+            notes = journal.notes // 🟢 AÑADIDO: Recuperar notes
         }
     }
 
@@ -184,7 +187,6 @@ fun ReadingJournalScreen(
                                         Icon(
                                             imageVector = Icons.Default.Star,
                                             contentDescription = null,
-                                            // 🟢 APLICAMOS COLOR ESTRELLA AQUÍ
                                             tint = if (k <= mainRating) ColorJournalStar else Color.Gray.copy(alpha = 0.3f),
                                             modifier = Modifier.size(20.dp).clickable { mainRating = k }
                                         )
@@ -241,7 +243,6 @@ fun ReadingJournalScreen(
                         JournalSectionCard("Clasificación") {
                             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(modifier = Modifier.fillMaxWidth()) {
-                                    // 🟢 APLICAMOS COLORES ESPECÍFICOS A CADA FILA
                                     ClassificationRow("Romántico", rRomance, Icons.Default.Favorite, Modifier.weight(1f), activeColor = ColorJournalRomance) { rRomance = it }
                                     ClassificationRow("Alegre", rHappy, Icons.Default.Face, Modifier.weight(1f), activeColor = ColorJournalHappy) { rHappy = it }
                                 }
@@ -254,6 +255,9 @@ fun ReadingJournalScreen(
                     }
 
                     item { JournalLinedTextField("Momentos favoritos", moments, { moments = it }, minLines = 4) }
+
+                    // Si tenías un campo visual para "Notas" en tu diseño original, lo puedes añadir aquí:
+                    item { JournalLinedTextField("Notas adicionales", notes, { notes = it }, minLines = 4) }
 
                     item {
                         Button(
@@ -278,6 +282,7 @@ fun ReadingJournalScreen(
                                     nicknames = nicknames,
                                     quotes = quotes,
                                     moments = moments,
+                                    notes = notes, // 🟢 AÑADIDO: Pasamos notes al constructor
                                     startDate = startDate,
                                     endDate = endDate
                                 )
@@ -413,7 +418,6 @@ fun JournalSectionCard(t: String, c: @Composable () -> Unit) = Column(Modifier.f
     JournalBox { Column(Modifier.fillMaxWidth()) { c() } }
 }
 
-// 🟢 ACTUALIZADO: Ahora ClassificationRow acepta el color como parámetro (con un valor por defecto)
 @Composable
 fun ClassificationRow(l: String, r: Int, i: ImageVector, modifier: Modifier = Modifier, activeColor: Color = JournalDark, onR: (Int) -> Unit) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -424,7 +428,7 @@ fun ClassificationRow(l: String, r: Int, i: ImageVector, modifier: Modifier = Mo
                 Icon(
                     imageVector = i,
                     contentDescription = null,
-                    tint = if (k <= r) activeColor else Color.Gray.copy(alpha = 0.3f), // 🟢 Aplica el color aquí
+                    tint = if (k <= r) activeColor else Color.Gray.copy(alpha = 0.3f),
                     modifier = Modifier.size(24.dp).clickable { onR(k) }.padding(2.dp)
                 )
             }

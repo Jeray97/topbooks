@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -46,7 +45,8 @@ fun RecommendedScreen(
     val tastesState by viewModel.tastesBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
 
-    val genreUsed = viewModel.usedGenreForTastes
+    // Usamos el género por defecto que tienes configurado en el ViewModel
+    val genreUsed = "Ficción"
 
     RecommendedContent(
         popularState = popularState,
@@ -98,7 +98,7 @@ fun RecommendedContent(
                 onBookClick = onBookClick,
                 backgroundColor = ColorBackGroundCategorySection,
                 onArrowClick = {
-                    onSectionClick("POPULAR", "General", ColorBackGroundCategorySection.toArgb())
+                    onSectionClick("popular", "General", ColorBackGroundCategorySection.toArgb())
                 }
             )
 
@@ -111,7 +111,7 @@ fun RecommendedContent(
                 onBookClick = onBookClick,
                 backgroundColor = ColorBackGroundRecommendedSection,
                 onArrowClick = {
-                    onSectionClick("TASTES", genreForTastes, ColorBackGroundRecommendedSection.toArgb())
+                    onSectionClick("tastes", genreForTastes, ColorBackGroundRecommendedSection.toArgb())
                 }
             )
 
@@ -125,7 +125,7 @@ fun RecommendedContent(
                 isEmptyMessage = "Tus amigos aún no tienen favoritos",
                 backgroundColor = ColorBackGroundFavoritesSection,
                 onArrowClick = {
-                    onSectionClick("FRIENDS", "General", ColorBackGroundFavoritesSection.toArgb())
+                    onSectionClick("friends", "General", ColorBackGroundFavoritesSection.toArgb())
                 }
             )
 

@@ -43,15 +43,16 @@ fun LoginScreen(
 ) {
     val context = LocalContext.current
 
-    // Observamos mensajes de error globales del ViewModel
-    LaunchedEffect(viewModel.errorMessage) {
-        viewModel.errorMessage?.let {
+    // 🟢 Extraemos el estado para observar errores y carga
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let {
             Toast.makeText(context, context.getString(it), Toast.LENGTH_LONG).show()
             viewModel.clearError()
         }
     }
 
-    // Configuración para el inicio de sesión con Google
     val googleSignInClient = remember {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(context.getString(R.string.default_web_client_id))
@@ -77,11 +78,11 @@ fun LoginScreen(
     }
 
     LoginContent(
-        isLoading = viewModel.isAuthenticating,
+        isLoading = uiState.isAuthenticating, // 🟢 Usamos el estado reactivo
         onLoginClick = { email, pass -> viewModel.login(email, pass, onLoginSuccess) },
         onGoogleClick = { googleLauncher.launch(googleSignInClient.signInIntent) },
         onNavigateToRegister = onNavigateToRegister,
-        viewModel = viewModel // 🟢 Pasamos el viewModel para usarlo en el Reset Dialog
+        viewModel = viewModel
     )
 }
 
@@ -98,11 +99,10 @@ fun LoginContent(
     var password by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
 
-    // 🟢 ESTADO PARA EL DIÁLOGO DE CONTRASEÑA OLVIDADA
     var showResetDialog by remember { mutableStateOf(false) }
 
     if (showResetDialog) {
-        var resetEmail by remember { mutableStateOf(email) } // Pre-rellena con el email escrito
+        var resetEmail by remember { mutableStateOf(email) }
         var isSending by remember { mutableStateOf(false) }
 
         AlertDialog(
@@ -220,7 +220,6 @@ fun LoginContent(
                 )
             )
 
-            // 🟢 BOTÓN DE OLVIDÉ MI CONTRASEÑA
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
                 Text(
                     text = "¿Has olvidado tu contraseña?",

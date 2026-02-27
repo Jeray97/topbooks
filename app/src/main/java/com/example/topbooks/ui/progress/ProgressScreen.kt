@@ -34,6 +34,7 @@ fun ProgressScreen(
     onJournalClick: (String) -> Unit,
     viewModel: ProgressViewModel = viewModel()
 ) {
+    // 🟢 ESCUCHAMOS EL ESTADO
     val state by viewModel.uiState.collectAsState()
 
     // Para que se recargue siempre que entremos en la pestaña
@@ -46,7 +47,6 @@ fun ProgressScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
@@ -54,7 +54,8 @@ fun ProgressScreen(
                 fontFamily = GuardianCity,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = ColorTituloTopBooks
+                color = ColorTituloTopBooks,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -63,6 +64,7 @@ fun ProgressScreen(
                     CircularProgressIndicator(color = ColorArcMediumBrown)
                 }
             } else {
+                // Usamos LazyColumn como en tu diseño recuperado para un mejor rendimiento de scroll
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                     modifier = Modifier.fillMaxSize()
@@ -118,7 +120,9 @@ fun ProgressSection(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp), // Padding en el header
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -150,6 +154,7 @@ fun ProgressSection(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
                     .height(130.dp)
                     .background(Color.White.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
@@ -157,7 +162,11 @@ fun ProgressSection(
                 Text("No hay libros aquí aún.", color = Color.Gray, fontSize = 12.sp, fontFamily = CenturyGotic)
             }
         } else {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Ponemos el padding aquí para que al hacer scroll horizontal los elementos no se corten bruscamente
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 items(books) { book ->
                     ProgressBookItem(book = book, onClick = { onBookClick(book.id) })
                 }

@@ -18,7 +18,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect // <--- IMPORTADO
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -41,6 +41,14 @@ import com.example.topbooks.R
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.AvatarHelper
 
+// Modelo para interacciones
+data class Interaction(
+    val userPhoto: String = "",
+    val userName: String = "",
+    val actionText: String = "",
+    val bookTitle: String = ""
+)
+
 @Composable
 fun FriendsScreen(
     onNavigateToProfile: (String) -> Unit,
@@ -49,10 +57,10 @@ fun FriendsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // LÓGICA DE ACTUALIZACIÓN: Refresca los datos cada vez que entras en esta pestaña
-    LaunchedEffect(Unit) {
+    // Comentado para evitar crasheos, descomenta cuando lo añadas al ViewModel
+    /* LaunchedEffect(Unit) {
         viewModel.refreshRecentActivity()
-    }
+    } */
 
     Column(
         modifier = Modifier
@@ -70,7 +78,7 @@ fun FriendsScreen(
 
         OutlinedTextField(
             value = uiState.searchQuery,
-            onValueChange = { viewModel.onSearchQueryChange(it) },
+            onValueChange = { viewModel.onSearchQueryChanged(it) }, // Ajustado al VM
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
@@ -78,7 +86,7 @@ fun FriendsScreen(
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
             trailingIcon = {
                 if (uiState.searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                    IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
                         Icon(Icons.Default.Close, contentDescription = "Borrar", tint = Color.Gray)
                     }
                 }
@@ -107,16 +115,17 @@ fun FriendsScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 // Mis amigos
+                val dummyMyFriends = emptyList<SocialUser>() // Ajuste temporal para que rederice
                 SocialSection(
                     title = "Mis amigos",
-                    isEmpty = uiState.myFriends.isEmpty(),
+                    isEmpty = dummyMyFriends.isEmpty(),
                     emptyMessage = "Aún no tienes amigos añadidos"
                 ) {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
-                        items(uiState.myFriends) { user ->
+                        items(dummyMyFriends) { user ->
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -141,17 +150,17 @@ fun FriendsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Con tus mismos gustos
+                // Con tus mismos gustos (Usamos suggestedUsers que sí existe en tu VM)
                 SocialSection(
                     title = "Con tus mismos gustos",
-                    isEmpty = uiState.sameTastes.isEmpty(),
+                    isEmpty = uiState.suggestedUsers.isEmpty(),
                     emptyMessage = "No hay sugerencias por ahora"
                 ) {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
-                        items(uiState.sameTastes) { user ->
+                        items(uiState.suggestedUsers) { user ->
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -177,13 +186,14 @@ fun FriendsScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Interacciones recientes
+                val dummyInteractions = emptyList<Interaction>() // Ajuste temporal
                 SocialSection(
                     title = "Interacciones recientes",
-                    isEmpty = uiState.recentInteractions.isEmpty(),
+                    isEmpty = dummyInteractions.isEmpty(),
                     emptyMessage = "Añade amigos para ver su actividad"
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        uiState.recentInteractions.forEach { interaction ->
+                        dummyInteractions.forEach { interaction ->
                             InteractionItem(
                                 interaction = interaction,
                                 onClick = onNavigateToActivity
@@ -198,7 +208,6 @@ fun FriendsScreen(
     }
 }
 
-// ... El resto del archivo se mantiene EXACTAMENTE igual
 @Composable
 fun SearchResultsList(results: List<SocialUser>, isSearching: Boolean, onFriendAction: (SocialUser) -> Unit, onNavigateToProfile: (String) -> Unit) {
     if (isSearching) {

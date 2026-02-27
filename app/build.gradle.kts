@@ -68,21 +68,17 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
-    // --- ARQUITECTURA (ViewModel & LiveData) ---
+    // --- ARQUITECTURA (ViewModels y Compose) ---
     val lifecycle_version = "2.6.2"
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version")
-    implementation("androidx.activity:activity-ktx:1.8.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:$lifecycle_version") // Usado en ConfigScreen para collectAsStateWithLifecycle
+
+    // --- ICONOS EXTENDIDOS (Material 3) ---
+    implementation("androidx.compose.material:material-icons-extended")
 
     // --- NAVEGACIÓN ---
     implementation("androidx.navigation:navigation-compose:2.7.5")
-
-    // --- DISEÑO EXTRA ---
-    implementation("com.google.android.material:material:1.10.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
-    implementation("androidx.compose.material:material-icons-extended")
 
     // --- FIREBASE  ---
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
@@ -99,14 +95,11 @@ dependencies {
     // --- IMÁGENES (Coil) ---
     implementation("io.coil-kt:coil-compose:2.5.0")
 
-    // Google Play Services Auth
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    // --- AUTH Y PREFERENCIAS ---
+    implementation("com.google.android.gms:play-services-auth:20.7.0") // Google SignIn
+    implementation("androidx.datastore:datastore-preferences:1.1.1") // Usado en SettingsManager
 
-    // =======================================================
     // --- TESTING (PRUEBAS) ---
-    // =======================================================
-
     testImplementation(libs.junit)
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
@@ -120,7 +113,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.6.0")
 
-    // --- QR (CAMARA) ---
+    // --- QR (CAMARA Y ESCÁNER) ---
     val cameraxVersion = "1.3.1"
     implementation("androidx.camera:camera-core:$cameraxVersion")
     implementation("androidx.camera:camera-camera2:$cameraxVersion")

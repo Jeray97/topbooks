@@ -1,54 +1,53 @@
 package com.example.topbooks.ui.auth
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.topbooks.R
 import com.example.topbooks.data.repository.AuthRepository
 import com.example.topbooks.data.repository.AuthRepositoryImpl
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.launch
-import android.util.Log
-import com.google.firebase.Firebase
-import com.google.firebase.messaging.messaging
 import com.google.firebase.firestore.SetOptions
-import com.example.topbooks.R
+import com.google.firebase.messaging.messaging
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+// 1. DEFINIMOS EL ESTADO DE LA UI
+data class AuthUiState(
+    val currentUser: FirebaseUser? = null,
+    val isTutorialCompleted: Boolean = true,
+    val isAuthenticating: Boolean = false,
+    val isLoadingProfile: Boolean = false,
+    val errorMessage: Int? = null
+)
 
 class AuthViewModel(
     private val repository: AuthRepository = AuthRepositoryImpl()
 ) : ViewModel() {
 
-    var currentUser by mutableStateOf<FirebaseUser?>(repository.currentUser)
-        private set
-
-    var isTutorialCompleted by mutableStateOf(true)
-        private set
-
-    var isAuthenticating by mutableStateOf(false)
-        private set
-
-    var isLoadingProfile by mutableStateOf(false)
-        private set
-
-    var errorMessage by mutableStateOf<Int?>(null)
-        private set
+    // 2. INICIALIZAMOS EL STATEFLOW
+    private val _uiState = MutableStateFlow(AuthUiState(currentUser = repository.currentUser))
+    val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     init {
         checkUserProfile()
     }
 
     fun checkUserProfile(onComplete: (Boolean) -> Unit = {}) {
-        val user = currentUser
+        val user = _uiState.value.currentUser
         if (user == null) {
             Log.w("AUTH_DEBUG", "checkUserProfile: No hay usuario actual (null)")
-            isLoadingProfile = false
+            _uiState.update { it.copy(isLoadingProfile = false) }
             return
         }
 
         Log.d("AUTH_DEBUG", "3. checkUserProfile: Cargando perfil para UID: ${user.uid}")
-        isLoadingProfile = true
+        _uiState.update { it.copy(isLoadingProfile = true) }
 
         // Lanzamos la actualización del token
         updateFcmToken(user.uid)
@@ -59,14 +58,16 @@ class AuthViewModel(
             .addOnSuccessListener { doc ->
                 Log.d("AUTH_DEBUG", "4. checkUserProfile: Documento Firestore obtenido con éxito")
                 val completed = doc.getBoolean("isTutorialCompleted") ?: false
-                isTutorialCompleted = completed
-                isLoadingProfile = false
+                _uiState.update {
+                    it.copy(isTutorialCompleted = completed, isLoadingProfile = false)
+                }
                 onComplete(completed)
             }
             .addOnFailureListener { e ->
                 Log.e("AUTH_DEBUG", "ERROR checkUserProfile: No se pudo leer Firestore: ${e.message}")
-                isTutorialCompleted = true
-                isLoadingProfile = false
+                _uiState.update {
+                    it.copy(isTutorialCompleted = true, isLoadingProfile = false)
+                }
                 onComplete(true)
             }
     }
@@ -74,17 +75,18 @@ class AuthViewModel(
     fun login(email: String, pass: String, onSuccess: () -> Unit) {
         Log.d("AUTH_DEBUG", "Iniciando login tradicional...")
         viewModelScope.launch {
-            isAuthenticating = true
+            _uiState.update { it.copy(isAuthenticating = true) }
             repository.login(email, pass).onSuccess {
-                currentUser = repository.currentUser
+                _uiState.update { it.copy(currentUser = repository.currentUser) }
                 checkUserProfile {
-                    isAuthenticating = false
+                    _uiState.update { it.copy(isAuthenticating = false) }
                     onSuccess()
                 }
             }.onFailure {
                 Log.e("AUTH_DEBUG", "ERROR login: ${it.message}")
-                errorMessage = translateAuthError(it)
-                isAuthenticating = false
+                _uiState.update { state ->
+                    state.copy(errorMessage = translateAuthError(it), isAuthenticating = false)
+                }
             }
         }
     }
@@ -92,10 +94,11 @@ class AuthViewModel(
     fun register(name: String, email: String, pass: String, onSuccess: () -> Unit) {
         Log.d("AUTH_DEBUG", "Iniciando registro de nuevo usuario...")
         viewModelScope.launch {
-            isAuthenticating = true
+            _uiState.update { it.copy(isAuthenticating = true) }
             repository.register(name, email, pass).onSuccess {
-                currentUser = repository.currentUser
-                Log.d("AUTH_DEBUG", "Registro exitoso. UID: ${currentUser?.uid}")
+                val user = repository.currentUser
+                _uiState.update { it.copy(currentUser = user) }
+                Log.d("AUTH_DEBUG", "Registro exitoso. UID: ${user?.uid}")
 
                 repository.sendEmailVerification().onSuccess {
                     Log.d("AUTH_DEBUG", "¡Correo de verificación ENVIADO al servidor de Firebase!")
@@ -103,17 +106,19 @@ class AuthViewModel(
                     Log.e("AUTH_DEBUG", "¡FALLO al enviar correo de verificación! Motivo: ${it.message}")
                 }
 
-                currentUser?.uid?.let { uid ->
+                user?.uid?.let { uid ->
                     updateFcmToken(uid)
                 }
 
-                isTutorialCompleted = false
-                isAuthenticating = false
+                _uiState.update {
+                    it.copy(isTutorialCompleted = false, isAuthenticating = false)
+                }
                 onSuccess()
             }.onFailure {
                 Log.e("AUTH_DEBUG", "ERROR registro: ${it.message}")
-                errorMessage = translateAuthError(it)
-                isAuthenticating = false
+                _uiState.update { state ->
+                    state.copy(errorMessage = translateAuthError(it), isAuthenticating = false)
+                }
             }
         }
     }
@@ -121,20 +126,21 @@ class AuthViewModel(
     fun loginWithGoogle(token: String, onSuccess: () -> Unit) {
         Log.d("AUTH_DEBUG", "1. loginWithGoogle: Iniciando con token de Google...")
         viewModelScope.launch {
-            isAuthenticating = true
+            _uiState.update { it.copy(isAuthenticating = true) }
             repository.loginWithGoogle(token).onSuccess {
-                currentUser = repository.currentUser
-                Log.d("AUTH_DEBUG", "2. loginWithGoogle: Auth en Firebase OK. UID: ${currentUser?.uid}")
+                _uiState.update { it.copy(currentUser = repository.currentUser) }
+                Log.d("AUTH_DEBUG", "2. loginWithGoogle: Auth en Firebase OK. UID: ${_uiState.value.currentUser?.uid}")
 
                 checkUserProfile { completed ->
                     Log.d("AUTH_DEBUG", "5. loginWithGoogle: Todo el proceso terminado. Tutorial: $completed")
-                    isAuthenticating = false
+                    _uiState.update { it.copy(isAuthenticating = false) }
                     onSuccess()
                 }
             }.onFailure {
                 Log.e("AUTH_DEBUG", "ERROR loginWithGoogle: ${it.message}")
-                errorMessage = translateAuthError(it)
-                isAuthenticating = false
+                _uiState.update { state ->
+                    state.copy(errorMessage = translateAuthError(it), isAuthenticating = false)
+                }
             }
         }
     }
@@ -212,9 +218,12 @@ class AuthViewModel(
     fun signOut() {
         Log.d("AUTH_DEBUG", "Cerrando sesión del usuario...")
         repository.logout()
-        currentUser = null
-        isTutorialCompleted = true
+        _uiState.update {
+            it.copy(currentUser = null, isTutorialCompleted = true)
+        }
     }
 
-    fun clearError() { errorMessage = null }
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
 }

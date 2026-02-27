@@ -46,5 +46,6 @@ data class Journal(
     var endDate: String = "",
 
     @ServerTimestamp
-    var createdAt: Date? = null
+    var createdAt: Date? = null,
+    val notes: String
 )

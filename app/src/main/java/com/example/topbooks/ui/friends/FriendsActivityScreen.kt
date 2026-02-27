@@ -42,7 +42,8 @@ fun FriendsActivityScreen(
     onBookClick: (String) -> Unit,
     viewModel: FriendsActivityViewModel = viewModel()
 ) {
-    val state by viewModel.activityState.collectAsState()
+    // 🟢 Ajustado a uiState según tu ViewModel
+    val state by viewModel.uiState.collectAsState()
 
     Scaffold(
         containerColor = ColorBackGroundGeneral,
@@ -93,7 +94,6 @@ fun FriendsActivityScreen(
 
 @Composable
 fun FriendActivityCard(item: FriendActivityItem, onBookClick: (String) -> Unit) {
-    // Definimos el color según el tipo (opcional, para dar variedad como en tu imagen)
     val bubbleColor = if (item.rating >= 4) ColorHeaderBeige.copy(alpha = 0.9f) else ColorArcMediumBrown.copy(alpha = 0.2f)
 
     Row(
@@ -102,7 +102,6 @@ fun FriendActivityCard(item: FriendActivityItem, onBookClick: (String) -> Unit) 
             .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // IZQUIERDA: CARÁTULA CON MARCO BLANCO (Como en tu imagen)
         Card(
             modifier = Modifier
                 .width(100.dp)
@@ -126,7 +125,6 @@ fun FriendActivityCard(item: FriendActivityItem, onBookClick: (String) -> Unit) 
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // DERECHA: BURBUJA DE COMENTARIO
         Card(
             modifier = Modifier
                 .weight(1f)
@@ -136,7 +134,6 @@ fun FriendActivityCard(item: FriendActivityItem, onBookClick: (String) -> Unit) 
             colors = CardDefaults.cardColors(containerColor = bubbleColor)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                // Cabecera: Nombre + "comentó:"
                 Text(
                     text = "${item.friendName} comentó:",
                     fontSize = 13.sp,
@@ -146,7 +143,6 @@ fun FriendActivityCard(item: FriendActivityItem, onBookClick: (String) -> Unit) 
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Texto
                 Text(
                     text = item.content,
                     fontSize = 12.sp,
@@ -157,13 +153,11 @@ fun FriendActivityCard(item: FriendActivityItem, onBookClick: (String) -> Unit) 
                     modifier = Modifier.weight(1f)
                 )
 
-                // FOOTER: AMIGO (Abajo Izq) + ESTRELLAS (Abajo Der)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Avatar e info del amigo (TU PETICIÓN: mejor que mejor!)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         val avatarModifier = Modifier
                             .size(24.dp)
@@ -194,7 +188,6 @@ fun FriendActivityCard(item: FriendActivityItem, onBookClick: (String) -> Unit) 
                         )
                     }
 
-                    // VALORACIÓN (Estrellas abajo a la derecha)
                     if (item.rating > 0) {
                         Row {
                             repeat(5) { index ->

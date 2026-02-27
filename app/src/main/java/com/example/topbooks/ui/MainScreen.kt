@@ -1,13 +1,10 @@
 package com.example.topbooks.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,6 +22,8 @@ import com.example.topbooks.ui.theme.*
 import com.example.topbooks.ui.profile.ProfileScreen
 import com.example.topbooks.ui.friends.FriendsScreen
 import com.example.topbooks.ui.reviews.ReviewsScreen
+import com.google.firebase.auth.FirebaseAuth
+import java.util.UUID
 
 @Composable
 fun MainScreen(
@@ -123,14 +122,14 @@ fun MainScreen(
             composable(BottomNavItem.Progress.route) {
                 com.example.topbooks.ui.progress.ProgressScreen(
                     onNavigateToList = { type ->
-                        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
                         onNavigateToList(type, uid)
                     },
                     onBookClick = onNavigateToBookDetail,
-                    onJournalClick = onNavigateToJournal, // Clic en diario existente
+                    onJournalClick = onNavigateToJournal,
                     onAddJournalClick = {
-                        val customBookId = "custom_${java.util.UUID.randomUUID()}"
-                        onNavigateToJournal(customBookId) // Clic en el botón '+'
+                        val customBookId = "custom_${UUID.randomUUID()}"
+                        onNavigateToJournal(customBookId)
                     }
                 )
             }
@@ -151,10 +150,11 @@ fun MainScreen(
 
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
-                    userId = null, // Mi propio perfil
+                    userId = null,
                     onNavigateToSettings = onNavigateToConfig,
                     onNavigateToDetail = onNavigateToBookDetail,
-                    onNavigateToList = onNavigateToList // Pasamos la función de listas
+                    onNavigateToList = onNavigateToList,
+                    onBackClick = { }
                 )
             }
         }

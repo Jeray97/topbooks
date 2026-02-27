@@ -1,16 +1,9 @@
 package com.example.topbooks.ui.friends
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.topbooks.data.model.Book
-import com.example.topbooks.data.model.Comment
-import com.example.topbooks.data.model.Review
-import com.example.topbooks.data.repository.BooksRepository
+import com.example.topbooks.data.repository.*
 import com.example.topbooks.utils.Resource
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -18,226 +11,88 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import java.util.Date
+import java.util.UUID
 
-// --- MODELO UNIFICADO PARA LA UI ---
+// Usamos el mismo modelo unificado de SocialActivity
 data class FriendActivityItem(
-    val id: String,
-    val type: ActivityType, // REVIEW, COMMENT, FAVORITE
+    val id: String = UUID.randomUUID().toString(),
+    val type: ActivityType,
     val friendName: String,
     val friendPhotoUrl: String,
     val bookId: String,
     val bookTitle: String,
     val bookImageUrl: String,
-    val content: String, // Texto de la reseña o comentario
-    val rating: Int,     // 0 si es favorito
-    val timestamp: Date?
+    val content: String,
+    val rating: Int,
+    val timestamp: Date
 )
 
 class FriendsActivityViewModel(
-    private val repository: BooksRepository = BooksRepository()
+    private val feedRepository: SocialFeedRepository = SocialFeedRepositoryImpl(),
+    private val communityRepository: CommunityRepository = CommunityRepositoryImpl(),
+    private val userRepository: UserRepository = UserRepositoryImpl(),
+    private val booksRepository: BooksRepository = BooksRepository()
 ) : ViewModel() {
 
-    private val db = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
-
-    private val _activityState = MutableStateFlow<Resource<List<FriendActivityItem>>>(Resource.Loading)
-    val activityState: StateFlow<Resource<List<FriendActivityItem>>> = _activityState.asStateFlow()
+    private val _uiState = MutableStateFlow<Resource<List<FriendActivityItem>>>(Resource.Loading)
+    val uiState: StateFlow<Resource<List<FriendActivityItem>>> = _uiState.asStateFlow()
 
     init {
-        loadFriendsActivity()
+        loadActivityFeed()
     }
 
-    fun loadFriendsActivity() {
-        val uid = auth.currentUser?.uid
-        if (uid == null) {
-            _activityState.value = Resource.Error(Exception("No usuario"))
-            return
-        }
-
+    fun loadActivityFeed() {
         viewModelScope.launch {
-            _activityState.value = Resource.Loading
+            _uiState.value = Resource.Loading
             try {
-                // 1. Obtener lista de amigos
-                val friendsSnapshot = db.collection("users").document(uid)
-                    .collection("friends").get().await()
-
-                if (friendsSnapshot.isEmpty) {
-                    _activityState.value = Resource.Success(emptyList())
+                val friendsIds = communityRepository.getMyFriendsIds().getOrDefault(emptySet()).toList()
+                if (friendsIds.isEmpty()) {
+                    _uiState.value = Resource.Success(emptyList())
                     return@launch
                 }
 
-                val friendIds = friendsSnapshot.documents.map { it.id }
+                val allActivities = coroutineScope {
+                    friendsIds.map { friendId ->
+                        async {
+                            val user = userRepository.getUserProfile(friendId).getOrNull() ?: return@async emptyList()
+                            val friendName = user.displayName.ifEmpty { "Usuario" }
+                            val friendPhoto = user.photoURL.ifEmpty { "capibara_1" }
 
-                // 2. Cargar actividades en paralelo
-                val activities = coroutineScope {
-                    val reviewsDeferred = async { fetchReviews(friendIds) }
-                    val commentsDeferred = async { fetchComments(friendIds) }
-                    val favoritesDeferred = async { fetchFavorites(friendIds) }
+                            val reviews = feedRepository.getUserReviews(friendId).getOrDefault(emptyList())
+                            val comments = feedRepository.getUserComments(friendId).getOrDefault(emptyList())
+                            val favorites = feedRepository.getUserFavorites(friendId).getOrDefault(emptyList())
 
-                    // Esperamos a que terminen todas y unimos las listas
-                    val allActivities = reviewsDeferred.await() + commentsDeferred.await() + favoritesDeferred.await()
+                            val items = mutableListOf<FriendActivityItem>()
 
-                    // Ordenamos por fecha descendente (lo más nuevo arriba)
-                    allActivities.sortedByDescending { it.timestamp }
+                            reviews.forEach { r ->
+                                val (title, img) = getBookInfo(r.bookId)
+                                items.add(FriendActivityItem(type = ActivityType.REVIEW, friendName = friendName, friendPhotoUrl = friendPhoto, bookId = r.bookId, bookTitle = title, bookImageUrl = img, content = r.text, rating = r.rating, timestamp = r.createAt ?: Date()))
+                            }
+                            comments.forEach { c ->
+                                val (title, img) = getBookInfo(c.bookId)
+                                items.add(FriendActivityItem(type = ActivityType.COMMENT, friendName = friendName, friendPhotoUrl = friendPhoto, bookId = c.bookId, bookTitle = title, bookImageUrl = img, content = c.text, rating = 0, timestamp = c.createAt ?: Date()))
+                            }
+                            favorites.forEach { fav ->
+                                val bookId = fav["bookId"] as? String ?: return@forEach
+                                val timestamp = fav["addedAt"] as? Long ?: 0L
+                                val (title, img) = getBookInfo(bookId)
+                                items.add(FriendActivityItem(type = ActivityType.FAVORITE, friendName = friendName, friendPhotoUrl = friendPhoto, bookId = bookId, bookTitle = title, bookImageUrl = img, content = "Ha añadido un libro a favoritos", rating = 0, timestamp = Date(timestamp)))
+                            }
+                            items
+                        }
+                    }.awaitAll().flatten().sortedByDescending { it.timestamp }
                 }
 
-                _activityState.value = Resource.Success(activities)
-
+                _uiState.value = Resource.Success(allActivities)
             } catch (e: Exception) {
-                Log.e("FriendsActivityVM", "Error: ${e.message}")
-                _activityState.value = Resource.Error(e)
+                _uiState.value = Resource.Error(e)
             }
         }
     }
 
-    // --- 1. BUSCAR RESEÑAS DE AMIGOS ---
-    private suspend fun fetchReviews(friendIds: List<String>): List<FriendActivityItem> {
-        if (friendIds.isEmpty()) return emptyList()
-        // Firestore limita 'whereIn' a 10. Hacemos lotes si es necesario o cogemos los 10 primeros.
-        val safeIds = friendIds.take(10)
-
-        return try {
-            val snapshot = db.collection("reviews")
-                .whereIn("userId", safeIds)
-                .orderBy("createAt", Query.Direction.DESCENDING)
-                .limit(20)
-                .get().await()
-
-            val items = snapshot.toObjects(Review::class.java)
-            enrichItems(items, ActivityType.REVIEW)
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
-    // --- 2. BUSCAR COMENTARIOS DE AMIGOS ---
-    private suspend fun fetchComments(friendIds: List<String>): List<FriendActivityItem> {
-        if (friendIds.isEmpty()) return emptyList()
-        val safeIds = friendIds.take(10)
-
-        return try {
-            val snapshot = db.collection("comments")
-                .whereIn("userId", safeIds)
-                .orderBy("createAt", Query.Direction.DESCENDING)
-                .limit(20)
-                .get().await()
-
-            val items = snapshot.toObjects(Comment::class.java)
-            enrichItems(items, ActivityType.COMMENT)
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
-    // --- 3. BUSCAR FAVORITOS DE AMIGOS ---
-    private suspend fun fetchFavorites(friendIds: List<String>): List<FriendActivityItem> = coroutineScope {
-        // Iteramos por cada amigo para ver sus últimos favoritos
-        val tasks = friendIds.map { friendId ->
-            async {
-                try {
-                    val snapshot = db.collection("users").document(friendId)
-                        .collection("favorites")
-                        .orderBy("addedAt", Query.Direction.DESCENDING)
-                        .limit(3)
-                        .get().await()
-
-                    // Mapeamos manualmente el favorito a nuestro objeto ActivityItem
-                    // Necesitamos obtener datos del usuario (amigo) también
-                    val userDoc = db.collection("users").document(friendId).get().await()
-                    val friendName = userDoc.getString("displayName") ?: "Amigo"
-                    val friendPhoto = userDoc.getString("photoURL") ?: "capibara_1"
-
-                    snapshot.documents.map { doc ->
-                        FriendActivityItem(
-                            id = doc.id,
-                            type = ActivityType.FAVORITE,
-                            friendName = friendName,
-                            friendPhotoUrl = friendPhoto,
-                            bookId = doc.getString("bookId") ?: "",
-                            bookTitle = doc.getString("title") ?: "Libro",
-                            bookImageUrl = doc.getString("imageUrl") ?: "",
-                            content = "Ha añadido este libro a favoritos.",
-                            rating = 0,
-                            timestamp = Date(doc.getLong("addedAt") ?: System.currentTimeMillis())
-                        )
-                    }
-                } catch (e: Exception) {
-                    emptyList<FriendActivityItem>()
-                }
-            }
-        }
-        tasks.awaitAll().flatten()
-    }
-
-    // --- HELPER: ENRIQUECER DATOS (BUSCAR INFO LIBRO Y USUARIO) ---
-    // Esta función convierte Reviews o Comments (que tienen IDs) en FriendActivityItem completos
-    private suspend fun enrichItems(rawItems: List<Any>, type: ActivityType): List<FriendActivityItem> = coroutineScope {
-        rawItems.map { item ->
-            async {
-                try {
-                    var userId = ""
-                    var bookId = ""
-                    var text = ""
-                    var rating = 0
-                    var date: Date? = null
-                    var id = ""
-
-                    if (item is Review) {
-                        id = item.id
-                        userId = item.userId
-                        bookId = item.bookId
-                        text = item.text
-                        rating = item.rating
-                        date = item.createAt
-                    } else if (item is Comment) {
-                        id = item.commentId
-                        userId = item.userId
-                        bookId = item.bookId
-                        text = item.text
-                        rating = item.rating
-                        date = item.createAt
-                    }
-
-                    // 1. Datos Usuario
-                    val userDoc = db.collection("users").document(userId).get().await()
-                    val friendName = userDoc.getString("displayName") ?: "Usuario"
-                    val friendPhoto = userDoc.getString("photoURL") ?: "capibara_1"
-
-                    // 2. Datos Libro (Si no tenemos el título, lo buscamos.
-                    // En review/comment no guardamos título, así que hay que buscarlo o cachearlo)
-                    // Para optimizar, intentamos obtenerlo de Firestore 'books' global si existe, o API
-                    val bookDoc = db.collection("books").document(bookId).get().await()
-                    var bookTitle = "Libro"
-                    var bookImage = ""
-
-                    if (bookDoc.exists()) {
-                        bookTitle = bookDoc.getString("title") ?: "Sin título"
-                        bookImage = bookDoc.getString("thumbnail") ?: ""
-                    } else {
-                        // Fallback API
-                        val apiBook = repository.getBookDetail(bookId).getOrNull()
-                        bookTitle = apiBook?.title ?: "Desconocido"
-                        bookImage = apiBook?.imageUrl ?: ""
-                    }
-
-                    FriendActivityItem(
-                        id = id,
-                        type = type,
-                        friendName = friendName,
-                        friendPhotoUrl = friendPhoto,
-                        bookId = bookId,
-                        bookTitle = bookTitle,
-                        bookImageUrl = bookImage,
-                        content = text,
-                        rating = rating,
-                        timestamp = date
-                    )
-                } catch (e: Exception) {
-                    null
-                }
-            }
-        }.awaitAll().filterNotNull()
+    private suspend fun getBookInfo(bookId: String): Pair<String, String> {
+        val apiBook = booksRepository.getBookDetail(bookId).getOrNull()
+        return Pair(apiBook?.title ?: "Libro", apiBook?.imageUrl ?: "")
     }
 }
