@@ -107,7 +107,7 @@ fun LoginContent(
 
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Recuperar contraseña", fontFamily = GuardianCity, fontWeight = FontWeight.Bold) },
+            title = { Text("Recuperar contraseña", fontFamily = GuardianCity, fontWeight = FontWeight.Normal) },
             text = {
                 Column {
                     Text("Introduce tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.", color = Color.Gray, fontSize = 14.sp)
@@ -165,9 +165,9 @@ fun LoginContent(
             Text(
                 text = "Bienvenido a",
                 style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     fontSize = 24.sp,
-                    fontFamily = CenturyGotic
+                    fontFamily = GuardianCity
                 ),
                 color = ColorTituloCategoriaDetalle,
             )
@@ -273,7 +273,7 @@ fun LoginContent(
                 Text(
                     text = "Regístrate aquí",
                     color = ColorArcDarkBrown,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     modifier = Modifier.clickable { onNavigateToRegister() }
                 )
             }

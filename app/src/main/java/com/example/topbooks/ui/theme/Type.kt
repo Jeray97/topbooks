@@ -2,14 +2,13 @@ package com.example.topbooks.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.Font
 import com.example.topbooks.R
 
-
-//Fuente para APP Guardian City
+// 1. Definición de familias
 val GuardianCity = FontFamily(
     Font(R.font.guardian_city_font, FontWeight.Normal)
 )
@@ -18,38 +17,33 @@ val CenturyGotic = FontFamily(
     Font(R.font.century_gothic_font, FontWeight.Normal)
 )
 
+// 2. Configuración de Tipografía
 val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = GuardianCity,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-)
-/*
-// Set of Material typography styles to start with
-val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-     Other default text styles to override
+    // Títulos: Aquí usamos GuardianCity porque queremos que destaque
     titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
+        fontFamily = GuardianCity,
+        fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp
     ),
-    labelSmall = TextStyle(
+
+    // Cuerpo de texto (Inputs, descripciones, etc):
+    // Usamos CenturyGotic
+    bodyLarge = TextStyle(
+        fontFamily = CenturyGotic,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
+    ),
+
+    // Etiquetas (Labels de los text fields)
+    labelLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.1.sp
     )
-    */
+)
