@@ -47,8 +47,6 @@ import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.AvatarHelper
 import kotlinx.coroutines.launch
 
-
-// TODO cambiar botonera para que soporte favoritos siempre
 @Composable
 fun BookDetailScreen(
     bookId: String,
@@ -59,7 +57,7 @@ fun BookDetailScreen(
     val state by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current // 🟢 Necesario para los Toasts
+    val context = LocalContext.current
 
     var isFabExpanded by remember { mutableStateOf(false) }
     var showReviewDialog by remember { mutableStateOf(false) }
@@ -67,7 +65,7 @@ fun BookDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showBookmarkDialog by remember { mutableStateOf(false) }
 
-    // 🟢 CORRECCIÓN: Usamos loadBook en lugar de getBook
+    // Cargamos el libro al iniciar la pantalla
     LaunchedEffect(bookId) { viewModel.loadBook(bookId) }
 
     // --- FORMULARIOS ---
@@ -83,7 +81,6 @@ fun BookDetailScreen(
     }
 
     if (showBookmarkDialog && state.book != null) {
-        // 🟢 CORRECCIÓN: Usamos saveBookmark y le pasamos el libro completo
         PremiumAddBookmarkDialog(
             onDismiss = { showBookmarkDialog = false },
             onConfirm = { p, q, c, pub ->
@@ -97,7 +94,6 @@ fun BookDetailScreen(
             listName = state.savedInList ?: "biblioteca",
             onDismiss = { showDeleteDialog = false },
             onConfirm = {
-                // 🟢 CORRECCIÓN: removeFromList necesita bookId y listName
                 viewModel.removeFromList(state.book!!.id, state.savedInList ?: "")
                 showDeleteDialog = false
             }
@@ -155,7 +151,21 @@ fun BookDetailScreen(
             else if (state.book != null) {
                 val book = state.book!!
                 LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 100.dp), modifier = Modifier.fillMaxSize()) {
-                    item { BookHeaderSection(book = book, savedInList = state.savedInList, onListAction = { if (state.savedInList == it) showDeleteDialog = true else viewModel.addToList(book, it) }) }
+                    item {
+                        BookHeaderSection(
+                            book = book,
+                            savedInList = state.savedInList,
+                            isFavorite = state.isFavorite, // 🔥 Lee directamente del estado del ViewModel
+                            onFavoriteClick = {
+                                viewModel.toggleFavorite(book) // 🔥 Llama a la función del ViewModel
+                            },
+                            onListAction = {
+                                // Pendientes y Leídos siguen siendo excluyentes
+                                if (state.savedInList == it) showDeleteDialog = true
+                                else viewModel.addToList(book, it)
+                            }
+                        )
+                    }
                     item { SynopsisSection(book.description) }
                     item { Text("Opiniones de la comunidad", fontFamily = CenturyGotic, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks, modifier = Modifier.padding(24.dp, 16.dp)) }
                     if (state.reviews.isEmpty()) item { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text("Nadie ha opinado todavía.", color = Color.Gray) } }
@@ -169,7 +179,13 @@ fun BookDetailScreen(
 // --- COMPONENTES ORIGINALES ---
 
 @Composable
-fun BookHeaderSection(book: Book, savedInList: String?, onListAction: (String) -> Unit) {
+fun BookHeaderSection(
+    book: Book,
+    savedInList: String?,
+    isFavorite: Boolean,
+    onFavoriteClick: () -> Unit,
+    onListAction: (String) -> Unit
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
         Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(10.dp), modifier = Modifier.width(170.dp).height(260.dp)) {
             AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(book.imageUrl).crossfade(true).error(com.example.topbooks.R.drawable.icon_codigodebarras).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -179,7 +195,10 @@ fun BookHeaderSection(book: Book, savedInList: String?, onListAction: (String) -
         Text(book.authors.joinToString(", "), fontSize = 16.sp, fontFamily = CenturyGotic, color = ColorArcDarkBrown, modifier = Modifier.padding(top = 8.dp))
         Spacer(modifier = Modifier.height(24.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            StatusButton(label = "Favoritos", isActive = savedInList == "Favoritos", activeIcon = Icons.Default.Favorite, inactiveIcon = Icons.Default.FavoriteBorder, onClick = { onListAction("Favoritos") })
+            // 🔥 FAVORITOS INDEPENDIENTE
+            StatusButton(label = "Favoritos", isActive = isFavorite, activeIcon = Icons.Default.Favorite, inactiveIcon = Icons.Default.FavoriteBorder, onClick = onFavoriteClick)
+
+            // 🔥 LEÍDOS Y PENDIENTES EXCLUYENTES
             StatusButton(label = "Leídos", isActive = savedInList == "Leídos", activeIcon = Icons.Default.CheckCircle, inactiveIcon = Icons.Outlined.CheckCircle, onClick = { onListAction("Leídos") })
             StatusButton(label = "Pendientes", isActive = savedInList == "Pendientes", activeIcon = Icons.Default.Info, inactiveIcon = Icons.Default.Info, onClick = { onListAction("Pendientes") })
         }

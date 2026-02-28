@@ -150,7 +150,7 @@ fun ConfigScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- ZONA DE PELIGRO (Al final del todo) ---
+            // --- ZONA DE PELIGRO (Al final del to-do) ---
             Text(
                 text = "Zona de Peligro",
                 style = MaterialTheme.typography.titleSmall,

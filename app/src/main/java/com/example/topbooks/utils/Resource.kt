@@ -2,7 +2,7 @@ package com.example.topbooks.utils
 
 /**
  * Una clase sellada (sealed class) que nos ayuda a gestionar los estados de la UI.
- * T: Es el tipo de dato que esperamos recibir cuando todo va bien (ej: un Usuario, un Boolean, etc).
+ * T: Es el tipo de dato que esperamos recibir cuando to-do va bien (ej: un Usuario, un Boolean, etc).
  */
 sealed class Resource<out T> {
     // Cuando la operación fue exitosa y traemos datos

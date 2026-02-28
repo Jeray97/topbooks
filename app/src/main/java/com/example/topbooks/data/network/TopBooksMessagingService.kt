@@ -32,7 +32,7 @@ class TopBooksMessagingService : FirebaseMessagingService() {
         // 3. Configurar el Intent Universal para el Deep Link
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            // Metemos TODO en el sobre. La MainActivity decidirá qué usar.
+            // Metemos TO-DO en el sobre.
             putExtra("type", type)
             putExtra("followerId", followerId)
             putExtra("bookId", bookId)

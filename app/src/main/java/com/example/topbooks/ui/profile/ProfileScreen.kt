@@ -68,7 +68,7 @@ fun ProfileScreen(
             currentAvatar = user.photoURL,
             onDismiss = { showAvatarDialog = false },
             onSelect = {
-                viewModel.updateAvatar(it) // TODO RESUELTO
+                viewModel.updateAvatar(it)
             }
         )
     }
@@ -79,7 +79,7 @@ fun ProfileScreen(
             currentBio = user.bio,
             onDismiss = { showEditProfileDialog = false },
             onSave = { n, b ->
-                viewModel.updateProfileData(n, b) // TODO RESUELTO
+                viewModel.updateProfileData(n, b)
             }
         )
     }

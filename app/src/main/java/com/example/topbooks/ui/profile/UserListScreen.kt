@@ -138,8 +138,8 @@ fun BookmarkListItem(bookmark: BookmarkUI, onBookClick: (String) -> Unit, viewMo
             bookmark = bookmark,
             onDismiss = { showEditDialog = false },
             onSave = { updated ->
-                // TODO: Necesitas añadir updateBookmark(updated) en tu UserListViewModel
-                // viewModel.updateBookmark(updated)
+                // 🔥 AQUÍ ESTÁ EL TODO RESUELTO
+                viewModel.updateBookmark(updated)
                 showEditDialog = false
             },
             onDelete = {
@@ -189,9 +189,6 @@ fun BookmarkListItem(bookmark: BookmarkUI, onBookClick: (String) -> Unit, viewMo
         }
     }
 }
-
-// ... Mantén el resto de subcomponentes de tu diseño original ...
-// (EditBookmarkDialog, DialogPrivacyToggleButton, FriendItem, BookItem, ReviewListItem, CommentListItem)
 
 @Composable
 fun EditBookmarkDialog(bookmark: BookmarkUI, onDismiss: () -> Unit, onSave: (BookmarkUI) -> Unit, onDelete: () -> Unit) {
