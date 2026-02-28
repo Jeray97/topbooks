@@ -116,6 +116,11 @@
     <string name="conf_delete_account_dialog_body">Esta acción no se puede deshacer. Se perderán todos tus diarios, listas y comentarios. ¿Estás seguro?</string>
     <string name="conf_delete_account_dialog_yes">Sí, eliminar</string>
     <string name="conf_delete_account_dialog_no">Cancelar</string>
+    <string name="conf_email_not_verified_title">Cuenta no verificada</string>
+    <string name="conf_email_not_verified_desc">Verifica tu correo para poder publicar reseñas y comentarios.</string>
+    <string name="conf_email_resend_button">Reenviar correo</string>
+    <string name="conf_email_verified_toast">Correo de verificación reenviado.</string>
+    <string name="conf_email_error_toast">Error al enviar el correo. Inténtalo más tarde.</string>
 
     <!-- PERFIL -->
     <string name="profile_anonymous_reader">Lector Anónimo</string>

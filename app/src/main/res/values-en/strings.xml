@@ -75,6 +75,7 @@
     <string name="conf_delete_account_dialog_yes">Yes, delete</string>
     <string name="conf_delete_account_dialog_no">Cancel</string>
 
+    <string name="conf_email_error_toast">Error sending email. Please try again later.</string>
     <string name="profile_anonymous_reader">Anonymous Reader</string>
     <string name="profile_no_bio_yet">No biography yet.</string>
     <string name="profile_remove_friend">Remove friend</string>
@@ -322,5 +323,9 @@
     <string name="register_btn_submit">Register</string>
     <string name="register_already_have_account">Already have an account? </string>
     <string name="register_login_here">Log in here</string>
+    <string name="conf_email_not_verified_title">Unverified account</string>
+    <string name="conf_email_not_verified_desc">Please check your email to be able to post reviews and comments.</string>
+    <string name="conf_email_resend_button">Forward mail</string>
+    <string name="conf_email_verified_toast">Verification email forwarded.</string>
 
 </resources>

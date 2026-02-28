@@ -45,6 +45,9 @@ fun ConfigScreen(
 ) {
     val context = LocalContext.current
 
+    // 1. Observamos el estado de verificación del email
+    val isEmailVerified by viewModel.isEmailVerified.collectAsStateWithLifecycle()
+
     val darkModeEnabled by viewModel.darkModeEnabled.collectAsStateWithLifecycle()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
     val publicJournalDefaultEnabled by viewModel.publicJournalDefaultEnabled.collectAsStateWithLifecycle()
@@ -70,6 +73,17 @@ fun ConfigScreen(
                 color = ColorArcDarkBrown,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp)
             )
+
+            // 2. Banner de advertencia si la cuenta no está verificada
+            if (!isEmailVerified) {
+                VerificationWarningCard(
+                    onResendClick = {
+                        viewModel.resendVerificationEmail { message ->
+                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                )
+            }
 
             ConfigSection(title = stringResource(R.string.conf_use_and_appearance)) {
                 ConfigSwitchItem(
@@ -127,7 +141,6 @@ fun ConfigScreen(
                     icon = Icons.Default.Info,
                     title = stringResource(R.string.conf_privacy_policy),
                     description = stringResource(R.string.conf_privacy_policy_desc),
-                    // AQUÍ ESTÁ LA SOLUCIÓN DEL TOAST
                     onClick = { Toast.makeText(context, context.getString(R.string.conf_privacy_policy_onClick), Toast.LENGTH_SHORT).show() }
                 )
             }
@@ -176,7 +189,6 @@ fun ConfigScreen(
             AlertDialog(
                 onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
                 title = { Text(stringResource(R.string.conf_delete_account_dialog_title), fontWeight = FontWeight.Bold) },
-                // AQUÍ ESTÁ LA SOLUCIÓN DEL TEXTO DEL DIÁLOGO
                 text = { Text(stringResource(R.string.conf_delete_account_dialog_body)) },
                 containerColor = Color.White,
                 confirmButton = {
@@ -209,6 +221,53 @@ fun ConfigScreen(
                     }
                 }
             )
+        }
+    }
+}
+
+// 3. Componente visual para la advertencia de verificación
+@Composable
+fun VerificationWarningCard(onResendClick: () -> Unit) {
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFF3E0)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = Color(0xFFE65100)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.conf_email_not_verified_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFFE65100),
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = stringResource(R.string.conf_email_not_verified_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.DarkGray
+                )
+                TextButton(
+                    onClick = onResendClick,
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        stringResource(R.string.conf_email_resend_button),
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE65100)
+                    )
+                }
+            }
         }
     }
 }
@@ -247,7 +306,7 @@ fun ConfigActionItem(
     description: String,
     titleColor: Color = ColorArcDarkBrown,
     iconColor: Color = ColorArcDarkBrown,
-    onClick: () -> Unit // SOLUCIONADO EL @Composable AQUI
+    onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
