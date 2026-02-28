@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -55,7 +56,7 @@ fun FriendsActivityScreen(
                 .padding(padding)
         ) {
             Text(
-                text = "Favoritos de tus amigos",
+                text = stringResource(R.string.friends_activity_title),
                 fontFamily = CenturyGotic,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
@@ -135,7 +136,7 @@ fun FriendActivityCard(item: FriendActivityItem, onBookClick: (String) -> Unit) 
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
-                    text = "${item.friendName} comentó:",
+                    text = stringResource(R.string.friends_activity_commented, item.friendName),
                     fontSize = 13.sp,
                     color = ColorArcDarkBrown,
                     fontWeight = FontWeight.Bold
@@ -219,7 +220,7 @@ fun EmptyActivityMessage(modifier: Modifier = Modifier) {
             modifier = Modifier.size(80.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Aún no hay actividad", fontWeight = FontWeight.Bold, color = Color.Gray)
-        Text("Sigue a más amigos para ver sus favoritos.", fontSize = 12.sp, color = Color.Gray)
+        Text(stringResource(R.string.friends_activity_empty_title), fontWeight = FontWeight.Bold, color = Color.Gray)
+        Text(stringResource(R.string.friends_activity_empty_desc), fontSize = 12.sp, color = Color.Gray)
     }
 }

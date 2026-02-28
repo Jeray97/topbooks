@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,7 +41,7 @@ import com.example.topbooks.utils.AvatarHelper
 import com.example.topbooks.utils.Resource
 
 @Composable
-    fun SocialActivityScreen(
+fun SocialActivityScreen(
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
     onCommentClick: (String, String) -> Unit,
@@ -48,9 +49,9 @@ import com.example.topbooks.utils.Resource
 ) {
     val state by viewModel.uiState.collectAsState()
 
-        LaunchedEffect(Unit) {
-            viewModel.loadActivityFeed()
-        }
+    LaunchedEffect(Unit) {
+        viewModel.loadActivityFeed()
+    }
 
     Scaffold(
         containerColor = ColorBackGroundGeneral,
@@ -58,7 +59,7 @@ import com.example.topbooks.utils.Resource
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             Text(
-                text = "Actividad Reciente",
+                text = stringResource(R.string.social_activity_title),
                 fontFamily = CenturyGotic,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
@@ -152,14 +153,14 @@ fun SocialActivityCard(
         ) {
             Column(modifier = Modifier.padding(12.dp).fillMaxSize()) {
                 val actionText = when(item.type) {
-                    ActivityType.REVIEW -> "escribió una reseña"
-                    ActivityType.FAVORITE -> "guardó en favoritos"
-                    ActivityType.COMMENT -> "comentó en"
-                    ActivityType.REPLY -> "respondió a ${item.replyToName}"
+                    ActivityType.REVIEW -> stringResource(R.string.social_action_review)
+                    ActivityType.FAVORITE -> stringResource(R.string.social_action_favorite)
+                    ActivityType.COMMENT -> stringResource(R.string.social_action_comment)
+                    ActivityType.REPLY -> stringResource(R.string.social_action_reply, item.replyToName ?: stringResource(R.string.social_default_user))
                 }
 
                 Text(
-                    text = "${item.friendName} $actionText",
+                    text = stringResource(R.string.social_action_format, item.friendName, actionText),
                     fontSize = 12.sp,
                     color = ColorArcDarkBrown,
                     fontWeight = FontWeight.Bold
@@ -183,7 +184,7 @@ fun SocialActivityCard(
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {
                             Text(
-                                text = item.replyToName ?: "Usuario",
+                                text = item.replyToName ?: stringResource(R.string.social_default_user),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.Gray
@@ -243,7 +244,7 @@ fun EmptySocialMessage(modifier: Modifier = Modifier) {
     Column(modifier = modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(painter = painterResource(R.drawable.social), contentDescription = null, tint = ColorArcMediumBrown.copy(alpha = 0.4f), modifier = Modifier.size(80.dp))
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Todo está muy tranquilo...", fontWeight = FontWeight.Bold, color = Color.Gray)
-        Text("Tus amigos aún no han realizado actividades.", fontSize = 12.sp, color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Text(stringResource(R.string.social_empty_title), fontWeight = FontWeight.Bold, color = Color.Gray)
+        Text(stringResource(R.string.social_empty_desc), fontSize = 12.sp, color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 }

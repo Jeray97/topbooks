@@ -22,17 +22,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.topbooks.R
 import com.example.topbooks.data.preferences.SettingsManager
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.ColorArcDarkBrown
 
-// Definimos unos colores grises sutiles para el diseño premium
 val ColorPremiumDivider = Color(0xFFEEEEEE)
 val ColorPremiumTextSecondary = Color(0xFF757575)
 
@@ -44,18 +45,16 @@ fun ConfigScreen(
 ) {
     val context = LocalContext.current
 
-    // Observamos las preferencias y estados del ViewModel
     val darkModeEnabled by viewModel.darkModeEnabled.collectAsStateWithLifecycle()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
     val publicJournalDefaultEnabled by viewModel.publicJournalDefaultEnabled.collectAsStateWithLifecycle()
 
-    // Estado para la eliminación de cuenta
     val isDeleting by viewModel.isDeletingAccount.collectAsStateWithLifecycle(initialValue = false)
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = { TopBar(onBackClick = onBackClick) },
-        containerColor = Color.White // Fondo Blanco Puro
+        containerColor = Color.White
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -64,51 +63,47 @@ fun ConfigScreen(
                 .verticalScroll(rememberScrollState())
         ) {
 
-            // Título principal de la pantalla
             Text(
-                text = "Configuración",
+                text = stringResource(R.string.conf_title),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = ColorArcDarkBrown,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp)
             )
 
-            // --- SECCIÓN: APARIENCIA Y USO ---
-            ConfigSection(title = "Apariencia y Uso") {
+            ConfigSection(title = stringResource(R.string.conf_use_and_appearance)) {
                 ConfigSwitchItem(
                     icon = Icons.Default.Palette,
-                    title = "Modo Oscuro",
-                    description = "Cambia el tema visual de la aplicación",
+                    title = stringResource(R.string.conf_dark_mode),
+                    description = stringResource(R.string.conf_dark_mode_desc),
                     isChecked = darkModeEnabled,
                     onCheckedChange = { viewModel.toggleDarkMode(it) }
                 )
                 HorizontalDivider(color = ColorPremiumDivider, modifier = Modifier.padding(horizontal = 16.dp))
                 ConfigSwitchItem(
                     icon = Icons.Default.Notifications,
-                    title = "Notificaciones",
-                    description = "Recibe avisos de likes y comentarios",
+                    title = stringResource(R.string.conf_notifications),
+                    description = stringResource(R.string.conf_notifications_desc),
                     isChecked = notificationsEnabled,
                     onCheckedChange = { viewModel.toggleNotifications(it) }
                 )
             }
 
-            // --- SECCIÓN: PRIVACIDAD ---
-            ConfigSection(title = "Privacidad") {
+            ConfigSection(title = stringResource(R.string.conf_privacy)) {
                 ConfigSwitchItem(
                     icon = Icons.Default.Visibility,
-                    title = "Diarios públicos por defecto",
-                    description = "Tus nuevas lecturas serán visibles para todos",
+                    title = stringResource(R.string.conf_journalmode),
+                    description = stringResource(R.string.conf_journalmode_desc),
                     isChecked = publicJournalDefaultEnabled,
                     onCheckedChange = { viewModel.togglePublicJournalDefault(it) }
                 )
             }
 
-            // --- SECCIÓN: CUENTA ---
-            ConfigSection(title = "Cuenta") {
+            ConfigSection(title = stringResource(R.string.conf_account)) {
                 ConfigActionItem(
                     icon = Icons.Default.LockReset,
-                    title = "Cambiar Contraseña",
-                    description = "Te enviaremos un correo para restablecerla",
+                    title = stringResource(R.string.conf_change_password),
+                    description = stringResource(R.string.conf_change_password_desc),
                     onClick = {
                         viewModel.sendPasswordReset { message ->
                             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
@@ -118,8 +113,8 @@ fun ConfigScreen(
                 HorizontalDivider(color = ColorPremiumDivider, modifier = Modifier.padding(horizontal = 16.dp))
                 ConfigActionItem(
                     icon = Icons.AutoMirrored.Filled.ExitToApp,
-                    title = "Cerrar Sesión",
-                    description = "Desconecta tu cuenta de este dispositivo",
+                    title = stringResource(R.string.conf_logout),
+                    description = stringResource(R.string.conf_logout_desc),
                     onClick = {
                         viewModel.signOut()
                         onSignOut()
@@ -127,21 +122,20 @@ fun ConfigScreen(
                 )
             }
 
-            // --- SECCIÓN: INFORMACIÓN ---
-            ConfigSection(title = "Información") {
+            ConfigSection(title = stringResource(R.string.conf_information)) {
                 ConfigActionItem(
                     icon = Icons.Default.Info,
-                    title = "Política de Privacidad",
-                    description = "Conoce cómo tratamos tus datos",
-                    onClick = { Toast.makeText(context, "Abrir enlace...", Toast.LENGTH_SHORT).show() }
+                    title = stringResource(R.string.conf_privacy_policy),
+                    description = stringResource(R.string.conf_privacy_policy_desc),
+                    // AQUÍ ESTÁ LA SOLUCIÓN DEL TOAST
+                    onClick = { Toast.makeText(context, context.getString(R.string.conf_privacy_policy_onClick), Toast.LENGTH_SHORT).show() }
                 )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Versión de la app
             Text(
-                text = "TopBooks v1.0.0",
+                text = stringResource(R.string.conf_topbooks_version),
                 style = MaterialTheme.typography.bodySmall.copy(letterSpacing = 1.sp),
                 color = Color.LightGray,
                 modifier = Modifier.fillMaxWidth(),
@@ -150,9 +144,8 @@ fun ConfigScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- ZONA DE PELIGRO (Al final del to-do) ---
             Text(
-                text = "Zona de Peligro",
+                text = stringResource(R.string.conf_danger_zone),
                 style = MaterialTheme.typography.titleSmall,
                 color = Color.Red,
                 fontWeight = FontWeight.Bold,
@@ -170,8 +163,8 @@ fun ConfigScreen(
             ) {
                 ConfigActionItem(
                     icon = Icons.Default.DeleteForever,
-                    title = "Eliminar Cuenta",
-                    description = "Borra permanentemente tus datos de TopBooks",
+                    title = stringResource(R.string.conf_delete_account),
+                    description = stringResource(R.string.conf_delete_account_desc),
                     titleColor = Color.Red,
                     iconColor = Color.Red,
                     onClick = { showDeleteDialog = true }
@@ -179,12 +172,12 @@ fun ConfigScreen(
             }
         }
 
-        // --- DIÁLOGO DE CONFIRMACIÓN DE BORRADO ---
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
-                title = { Text("¿Eliminar cuenta?", fontWeight = FontWeight.Bold) },
-                text = { Text("Esta acción no se puede deshacer. Se perderán todos tus diarios, listas y comentarios. ¿Estás seguro?") },
+                title = { Text(stringResource(R.string.conf_delete_account_dialog_title), fontWeight = FontWeight.Bold) },
+                // AQUÍ ESTÁ LA SOLUCIÓN DEL TEXTO DEL DIÁLOGO
+                text = { Text(stringResource(R.string.conf_delete_account_dialog_body)) },
                 containerColor = Color.White,
                 confirmButton = {
                     Button(
@@ -203,7 +196,7 @@ fun ConfigScreen(
                         if (isDeleting) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         } else {
-                            Text("Sí, eliminar")
+                            Text(stringResource(R.string.conf_delete_account_dialog_yes))
                         }
                     }
                 },
@@ -212,15 +205,13 @@ fun ConfigScreen(
                         onClick = { showDeleteDialog = false },
                         enabled = !isDeleting
                     ) {
-                        Text("Cancelar", color = ColorPremiumTextSecondary)
+                        Text(stringResource(R.string.conf_delete_account_dialog_no), color = ColorPremiumTextSecondary)
                     }
                 }
             )
         }
     }
 }
-
-// --- COMPONENTES REUTILIZABLES CON DISEÑO PREMIUM ---
 
 @Composable
 fun ConfigSection(
@@ -256,7 +247,7 @@ fun ConfigActionItem(
     description: String,
     titleColor: Color = ColorArcDarkBrown,
     iconColor: Color = ColorArcDarkBrown,
-    onClick: () -> Unit
+    onClick: () -> Unit // SOLUCIONADO EL @Composable AQUI
 ) {
     Row(
         modifier = Modifier

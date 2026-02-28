@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.topbooks.R
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.model.Journal
 import com.example.topbooks.ui.components.TopBar
@@ -88,7 +89,7 @@ fun ReadingJournalScreen(
     val genreOptions = CategoryProvider.allCategories.map { code ->
         val data = CategoryProvider.getCategoryResources(code)
         if (data.nameRes != null) stringResource(id = data.nameRes) else CategoryProvider.formatFallbackName(code)
-    } + listOf("Otro")
+    } + listOf(stringResource(R.string.journal_genre_other))
 
     LaunchedEffect(bookId) { viewModel.loadJournal(bookId) }
 
@@ -132,13 +133,13 @@ fun ReadingJournalScreen(
     if (showSaveDialog) {
         AlertDialog(
             onDismissRequest = { showSaveDialog = false },
-            title = { Text("Guardar en mi diario", fontFamily = GuardianCity, fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.journal_save_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text("¿Quieres que esta entrada sea visible en tu perfil para tus amigos?", fontSize = 14.sp, color = Color.Gray)
+                    Text(stringResource(R.string.journal_save_desc), fontSize = 14.sp, color = Color.Gray)
                     Spacer(Modifier.height(16.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Text("Publicar en mi perfil", modifier = Modifier.weight(1f), fontFamily = CenturyGotic)
+                        Text(stringResource(R.string.journal_publish_profile), modifier = Modifier.weight(1f), fontFamily = CenturyGotic)
                         Switch(
                             checked = isPublic,
                             onCheckedChange = { isPublic = it },
@@ -177,9 +178,9 @@ fun ReadingJournalScreen(
                         showSaveDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = JournalDark)
-                ) { Text("Confirmar") }
+                ) { Text(stringResource(R.string.journal_action_confirm)) }
             },
-            dismissButton = { TextButton(onClick = { showSaveDialog = false }) { Text("Cancelar", color = Color.Gray) } },
+            dismissButton = { TextButton(onClick = { showSaveDialog = false }) { Text(stringResource(R.string.journal_action_cancel), color = Color.Gray) } },
             containerColor = Color.White,
             shape = RoundedCornerShape(24.dp)
         )
@@ -222,12 +223,12 @@ fun ReadingJournalScreen(
                                     }
                                 }
 
-                                JournalSectionCard("Clasificación") {
+                                JournalSectionCard(stringResource(R.string.journal_section_classification)) {
                                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        SmallClassificationItem("Romance", rRomance, Icons.Default.Favorite, ColorJournalRomance) { rRomance = it }
-                                        SmallClassificationItem("Alegre", rHappy, Icons.Default.Face, ColorJournalHappy) { rHappy = it }
-                                        SmallClassificationItem("Triste", rSad, Icons.Default.Opacity, ColorJournalSad) { rSad = it }
-                                        SmallClassificationItem("Spicy", rSpicy, Icons.Default.LocalFireDepartment, ColorJournalSpicy) { rSpicy = it }
+                                        SmallClassificationItem(stringResource(R.string.journal_rating_romance), rRomance, Icons.Default.Favorite, ColorJournalRomance) { rRomance = it }
+                                        SmallClassificationItem(stringResource(R.string.journal_rating_happy), rHappy, Icons.Default.Face, ColorJournalHappy) { rHappy = it }
+                                        SmallClassificationItem(stringResource(R.string.journal_rating_sad), rSad, Icons.Default.Opacity, ColorJournalSad) { rSad = it }
+                                        SmallClassificationItem(stringResource(R.string.journal_rating_spicy), rSpicy, Icons.Default.LocalFireDepartment, ColorJournalSpicy) { rSpicy = it }
                                     }
                                 }
 
@@ -264,7 +265,7 @@ fun ReadingJournalScreen(
                                                 )
                                             } else {
                                                 Text(
-                                                    text = "Género literario",
+                                                    text = stringResource(R.string.journal_genre_placeholder),
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = JournalDark,
@@ -293,30 +294,30 @@ fun ReadingJournalScreen(
                             // --- COLUMNA DERECHA ---
                             Column(Modifier.weight(0.65f), Arrangement.spacedBy(10.dp)) {
                                 Box(Modifier.fillMaxWidth().background(JournalMedium, RoundedCornerShape(2.dp)).padding(vertical = 8.dp), Alignment.Center) {
-                                    Text("Lectura terminada", fontFamily = GuardianCity, fontSize = 20.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.journal_header_finished), fontFamily = GuardianCity, fontSize = 20.sp, color = Color.White, fontWeight = FontWeight.Bold)
                                 }
-                                JournalInlineField("Título:", title) { title = it }
-                                JournalInlineField("Autor:", author) { author = it }
-                                JournalInlineField("No. pág/cap:", pages) { pages = it }
+                                JournalInlineField(stringResource(R.string.journal_field_title), title) { title = it }
+                                JournalInlineField(stringResource(R.string.journal_field_author), author) { author = it }
+                                JournalInlineField(stringResource(R.string.journal_field_pages), pages) { pages = it }
 
                                 Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
                                     JournalBox(Modifier.weight(1f)) {
                                         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text("Fecha inicio", fontSize = 10.sp, color = JournalDark, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(R.string.journal_field_start_date), fontSize = 10.sp, color = JournalDark, fontWeight = FontWeight.Bold)
                                             BasicTextField(value = startDate, onValueChange = { startDate = it }, textStyle = TextStyle(textAlign = TextAlign.Center, fontSize = 12.sp, fontFamily = CenturyGotic))
                                         }
                                     }
                                     JournalBox(Modifier.weight(1f)) {
                                         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text("Fecha fin", fontSize = 10.sp, color = JournalDark, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(R.string.journal_field_end_date), fontSize = 10.sp, color = JournalDark, fontWeight = FontWeight.Bold)
                                             BasicTextField(value = endDate, onValueChange = { endDate = it }, textStyle = TextStyle(textAlign = TextAlign.Center, fontSize = 12.sp, fontFamily = CenturyGotic))
                                         }
                                     }
                                 }
                                 FormatoLecturaCard(format) { format = it }
                                 Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                                    JournalLinedTextField("Personajes", characters, { characters = it }, Modifier.weight(1f), minLines = 5)
-                                    JournalLinedTextField("Apodos", nicknames, { nicknames = it }, Modifier.weight(1f), minLines = 5)
+                                    JournalLinedTextField(stringResource(R.string.journal_field_characters), characters, { characters = it }, Modifier.weight(1f), minLines = 5)
+                                    JournalLinedTextField(stringResource(R.string.journal_field_nicknames), nicknames, { nicknames = it }, Modifier.weight(1f), minLines = 5)
                                 }
                             }
                         }
@@ -324,7 +325,7 @@ fun ReadingJournalScreen(
 
                     item {
                         JournalLinedTextField(
-                            label = "Frases y momentos favoritos",
+                            label = stringResource(R.string.journal_field_moments),
                             value = moments,
                             onValueChange = { moments = it },
                             modifier = Modifier.fillMaxWidth(),
@@ -341,7 +342,7 @@ fun ReadingJournalScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                            else Text("Guardar en mi diario", fontWeight = FontWeight.Bold, color = Color.White, fontFamily = CenturyGotic)
+                            else Text(stringResource(R.string.journal_save_title), fontWeight = FontWeight.Bold, color = Color.White, fontFamily = CenturyGotic)
                         }
                     }
                 }
@@ -388,12 +389,13 @@ fun JournalSectionCard(t: String, c: @Composable () -> Unit) = Column(modifier =
 fun FormatoLecturaCard(selected: String, onSelect: (String) -> Unit) {
     JournalBox(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth()) {
-            Text("Formato de lectura", Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = JournalDark, fontSize = 11.sp, fontFamily = CenturyGotic)
+            Text(stringResource(R.string.journal_section_format), Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = JournalDark, fontSize = 11.sp, fontFamily = CenturyGotic)
             Spacer(Modifier.height(6.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                FormatOption("Físico", Icons.AutoMirrored.Filled.MenuBook, selected == "Físico") { onSelect("Físico") }
-                FormatOption("Digital", Icons.Default.TabletMac, selected == "Digital") { onSelect("Digital") }
-                FormatOption("Audio", Icons.Default.Headphones, selected == "Audio") { onSelect("Audio") }
+                // Mantenemos la lógica de backend ("Físico") pero la etiqueta es dinámica
+                FormatOption(stringResource(R.string.journal_format_physical), Icons.AutoMirrored.Filled.MenuBook, selected == "Físico") { onSelect("Físico") }
+                FormatOption(stringResource(R.string.journal_format_digital), Icons.Default.TabletMac, selected == "Digital") { onSelect("Digital") }
+                FormatOption(stringResource(R.string.journal_format_audio), Icons.Default.Headphones, selected == "Audio") { onSelect("Audio") }
             }
         }
     }
@@ -438,7 +440,7 @@ fun SearchBookDialog(onDismiss: () -> Unit, onBookSelected: (Book) -> Unit, sear
                 OutlinedTextField(
                     value = localQuery,
                     onValueChange = { localQuery = it; searchViewModel.onQueryChange(it) },
-                    label = { Text("Buscar libro...", fontFamily = CenturyGotic, fontSize = 12.sp) },
+                    label = { Text(stringResource(R.string.journal_search_hint), fontFamily = CenturyGotic, fontSize = 12.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     leadingIcon = { Icon(Icons.Default.Search, null, tint = JournalDark) },

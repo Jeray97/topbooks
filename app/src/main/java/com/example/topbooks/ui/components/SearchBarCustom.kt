@@ -30,7 +30,6 @@ import coil.request.ImageRequest
 import com.example.topbooks.R
 import com.example.topbooks.ui.search.SearchViewModel
 
-//TODO USAR TEXTO DE VALUES
 @Composable
 fun SearchBarCustom(
     onBookClick: (String) -> Unit,
@@ -61,7 +60,7 @@ fun SearchBarCustom(
                         active = true
                         viewModel.onQueryChange(it)
                     },
-                    placeholder = { Text(text = "Buscar libro...", color = iconGray) },
+                    placeholder = { Text(text = stringResource(R.string.search_hint), color = iconGray) },
                     modifier = Modifier.weight(1f).height(55.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
@@ -79,10 +78,10 @@ fun SearchBarCustom(
                                 viewModel.clearResults()
                                 active = false
                             }) {
-                                Icon(Icons.Default.Close, contentDescription = "Borrar", tint = iconGray)
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.desc_clear_icon), tint = iconGray)
                             }
                         } else {
-                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = iconGray)
+                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.desc_search_icon), tint = iconGray)
                         }
                     },
                     singleLine = true
@@ -146,7 +145,7 @@ fun SearchBarCustom(
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text(book.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(book.authors.firstOrNull() ?: "Desconocido", fontSize = 12.sp, color = Color.Gray, maxLines = 1)
+                                        Text(book.authors.firstOrNull() ?: stringResource(R.string.book_unknown_author), fontSize = 12.sp, color = Color.Gray, maxLines = 1)
                                     }
                                 }
                                 HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))

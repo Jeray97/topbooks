@@ -17,12 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.topbooks.R
 import com.example.topbooks.ui.profile.SimpleBook
 import com.example.topbooks.ui.theme.*
 
@@ -50,7 +52,7 @@ fun ProgressScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Mi Progreso",
+                text = stringResource(R.string.progress_title),
                 fontFamily = GuardianCity,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
@@ -71,7 +73,7 @@ fun ProgressScreen(
                 ) {
                     item {
                         ProgressSection(
-                            title = "Mis Diarios",
+                            title = stringResource(R.string.progress_section_journals),
                             books = state.journals,
                             onSeeAllClick = { onNavigateToList("journals") },
                             onBookClick = onJournalClick,
@@ -80,7 +82,7 @@ fun ProgressScreen(
                     }
                     item {
                         ProgressSection(
-                            title = "Mis Favoritos",
+                            title = stringResource(R.string.progress_section_favorites),
                             books = state.favorites,
                             onSeeAllClick = { onNavigateToList("favorites") },
                             onBookClick = onBookClick
@@ -88,7 +90,7 @@ fun ProgressScreen(
                     }
                     item {
                         ProgressSection(
-                            title = "Mis Pendientes",
+                            title = stringResource(R.string.progress_section_pending),
                             books = state.pending,
                             onSeeAllClick = { onNavigateToList("bookmarks") },
                             onBookClick = onBookClick
@@ -96,7 +98,7 @@ fun ProgressScreen(
                     }
                     item {
                         ProgressSection(
-                            title = "Mis Leídos",
+                            title = stringResource(R.string.progress_section_read),
                             books = state.read,
                             onSeeAllClick = { onNavigateToList("read") },
                             onBookClick = onBookClick
@@ -138,13 +140,13 @@ fun ProgressSection(
             // Si le pasamos la función onAddClick, dibuja el icono "+"
             if (onAddClick != null) {
                 IconButton(onClick = onAddClick, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Add, contentDescription = "Añadir", tint = ColorArcDarkBrown)
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.progress_desc_add), tint = ColorArcDarkBrown)
                 }
             }
 
             // Flecha para ver la lista completa
             IconButton(onClick = onSeeAllClick, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Ver todo", tint = ColorArcDarkBrown)
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(R.string.progress_desc_see_all), tint = ColorArcDarkBrown)
             }
         }
 
@@ -159,7 +161,7 @@ fun ProgressSection(
                     .background(Color.White.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No hay libros aquí aún.", color = Color.Gray, fontSize = 12.sp, fontFamily = CenturyGotic)
+                Text(stringResource(R.string.progress_empty_message), color = Color.Gray, fontSize = 12.sp, fontFamily = CenturyGotic)
             }
         } else {
             // Ponemos el padding aquí para que al hacer scroll horizontal los elementos no se corten bruscamente

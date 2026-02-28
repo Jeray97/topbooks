@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -69,7 +70,7 @@ fun FriendsScreen(
             .padding(16.dp)
     ) {
         Text(
-            text = "Encuentra amigos",
+            text = stringResource(R.string.friends_title),
             fontFamily = CenturyGotic,
             fontSize = 28.sp,
             color = ColorArcMediumBrown,
@@ -82,12 +83,12 @@ fun FriendsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            placeholder = { Text("Buscar amigos...", color = Color.Gray) },
+            placeholder = { Text(stringResource(R.string.friends_search_hint), color = Color.Gray) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
             trailingIcon = {
                 if (uiState.searchQuery.isNotEmpty()) {
                     IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
-                        Icon(Icons.Default.Close, contentDescription = "Borrar", tint = Color.Gray)
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.friends_action_clear), tint = Color.Gray)
                     }
                 }
             },
@@ -117,9 +118,9 @@ fun FriendsScreen(
                 // Mis amigos
                 val dummyMyFriends = emptyList<SocialUser>() // Ajuste temporal para que rederice
                 SocialSection(
-                    title = "Mis amigos",
+                    title = stringResource(R.string.friends_section_my_friends),
                     isEmpty = dummyMyFriends.isEmpty(),
-                    emptyMessage = "Aún no tienes amigos añadidos"
+                    emptyMessage = stringResource(R.string.friends_empty_my_friends)
                 ) {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -152,9 +153,9 @@ fun FriendsScreen(
 
                 // Con tus mismos gustos (Usamos suggestedUsers que sí existe en tu VM)
                 SocialSection(
-                    title = "Con tus mismos gustos",
+                    title = stringResource(R.string.friends_section_suggestions),
                     isEmpty = uiState.suggestedUsers.isEmpty(),
-                    emptyMessage = "No hay sugerencias por ahora"
+                    emptyMessage = stringResource(R.string.friends_empty_suggestions)
                 ) {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -188,9 +189,9 @@ fun FriendsScreen(
                 // Interacciones recientes
                 val dummyInteractions = emptyList<Interaction>() // Ajuste temporal
                 SocialSection(
-                    title = "Interacciones recientes",
+                    title = stringResource(R.string.friends_section_interactions),
                     isEmpty = dummyInteractions.isEmpty(),
-                    emptyMessage = "Añade amigos para ver su actividad"
+                    emptyMessage = stringResource(R.string.friends_empty_interactions)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         dummyInteractions.forEach { interaction ->
@@ -216,7 +217,7 @@ fun SearchResultsList(results: List<SocialUser>, isSearching: Boolean, onFriendA
         }
     } else if (results.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-            Text("No se encontraron usuarios", color = Color.Gray, modifier = Modifier.padding(top = 20.dp))
+            Text(stringResource(R.string.friends_search_empty), color = Color.Gray, modifier = Modifier.padding(top = 20.dp))
         }
     } else {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -238,7 +239,7 @@ fun SearchResultsList(results: List<SocialUser>, isSearching: Boolean, onFriendA
 }
 
 @Composable
-fun SocialSection(title: String, isEmpty: Boolean, emptyMessage: String = "Buscando usuarios...", content: @Composable () -> Unit) {
+fun SocialSection(title: String, isEmpty: Boolean, emptyMessage: String = stringResource(id = R.string.friends_section_loading_default), content: @Composable () -> Unit) {
     Surface(modifier = Modifier.fillMaxWidth(), color = ColorArcMediumBrown, shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = title, color = Color.White, fontSize = 20.sp, fontFamily = CenturyGotic, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
@@ -259,7 +260,7 @@ fun InteractionItem(interaction: Interaction, onClick: () -> Unit) {
             Spacer(modifier = Modifier.width(12.dp))
             val text = buildAnnotatedString {
                 withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)) { append(interaction.userName) }
-                append(" ${interaction.actionText} ")
+                append(stringResource(R.string.friends_interaction_format, interaction.actionText))
                 withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFFB9836B))) { append(interaction.bookTitle) }
             }
             Text(text = text, fontSize = 13.sp, color = Color.DarkGray, lineHeight = 16.sp)

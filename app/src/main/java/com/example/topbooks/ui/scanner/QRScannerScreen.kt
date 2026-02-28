@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,6 +31,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.topbooks.R
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -76,7 +78,7 @@ fun QRScannerScreen(
                     onClick = onBackClick,
                     modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.scanner_close_desc), tint = Color.White)
                 }
             }
 
@@ -101,7 +103,7 @@ fun QRScannerScreen(
             state.foundBook?.let { book ->
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissBookInfo() },
-                    title = { Text(text = "¡Libro Encontrado!", fontWeight = FontWeight.Bold) },
+                    title = { Text(text = stringResource(R.string.scanner_book_found_title), fontWeight = FontWeight.Bold) },
                     text = {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             AsyncImage(
@@ -109,7 +111,7 @@ fun QRScannerScreen(
                                     .data(book.imageUrl)
                                     .crossfade(true)
                                     .build(),
-                                contentDescription = "Portada",
+                                contentDescription = stringResource(R.string.scanner_book_cover_desc),
                                 modifier = Modifier.size(120.dp, 180.dp),
                                 contentScale = ContentScale.Crop
                             )
@@ -126,12 +128,12 @@ fun QRScannerScreen(
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = ColorArcDarkBrown)
                         ) {
-                            Text("Ver Detalles")
+                            Text(stringResource(R.string.scanner_action_view_details))
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { viewModel.dismissBookInfo() }) {
-                            Text("Seguir escaneando", color = ColorArcMediumBrown)
+                            Text(stringResource(R.string.scanner_action_keep_scanning), color = ColorArcMediumBrown)
                         }
                     }
                 )
@@ -141,14 +143,14 @@ fun QRScannerScreen(
             state.notFoundIsbn?.let { isbn ->
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissError() },
-                    title = { Text("Libro no encontrado") },
-                    text = { Text("No pudimos encontrar datos para el ISBN: $isbn") },
+                    title = { Text(stringResource(R.string.scanner_error_title)) },
+                    text = { Text(stringResource(R.string.scanner_error_body, isbn)) },
                     confirmButton = {
                         Button(
                             onClick = { viewModel.dismissError() },
                             colors = ButtonDefaults.buttonColors(containerColor = ColorArcDarkBrown)
                         ) {
-                            Text("Aceptar")
+                            Text(stringResource(R.string.scanner_action_accept))
                         }
                     }
                 )
@@ -173,10 +175,10 @@ fun QRScannerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Se requiere permiso de cámara para escanear.")
+                Text(stringResource(R.string.scanner_permission_rationale))
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = { cameraPermissionState.launchPermissionRequest() }) {
-                    Text("Solicitar Permiso")
+                    Text(stringResource(R.string.scanner_action_request_permission))
                 }
             }
         }
@@ -226,6 +228,7 @@ fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
                         imageAnalyzer
                     )
                 } catch (exc: Exception) {
+                    // Los logs de errores los mantenemos fijos para el desarrollador
                     Log.e("QRScanner", "Error al vincular cámara", exc)
                 }
             }, ContextCompat.getMainExecutor(ctx))

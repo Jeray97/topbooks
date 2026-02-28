@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -54,7 +55,7 @@ fun RegisterScreen(
         isLoading = uiState.isAuthenticating, // 🟢 Usamos el estado reactivo
         onRegisterClick = { name, email, pass ->
             viewModel.register(name, email, pass) {
-                Toast.makeText(context, "Registro exitoso. Por favor, revisa tu correo para verificar tu cuenta.", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, context.getString(R.string.register_toast_success), Toast.LENGTH_LONG).show()
                 onRegisterSuccess()
             }
         },
@@ -105,7 +106,7 @@ fun RegisterContent(
                 modifier = Modifier.padding(bottom = 8.dp)
             ) {
                 Text(
-                    text = "Crear una cuenta",
+                    text = stringResource(R.string.register_title),
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.Normal,
@@ -121,7 +122,7 @@ fun RegisterContent(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Nombre completo") },
+                label = { Text(stringResource(R.string.register_field_name)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -135,7 +136,7 @@ fun RegisterContent(
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Correo electrónico") },
+                label = { Text(stringResource(R.string.register_field_email)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -149,7 +150,7 @@ fun RegisterContent(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Contraseña") },
+                label = { Text(stringResource(R.string.register_field_password)) },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
@@ -164,7 +165,7 @@ fun RegisterContent(
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
-                label = { Text("Confirmar Contraseña") },
+                label = { Text(stringResource(R.string.register_field_confirm_password)) },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
@@ -178,11 +179,11 @@ fun RegisterContent(
             if (password.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                    Text("La contraseña debe contener:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                    PasswordReqItem(text = "Mínimo 6 caracteres", isMet = isLengthValid)
-                    PasswordReqItem(text = "Al menos 1 mayúscula", isMet = hasUpperCase)
-                    PasswordReqItem(text = "Al menos 1 número", isMet = hasNumber)
-                    PasswordReqItem(text = "Al menos 1 carácter especial", isMet = hasSpecialChar)
+                    Text(stringResource(R.string.register_pwd_req_title), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    PasswordReqItem(text = stringResource(R.string.register_pwd_req_length), isMet = isLengthValid)
+                    PasswordReqItem(text = stringResource(R.string.register_pwd_req_uppercase), isMet = hasUpperCase)
+                    PasswordReqItem(text = stringResource(R.string.register_pwd_req_number), isMet = hasNumber)
+                    PasswordReqItem(text = stringResource(R.string.register_pwd_req_special), isMet = hasSpecialChar)
                 }
             }
 
@@ -201,16 +202,16 @@ fun RegisterContent(
                     enabled = name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && password == confirmPassword && isPasswordValid,
                     colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)
                 ) {
-                    Text("Registrarse")
+                    Text(stringResource(R.string.register_btn_submit))
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("¿Ya tienes cuenta? ", color = Color.Black)
+                Text(stringResource(R.string.register_already_have_account), color = Color.Black)
                 Text(
-                    text = "Inicia sesión aquí",
+                    text = stringResource(R.string.register_login_here),
                     color = ColorArcDarkBrown,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable { onNavigateToLogin() }

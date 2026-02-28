@@ -149,14 +149,14 @@ fun EmptyFriendsMessage() {
             colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.5f))
         )
         Text(
-            text = "No se han encontrado amigos",
+            text = stringResource(id = R.string.home_friends_empty_title),
             color = Color.White.copy(alpha = 0.8f),
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = CenturyGotic
         )
         Text(
-            text = "Añade amigos para ver sus libros favoritos",
+            text = stringResource(id = R.string.home_friends_empty_desc),
             color = Color.White.copy(alpha = 0.6f),
             fontSize = 10.sp,
             fontFamily = CenturyGotic
@@ -185,12 +185,12 @@ fun BookListRow(
         is Resource.Loading -> BookPlaceholderRow()
         is Resource.Success -> {
             if (resource.data.isEmpty()) {
-                Text("No se encontraron libros.", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
+                Text(stringResource(id = R.string.home_books_empty), color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
             } else {
                 BookListRowContent(resource.data, onBookClick)
             }
         }
-        is Resource.Error -> Text("Error cargando", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
+        is Resource.Error -> Text(stringResource(id = R.string.home_books_error), color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
         else -> {}
     }
 }

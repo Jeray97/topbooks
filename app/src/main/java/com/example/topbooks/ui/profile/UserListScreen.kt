@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.topbooks.R
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
 import com.google.firebase.auth.FirebaseAuth
@@ -47,20 +49,19 @@ fun UserListScreen(
     val auth = FirebaseAuth.getInstance()
     val isMe = auth.currentUser?.uid == userId
 
-    // Modificado para usar la función actual 'loadList' de tu UserListViewModel
     LaunchedEffect(type, userId) {
         viewModel.loadList(type, userId)
     }
 
     val title = when(type) {
-        "friends" -> "Amigos"
-        "reviews" -> "Reseñas"
-        "read" -> "Leídos"
-        "journals" -> "Diarios"
-        "bookmarks" -> "Marcadores"
-        "comments" -> "Comentarios"
-        "favorites" -> "Favoritos" // Añadido para la nueva funcionalidad
-        else -> "Lista"
+        "friends" -> stringResource(R.string.userlist_title_friends)
+        "reviews" -> stringResource(R.string.userlist_title_reviews)
+        "read" -> stringResource(R.string.userlist_title_read)
+        "journals" -> stringResource(R.string.userlist_title_journals)
+        "bookmarks" -> stringResource(R.string.userlist_title_bookmarks)
+        "comments" -> stringResource(R.string.userlist_title_comments)
+        "favorites" -> stringResource(R.string.userlist_title_favorites)
+        else -> stringResource(R.string.userlist_title_default)
     }
 
     Scaffold(
@@ -86,7 +87,7 @@ fun UserListScreen(
                     when(type) {
                         "friends" -> items(state.friends) { FriendItem(it, onUserClick) }
                         "read" -> items(state.readBooks) { BookItem(it, onBookClick) }
-                        "favorites" -> items(state.favorites) { BookItem(it, onBookClick) } // Adaptado
+                        "favorites" -> items(state.favorites) { BookItem(it, onBookClick) }
                         "bookmarks" -> items(state.bookmarks) { BookmarkListItem(it, onBookClick, viewModel, isMe) }
                         "journals" -> items(state.reviews) { ReviewListItem(it, onJournalClick) }
                         "reviews" -> items(state.reviews) {
@@ -119,7 +120,7 @@ fun UserListScreen(
                     if (isEmpty) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(top = 40.dp), Alignment.Center) {
-                                Text("No hay elementos para mostrar.", color = Color.Gray)
+                                Text(stringResource(R.string.userlist_empty_message), color = Color.Gray)
                             }
                         }
                     }
@@ -138,12 +139,11 @@ fun BookmarkListItem(bookmark: BookmarkUI, onBookClick: (String) -> Unit, viewMo
             bookmark = bookmark,
             onDismiss = { showEditDialog = false },
             onSave = { updated ->
-                // 🔥 AQUÍ ESTÁ EL TODO RESUELTO
                 viewModel.updateBookmark(updated)
                 showEditDialog = false
             },
             onDelete = {
-                viewModel.removeBookmark(bookmark.bookId) // Actualizado a la función nueva
+                viewModel.removeBookmark(bookmark.bookId)
                 showEditDialog = false
             }
         )
@@ -175,8 +175,8 @@ fun BookmarkListItem(bookmark: BookmarkUI, onBookClick: (String) -> Unit, viewMo
                 Spacer(Modifier.height(8.dp))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    val chapText = if (bookmark.chapter.isNotBlank()) "Cap. ${bookmark.chapter}" else ""
-                    val pageText = if (bookmark.page.isNotBlank()) "Pág. ${bookmark.page}" else ""
+                    val chapText = if (bookmark.chapter.isNotBlank()) stringResource(R.string.userlist_bookmark_cap, bookmark.chapter) else ""
+                    val pageText = if (bookmark.page.isNotBlank()) stringResource(R.string.userlist_bookmark_pag, bookmark.page) else ""
                     val combined = listOf(chapText, pageText).filter { it.isNotBlank() }.joinToString(" • ")
 
                     Text(combined, color = ColorArcMediumBrown, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -199,24 +199,24 @@ fun EditBookmarkDialog(bookmark: BookmarkUI, onDismiss: () -> Unit, onSave: (Boo
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Editar Marcador", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+        title = { Text(stringResource(R.string.userlist_edit_bookmark_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(value = p, onValueChange = { if(it.all { char -> char.isDigit() }) p = it }, label = { Text("Pág *") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp))
-                    OutlinedTextField(value = c, onValueChange = { c = it }, label = { Text("Capítulo") }, modifier = Modifier.weight(2f), singleLine = true, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = p, onValueChange = { if(it.all { char -> char.isDigit() }) p = it }, label = { Text(stringResource(R.string.userlist_bookmark_page)) }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = c, onValueChange = { c = it }, label = { Text(stringResource(R.string.userlist_bookmark_chapter)) }, modifier = Modifier.weight(2f), singleLine = true, shape = RoundedCornerShape(12.dp))
                 }
-                OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text("Frase memorable *") }, modifier = Modifier.fillMaxWidth(), minLines = 3, shape = RoundedCornerShape(12.dp))
+                OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text(stringResource(R.string.userlist_bookmark_quote)) }, modifier = Modifier.fillMaxWidth(), minLines = 3, shape = RoundedCornerShape(12.dp))
                 DialogPrivacyToggleButton(isPublic = pub, onToggle = { pub = it })
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(bookmark.copy(page = p, chapter = c, quote = q, isPublic = pub)) }, enabled = p.isNotEmpty() && q.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown), shape = RoundedCornerShape(12.dp)) { Text("Guardar") }
+            Button(onClick = { onSave(bookmark.copy(page = p, chapter = c, quote = q, isPublic = pub)) }, enabled = p.isNotEmpty() && q.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.userlist_action_save)) }
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onDelete) { Text("Borrar", color = Color.Red.copy(0.7f)) }
-                TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
+                TextButton(onClick = onDelete) { Text(stringResource(R.string.userlist_action_delete), color = Color.Red.copy(0.7f)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.userlist_action_cancel), color = Color.Gray) }
             }
         },
         containerColor = Color.White, shape = RoundedCornerShape(24.dp)
@@ -232,10 +232,10 @@ fun DialogPrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
     Surface(modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp), color = ColorHeaderBeige.copy(0.5f), border = androidx.compose.foundation.BorderStroke(1.dp, ColorArcMediumBrown.copy(0.3f))) {
         Row {
             Box(Modifier.weight(1f).fillMaxHeight().clip(CircleShape).background(pubCol).clickable { onToggle(true) }, Alignment.Center) {
-                Row { Icon(Icons.Default.Call, null, tint = pubText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Público", color = pubText, fontWeight = FontWeight.Bold) }
+                Row { Icon(Icons.Default.Call, null, tint = pubText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.userlist_privacy_public), color = pubText, fontWeight = FontWeight.Bold) }
             }
             Box(Modifier.weight(1f).fillMaxHeight().clip(CircleShape).background(privCol).clickable { onToggle(false) }, Alignment.Center) {
-                Row { Icon(Icons.Default.Lock, null, tint = privText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Privado", color = privText, fontWeight = FontWeight.Bold) }
+                Row { Icon(Icons.Default.Lock, null, tint = privText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.userlist_privacy_private), color = privText, fontWeight = FontWeight.Bold) }
             }
         }
     }
@@ -290,17 +290,17 @@ fun ReviewListItem(
     if (showDeleteDialog && onDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Borrar reseña", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
-            text = { Text("¿Estás seguro de que quieres borrar esta reseña de forma permanente?") },
+            title = { Text(stringResource(R.string.userlist_delete_review_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+            text = { Text(stringResource(R.string.userlist_delete_review_body)) },
             confirmButton = {
                 Button(
                     onClick = { onDelete(); showDeleteDialog = false },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f)),
                     shape = RoundedCornerShape(12.dp)
-                ) { Text("Borrar") }
+                ) { Text(stringResource(R.string.userlist_action_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar", color = Color.Gray) }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.userlist_action_cancel), color = Color.Gray) }
             },
             containerColor = Color.White, shape = RoundedCornerShape(24.dp)
         )
@@ -321,7 +321,7 @@ fun ReviewListItem(
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = review.bookTitle.ifEmpty { "Libro: ${review.bookId}" },
+                    text = review.bookTitle.ifEmpty { stringResource(R.string.userlist_book_prefix, review.bookId) },
                     color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp,
                     modifier = Modifier.clickable { if(review.bookId.isNotEmpty()) onBookClick(review.bookId) }
                 )
@@ -338,7 +338,7 @@ fun ReviewListItem(
 
             if (isMe && onDelete != null) {
                 IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "Borrar", tint = Color.White.copy(alpha = 0.7f))
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.userlist_action_delete), tint = Color.White.copy(alpha = 0.7f))
                 }
             }
         }
@@ -357,17 +357,17 @@ fun CommentListItem(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Borrar comentario", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
-            text = { Text("¿Estás seguro de que quieres borrar este comentario? También desaparecerá de la comunidad.") },
+            title = { Text(stringResource(R.string.userlist_delete_comment_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+            text = { Text(stringResource(R.string.userlist_delete_comment_body)) },
             confirmButton = {
                 Button(
                     onClick = { onDelete(); showDeleteDialog = false },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f)),
                     shape = RoundedCornerShape(12.dp)
-                ) { Text("Borrar") }
+                ) { Text(stringResource(R.string.userlist_action_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar", color = Color.Gray) }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.userlist_action_cancel), color = Color.Gray) }
             },
             containerColor = Color.White, shape = RoundedCornerShape(24.dp)
         )
@@ -388,7 +388,7 @@ fun CommentListItem(
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = comment.bookTitle.ifEmpty { "Libro: ${comment.bookId}" },
+                    text = comment.bookTitle.ifEmpty { stringResource(R.string.userlist_book_prefix, comment.bookId) },
                     color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp
                 )
                 Spacer(Modifier.height(4.dp))
@@ -396,13 +396,13 @@ fun CommentListItem(
 
                 if (comment.replies.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    Text(text = "💬 ${comment.replies.size} respuestas", color = Color(0xFFFFD54F), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(text = stringResource(R.string.userlist_replies_count, comment.replies.size), color = Color(0xFFFFD54F), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
             if (isMe) {
                 IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "Borrar", tint = Color.White.copy(alpha = 0.7f))
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.userlist_action_delete), tint = Color.White.copy(alpha = 0.7f))
                 }
             }
         }

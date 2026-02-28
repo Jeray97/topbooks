@@ -25,6 +25,20 @@
     <string name="book_info">Información del libro</string>
 
     <!-- REGISTRO -->
+    <string name="register_toast_success">Registro exitoso. Por favor, revisa tu correo para verificar tu cuenta.</string>
+    <string name="register_title">Crear una cuenta</string>
+    <string name="register_field_name">Nombre completo</string>
+    <string name="register_field_email">Correo electrónico</string>
+    <string name="register_field_password">Contraseña</string>
+    <string name="register_field_confirm_password">Confirmar Contraseña</string>
+    <string name="register_pwd_req_title">La contraseña debe contener:</string>
+    <string name="register_pwd_req_length">Mínimo 6 caracteres</string>
+    <string name="register_pwd_req_uppercase">Al menos 1 mayúscula</string>
+    <string name="register_pwd_req_number">Al menos 1 número</string>
+    <string name="register_pwd_req_special">Al menos 1 carácter especial</string>
+    <string name="register_btn_submit">Registrarse</string>
+    <string name="register_already_have_account">¿Ya tienes cuenta? </string>
+    <string name="register_login_here">Inicia sesión aquí</string>
 
     <!-- LOGIN -->
     <string name="error_auth_invalid_credential">El correo o la contraseña son incorrectos.</string>
@@ -39,7 +53,23 @@
     <string name="error_auth_generic">Ha ocurrido un error de autenticación. Inténtalo de nuevo.</string>
     <string name="error_network_generic">Error de conexión. Revisa tu internet e inténtalo de nuevo.</string>
 
+    <string name="login_error_google">Error en Google: %1$s</string>
+    <string name="login_reset_title">Recuperar contraseña</string>
+    <string name="login_reset_desc">Introduce tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.</string>
+    <string name="login_field_email">Correo electrónico</string>
+    <string name="login_action_send_link">Enviar enlace</string>
+    <string name="login_action_cancel">Cancelar</string>
+    <string name="login_welcome_prefix">Bienvenido a</string>
+    <string name="login_field_password">Contraseña</string>
+    <string name="login_forgot_password">¿Has olvidado tu contraseña?</string>
+    <string name="login_btn_submit">Iniciar Sesión</string>
+    <string name="login_google_desc">Logo Google</string>
+    <string name="login_btn_google">Continuar con Google</string>
+    <string name="login_no_account">¿No tienes cuenta? </string>
+    <string name="login_register_here">Regístrate aquí</string>
+
     <!-- CATEGORIAS -->
+    <string name="categories_title">Categorías</string>
     <string name="cat_romance_text">Romance</string>
     <string name="cat_aventura_text">Aventura</string>
     <string name="cat_bibliografia_text">Bibliografía</string>
@@ -57,5 +87,265 @@
     <string name="cat_poesia_text">Poesia</string>
     <string name="cat_religion_text">Religión</string>
     <string name="cat_arte_text">Arte</string>
+
+
+    <!-- CONFIGURACIÓN -->
+    <string name="conf_title">Configuración</string>
+    <string name="conf_use_and_appearance">Apariencia y Uso</string>
+    <string name="conf_dark_mode">Modo Oscuro</string>
+    <string name="conf_dark_mode_desc">Cambia el tema visual de la aplicación</string>
+    <string name="conf_notifications">Notificaciones</string>
+    <string name="conf_notifications_desc">Recibe avisos de likes y comentarios</string>
+    <string name="conf_privacy">Privacidad</string>
+    <string name="conf_journalmode">Diarios públicos por defecto</string>
+    <string name="conf_journalmode_desc">Tus nuevas lecturas serán visibles para todos</string>
+    <string name="conf_account">Cuenta</string>
+    <string name="conf_change_password">Cambiar Contraseña</string>
+    <string name="conf_change_password_desc">Te enviaremos un correo para restablecerla</string>
+    <string name="conf_logout">Cerrar Sesión</string>
+    <string name="conf_logout_desc">Desconecta tu cuenta de este dispositivo</string>
+    <string name="conf_information">Información</string>
+    <string name="conf_privacy_policy">Política de Privacidad</string>
+    <string name="conf_privacy_policy_desc">Conoce cómo tratamos tus datos</string>
+    <string name="conf_privacy_policy_onClick">Abrir enlace…</string>
+    <string name="conf_topbooks_version">TopBooks v1.0.0</string>
+    <string name="conf_danger_zone">Zona de Peligro</string>
+    <string name="conf_delete_account">Eliminar Cuenta</string>
+    <string name="conf_delete_account_desc">Borra permanentemente tus datos de TopBooks</string>
+    <string name="conf_delete_account_dialog_title">¿Eliminar cuenta?</string>
+    <string name="conf_delete_account_dialog_body">Esta acción no se puede deshacer. Se perderán todos tus diarios, listas y comentarios. ¿Estás seguro?</string>
+    <string name="conf_delete_account_dialog_yes">Sí, eliminar</string>
+    <string name="conf_delete_account_dialog_no">Cancelar</string>
+
+    <!-- PERFIL -->
+    <string name="profile_anonymous_reader">Lector Anónimo</string>
+    <string name="profile_no_bio_yet">Sin biografía aún.</string>
+    <string name="profile_remove_friend">Eliminar amigo</string>
+    <string name="profile_add_friend">Añadir a amigos</string>
+    <string name="profile_stat_friends">Amigos</string>
+    <string name="profile_stat_reviews">Reseñas</string>
+    <string name="profile_stat_read">Leídos</string>
+    <string name="profile_favorite_books">Libros Favoritos</string>
+    <string name="profile_view_all">Ver todos</string>
+    <string name="profile_favorite_genres">Géneros Favoritos</string>
+    <string name="profile_no_genres_selected">No hay géneros seleccionados.</string>
+    <string name="profile_my_journals">Mis diarios</string>
+    <string name="profile_their_journals">Sus diarios</string>
+    <string name="profile_my_bookmarks">Mis marcadores</string>
+    <string name="profile_their_bookmarks">Sus marcadores</string>
+    <string name="profile_my_reviews">Mis reseñas</string>
+    <string name="profile_their_reviews">Sus reseñas</string>
+    <string name="profile_my_comments">Mis comentarios</string>
+    <string name="profile_their_comments">Sus comentarios</string>
+    <string name="profile_choose_avatar">Elige tu avatar</string>
+    <string name="profile_edit_profile_title">Editar Perfil</string>
+    <string name="profile_edit_name_label">Nombre</string>
+    <string name="profile_edit_bio_label">Bio</string>
+    <string name="profile_edit_save_button">Guardar</string>
+
+    <!-- USERLIST -->
+    <string name="userlist_title_friends">Amigos</string>
+    <string name="userlist_title_reviews">Reseñas</string>
+    <string name="userlist_title_read">Leídos</string>
+    <string name="userlist_title_journals">Diarios</string>
+    <string name="userlist_title_bookmarks">Marcadores</string>
+    <string name="userlist_title_comments">Comentarios</string>
+    <string name="userlist_title_favorites">Favoritos</string>
+    <string name="userlist_title_default">Lista</string>
+    <string name="userlist_empty_message">No hay elementos para mostrar.</string>
+    <string name="userlist_edit_bookmark_title">Editar Marcador</string>
+    <string name="userlist_bookmark_page">Pág *</string>
+    <string name="userlist_bookmark_chapter">Capítulo</string>
+    <string name="userlist_bookmark_quote">Frase memorable *</string>
+    <string name="userlist_bookmark_cap">Cap. %1$s</string>
+    <string name="userlist_bookmark_pag">Pág. %1$s</string>
+    <string name="userlist_action_save">Guardar</string>
+    <string name="userlist_action_delete">Borrar</string>
+    <string name="userlist_action_cancel">Cancelar</string>
+    <string name="userlist_privacy_public">Público</string>
+    <string name="userlist_privacy_private">Privado</string>
+    <string name="userlist_delete_review_title">Borrar reseña</string>
+    <string name="userlist_delete_review_body">¿Estás seguro de que quieres borrar esta reseña de forma permanente?</string>
+    <string name="userlist_delete_comment_title">Borrar comentario</string>
+    <string name="userlist_delete_comment_body">¿Estás seguro de que quieres borrar este comentario? También desaparecerá de la comunidad.</string>
+    <string name="userlist_book_prefix">Libro: %1$s</string>
+    <string name="userlist_replies_count">💬 %1$d respuestas</string>
+
+    <!-- Colección -->
+    <string name="progress_title">Mi Progreso</string>
+    <string name="progress_section_journals">Mis Diarios</string>
+    <string name="progress_section_favorites">Mis Favoritos</string>
+    <string name="progress_section_pending">Mis Pendientes</string>
+    <string name="progress_section_read">Mis Leídos</string>
+    <string name="progress_desc_add">Añadir</string>
+    <string name="progress_desc_see_all">Ver todo</string>
+    <string name="progress_empty_message">No hay libros aquí aún.</string>
+
+    <!-- Reviews -->
+    <string name="reviews_title_thread">Hilo de conversación</string>
+    <string name="reviews_title_community">Actividad de la Comunidad</string>
+    <string name="reviews_badge_highlighted">Destacado</string>
+    <string name="reviews_subtitle_with_chapter">sobre %1$s • Cap. %2$s</string>
+    <string name="reviews_subtitle_book_only">sobre %1$s</string>
+    <string name="reviews_button_reply">Responder</string>
+    <string name="reviews_toast_verify_email">Verifica tu correo electrónico para responder.</string>
+    <string name="reviews_dialog_title">Añadir respuesta</string>
+    <string name="reviews_dialog_placeholder">Escribe algo amable…</string>
+    <string name="reviews_dialog_publish">Publicar</string>
+    <string name="reviews_dialog_cancel">Cancelar</string>
+
+    <!-- QR -->
+    <string name="scanner_close_desc">Cerrar</string>
+    <string name="scanner_book_found_title">¡Libro Encontrado!</string>
+    <string name="scanner_book_cover_desc">Portada</string>
+    <string name="scanner_action_view_details">Ver Detalles</string>
+    <string name="scanner_action_keep_scanning">Seguir escaneando</string>
+    <string name="scanner_error_title">Libro no encontrado</string>
+    <string name="scanner_error_body">No pudimos encontrar datos para el ISBN: %1$s</string>
+    <string name="scanner_action_accept">Aceptar</string>
+    <string name="scanner_permission_rationale">Se requiere permiso de cámara para escanear.</string>
+    <string name="scanner_action_request_permission">Solicitar Permiso</string>
+
+    <!-- TUTORIAL -->
+    <string name="tutorial_btn_back">Atrás</string>
+    <string name="tutorial_btn_next">Siguiente</string>
+    <string name="tutorial_btn_start">Comenzar</string>
+    <string name="tutorial_welcome_title">¡Bienvenido a TopBooks!</string>
+    <string name="tutorial_welcome_subtitle">Configura tus preferencias para recibir recomendaciones personalizadas.</string>
+    <string name="tutorial_genres_title">¿Qué te gusta leer?</string>
+    <string name="tutorial_genres_subtitle">Elige uno o más géneros</string>
+    <string name="tutorial_books_title">Recomendaciones iniciales</string>
+    <string name="tutorial_books_subtitle">Marca los que te interesen</string>
+    <string name="tutorial_books_empty">No hay sugerencias disponibles</string>
+
+    <!-- HOME -->
+    <string name="home_friends_empty_title">No se han encontrado amigos</string>
+    <string name="home_friends_empty_desc">Añade amigos para ver sus libros favoritos</string>
+    <string name="home_books_empty">No se encontraron libros.</string>
+    <string name="home_books_error">Error cargando</string>
+
+    <!-- RECOMENDADOS -->
+    <string name="recommended_title">Recomendados</string>
+    <string name="recommended_default_genre">Ficción</string>
+    <string name="recommended_section_popular">Populares (Nuevos)</string>
+    <string name="recommended_section_tastes">Según tus gustos (%1$s)</string>
+    <string name="recommended_section_friends">Favoritos de tus amigos</string>
+    <string name="recommended_friends_empty">Tus amigos aún no tienen favoritos</string>
+    <string name="recommended_empty_default">No hay libros disponibles</string>
+    <string name="recommended_error_loading">No se pudo cargar</string>
+
+    <string name="recommended_section_title_popular">Populares y Nuevos</string>
+    <string name="recommended_section_title_tastes">Para ti: %1$s</string>
+    <string name="recommended_section_title_friends">Actividad de Amigos</string>
+    <string name="recommended_section_title_default">Libros</string>
+    <string name="recommended_section_error">Error al cargar contenido.</string>
+    <string name="recommended_section_empty">No se encontraron libros.</string>
+
+    <!-- AMIGOS -->
+    <string name="friends_activity_title">Favoritos de tus amigos</string>
+    <string name="friends_activity_commented">%1$s comentó:</string>
+    <string name="friends_activity_empty_title">Aún no hay actividad</string>
+    <string name="friends_activity_empty_desc">Sigue a más amigos para ver sus favoritos.</string>
+
+    <string name="friends_title">Encuentra amigos</string>
+    <string name="friends_search_hint">Buscar amigos...</string>
+    <string name="friends_action_clear">Borrar</string>
+    <string name="friends_section_my_friends">Mis amigos</string>
+    <string name="friends_empty_my_friends">Aún no tienes amigos añadidos</string>
+    <string name="friends_section_suggestions">Con tus mismos gustos</string>
+    <string name="friends_empty_suggestions">No hay sugerencias por ahora</string>
+    <string name="friends_section_interactions">Interacciones recientes</string>
+    <string name="friends_empty_interactions">Añade amigos para ver su actividad</string>
+    <string name="friends_search_empty">No se encontraron usuarios</string>
+    <string name="friends_section_loading_default">Buscando usuarios...</string>
+    <string name="friends_interaction_format"> %1$s </string>
+
+    <!-- SOCIAL -->
+    <string name="social_activity_title">Actividad Reciente</string>
+    <string name="social_action_review">escribió una reseña</string>
+    <string name="social_action_favorite">guardó en favoritos</string>
+    <string name="social_action_comment">comentó en</string>
+    <string name="social_action_reply">respondió a %1$s</string>
+    <string name="social_action_format">%1$s %2$s</string>
+    <string name="social_default_user">Usuario</string>
+    <string name="social_empty_title">Todo está muy tranquilo...</string>
+    <string name="social_empty_desc">Tus amigos aún no han realizado actividades.</string>
+
+    <!-- DETALLE DE LIBRO -->
+    <string name="bookdetail_fab_journal">Diario de lectura</string>
+    <string name="bookdetail_fab_bookmark">Añadir marcador</string>
+    <string name="bookdetail_fab_review">Escribir reseña</string>
+    <string name="bookdetail_toast_verify_review">Verifica tu correo electrónico para poder opinar.</string>
+    <string name="bookdetail_fab_comment">Escribir comentario</string>
+    <string name="bookdetail_toast_verify_comment">Verifica tu correo electrónico para participar en la charla.</string>
+    <string name="bookdetail_fab_see_reviews">Ver opiniones</string>
+
+    <string name="bookdetail_status_favorites">Favoritos</string>
+    <string name="bookdetail_status_read">Leídos</string>
+    <string name="bookdetail_status_pending">Pendientes</string>
+
+    <string name="bookdetail_synopsis_title">Sinopsis</string>
+    <string name="bookdetail_synopsis_empty">No hay descripción disponible.</string>
+    <string name="bookdetail_reviews_title">Opiniones de la comunidad</string>
+    <string name="bookdetail_reviews_empty">Nadie ha opinado todavía.</string>
+
+    <string name="bookdetail_review_dialog_title">Escribe tu opinión</string>
+    <string name="bookdetail_review_label">Tu reseña</string>
+    <string name="bookdetail_action_publish">Publicar</string>
+    <string name="bookdetail_action_cancel">Cancelar</string>
+
+    <string name="bookdetail_bookmark_dialog_title">Añadir Marcador</string>
+    <string name="bookdetail_bookmark_page">Pág *</string>
+    <string name="bookdetail_bookmark_chapter">Capítulo</string>
+    <string name="bookdetail_bookmark_quote">Frase memorable *</string>
+    <string name="bookdetail_action_save">Guardar</string>
+
+    <string name="bookdetail_delete_dialog_title">¿Quitar libro?</string>
+    <string name="bookdetail_delete_dialog_body">Se eliminará de tu lista \'%1$s\'.</string>
+    <string name="bookdetail_action_delete">Eliminar</string>
+    <string name="bookdetail_action_keep">Mantener</string>
+
+    <string name="bookdetail_privacy_public">Público</string>
+    <string name="bookdetail_privacy_private">Privado</string>
+
+    <string name="bookdetail_comment_dialog_title">Unirse a la charla</string>
+    <string name="bookdetail_comment_dialog_desc">Comparte tus pensamientos. Puedes indicar en qué capítulo vas para dar contexto a los demás.</string>
+    <string name="bookdetail_comment_chapter_optional">Capítulo (Opcional)</string>
+    <string name="bookdetail_comment_label">Tu comentario *</string>
+
+    <!-- DIARIO DE LECTURA -->
+    <string name="journal_genre_other">Otro</string>
+    <string name="journal_save_title">Guardar en mi diario</string>
+    <string name="journal_save_desc">¿Quieres que esta entrada sea visible en tu perfil para tus amigos?</string>
+    <string name="journal_publish_profile">Publicar en mi perfil</string>
+    <string name="journal_action_confirm">Confirmar</string>
+    <string name="journal_action_cancel">Cancelar</string>
+    <string name="journal_section_classification">Clasificación</string>
+    <string name="journal_rating_romance">Romance</string>
+    <string name="journal_rating_happy">Alegre</string>
+    <string name="journal_rating_sad">Triste</string>
+    <string name="journal_rating_spicy">Spicy</string>
+    <string name="journal_genre_placeholder">Género literario</string>
+    <string name="journal_header_finished">Lectura terminada</string>
+    <string name="journal_field_title">Título:</string>
+    <string name="journal_field_author">Autor:</string>
+    <string name="journal_field_pages">No. pág/cap:</string>
+    <string name="journal_field_start_date">Fecha inicio</string>
+    <string name="journal_field_end_date">Fecha fin</string>
+    <string name="journal_section_format">Formato de lectura</string>
+    <string name="journal_format_physical">Físico</string>
+    <string name="journal_format_digital">Digital</string>
+    <string name="journal_format_audio">Audio</string>
+    <string name="journal_field_characters">Personajes</string>
+    <string name="journal_field_nicknames">Apodos</string>
+    <string name="journal_field_moments">Frases y momentos favoritos</string>
+    <string name="journal_search_hint">Buscar libro…</string>
+
+    <!-- TOPBAR -->
+    <string name="desc_clear_icon">Borrar</string>
+    <string name="desc_back_icon">Volver</string>
+    <string name="book_unknown_author">Desconocido</string>
+
+
 
 </resources>

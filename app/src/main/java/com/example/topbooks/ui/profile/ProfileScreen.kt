@@ -140,7 +140,13 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable(enabled = state.isMe) { showEditProfileDialog = true }
                 ) {
-                    Text(text = user.displayName.ifEmpty { "Lector Anónimo" }, fontFamily = GuardianCity, fontSize = 28.sp, color = ColorTituloTopBooks, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = user.displayName.ifEmpty { stringResource(R.string.profile_anonymous_reader) },
+                        fontFamily = GuardianCity,
+                        fontSize = 28.sp,
+                        color = ColorTituloTopBooks,
+                        fontWeight = FontWeight.Bold
+                    )
                     if (state.isMe) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(Icons.Default.Edit, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
@@ -151,7 +157,7 @@ fun ProfileScreen(
 
                 // BIO
                 Text(
-                    text = user.bio.ifEmpty { "Sin biografía aún." },
+                    text = user.bio.ifEmpty { stringResource(R.string.profile_no_bio_yet) },
                     fontFamily = GuardianCity, fontSize = 14.sp, color = Color.Gray, fontStyle = FontStyle.Italic, textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp).clickable(enabled = state.isMe) { showEditProfileDialog = true }
                 )
@@ -174,7 +180,7 @@ fun ProfileScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (state.isFriend) "Eliminar amigo" else "Añadir a amigos",
+                            text = if (state.isFriend) stringResource(R.string.profile_remove_friend) else stringResource(R.string.profile_add_friend),
                             fontFamily = GuardianCity,
                             fontWeight = FontWeight.Bold,
                             color = if (state.isFriend) Color.Gray else ColorArcMediumBrown
@@ -186,9 +192,9 @@ fun ProfileScreen(
 
                 // ESTADÍSTICAS
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    StatBox("Amigos", user.friendsCount.toString()) { onNavigateToList("friends", user.uid) }
-                    StatBox("Reseñas", user.reviewsCount.toString()) { onNavigateToList("reviews", user.uid) }
-                    StatBox("Leídos", user.booksCompleted.toString()) { onNavigateToList("read", user.uid) }
+                    StatBox(stringResource(R.string.profile_stat_friends), user.friendsCount.toString()) { onNavigateToList("friends", user.uid) }
+                    StatBox(stringResource(R.string.profile_stat_reviews), user.reviewsCount.toString()) { onNavigateToList("reviews", user.uid) }
+                    StatBox(stringResource(R.string.profile_stat_read), user.booksCompleted.toString()) { onNavigateToList("read", user.uid) }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -201,9 +207,9 @@ fun ProfileScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Libros Favoritos", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
+                            Text(stringResource(R.string.profile_favorite_books), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
                             if (state.favoriteIds.size > 5) {
-                                Text("Ver todos", color = ColorArcMediumBrown, fontSize = 12.sp, modifier = Modifier.clickable { onNavigateToList("favorites", user.uid) })
+                                Text(stringResource(R.string.profile_view_all), color = ColorArcMediumBrown, fontSize = 12.sp, modifier = Modifier.clickable { onNavigateToList("favorites", user.uid) })
                             }
                         }
                         Spacer(modifier = Modifier.height(16.dp))
@@ -260,10 +266,10 @@ fun StatBox(label: String, value: String, onClick: () -> Unit) {
 fun ProfileGenresSection(genres: List<String>) {
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.5f)), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Géneros Favoritos", fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontSize = 16.sp)
+            Text(stringResource(R.string.profile_favorite_genres), fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontSize = 16.sp)
             Spacer(modifier = Modifier.height(16.dp))
             if (genres.isEmpty()) {
-                Text("No hay géneros seleccionados.", fontSize = 12.sp, color = Color.Gray)
+                Text(stringResource(R.string.profile_no_genres_selected), fontSize = 12.sp, color = Color.Gray)
             } else {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     items(genres) { ProfileGenreItem(it) }
@@ -275,7 +281,6 @@ fun ProfileGenresSection(genres: List<String>) {
 
 @Composable
 fun ProfileGenreItem(genreCode: String) {
-    // 1. Usamos el proveedor centralizado
     val categoryData = CategoryProvider.getCategoryResources(genreCode)
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(60.dp)) {
@@ -296,7 +301,6 @@ fun ProfileGenreItem(genreCode: String) {
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            // 2. Le pasamos los datos
             text = if (categoryData.nameRes != null) stringResource(id = categoryData.nameRes)
             else CategoryProvider.formatFallbackName(genreCode),
             fontSize = 11.sp,
@@ -314,13 +318,13 @@ fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardItem(
-                title = if(state.isMe) "Mis diarios" else "Sus diarios",
+                title = if(state.isMe) stringResource(R.string.profile_my_journals) else stringResource(R.string.profile_their_journals),
                 onClick = { onNavigateToList("journals", userId) }
             ) {
                 Icon(Icons.Default.Book, null, tint = Color(0xFF9575CD), modifier = Modifier.size(32.dp))
             }
             DashboardItem(
-                title = if(state.isMe) "Mis marcadores" else "Sus marcadores",
+                title = if(state.isMe) stringResource(R.string.profile_my_bookmarks) else stringResource(R.string.profile_their_bookmarks),
                 onClick = { onNavigateToList("bookmarks", userId) }
             ) {
                 Icon(Icons.Default.Bookmark, null, tint = Color(0xFFFFD54F), modifier = Modifier.size(32.dp))
@@ -328,13 +332,13 @@ fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardItem(
-                title = if(state.isMe) "Mis reseñas" else "Sus reseñas",
+                title = if(state.isMe) stringResource(R.string.profile_my_reviews) else stringResource(R.string.profile_their_reviews),
                 onClick = { onNavigateToList("reviews", userId) }
             ) {
                 Row { repeat(3) { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD54F), modifier = Modifier.size(24.dp)) } }
             }
             DashboardItem(
-                title = if(state.isMe) "Mis comentarios" else "Sus comentarios",
+                title = if(state.isMe) stringResource(R.string.profile_my_comments) else stringResource(R.string.profile_their_comments),
                 onClick = { onNavigateToList("comments", userId) }
             ) {
                 Icon(Icons.AutoMirrored.Filled.Comment, null, tint = Color(0xFF9575CD), modifier = Modifier.size(32.dp))
@@ -360,7 +364,7 @@ fun DashboardItem(title: String, onClick: () -> Unit, content: @Composable () ->
 
 @Composable
 fun AvatarSelectionDialog(currentAvatar: String, onDismiss: () -> Unit, onSelect: (String) -> Unit) {
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Elige tu avatar") },
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.profile_choose_avatar)) },
         text = {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
@@ -381,15 +385,14 @@ fun AvatarSelectionDialog(currentAvatar: String, onDismiss: () -> Unit, onSelect
 fun EditProfileDialog(currentName: String, currentBio: String, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
     var n by remember { mutableStateOf(currentName) }
     var b by remember { mutableStateOf(currentBio) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Editar Perfil") },
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.profile_edit_profile_title)) },
         text = {
             Column {
-                OutlinedTextField(value = n, onValueChange = { n = it }, label = { Text("Nombre") })
+                OutlinedTextField(value = n, onValueChange = { n = it }, label = { Text(stringResource(R.string.profile_edit_name_label)) })
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = b, onValueChange = { b = it }, label = { Text("Bio") })
+                OutlinedTextField(value = b, onValueChange = { b = it }, label = { Text(stringResource(R.string.profile_edit_bio_label)) })
             }
         },
-        confirmButton = { Button(onClick = { onSave(n, b); onDismiss() }) { Text("Guardar") } }
+        confirmButton = { Button(onClick = { onSave(n, b); onDismiss() }) { Text(stringResource(R.string.profile_edit_save_button)) } }
     )
 }
-

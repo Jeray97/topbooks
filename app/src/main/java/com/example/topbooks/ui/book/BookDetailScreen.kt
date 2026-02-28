@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.topbooks.R
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.model.Review
 import com.example.topbooks.ui.components.TopBar
@@ -107,38 +109,38 @@ fun BookDetailScreen(
             if (state.book != null) {
                 Column(horizontalAlignment = Alignment.End) {
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                        SmallFabItem(Icons.Default.Call, "Diario de lectura") {
+                        SmallFabItem(Icons.Default.Call, stringResource(R.string.bookdetail_fab_journal)) {
                             isFabExpanded = false
                             onNavigateToJournal(state.book!!.id, state.book!!.title, state.book!!.authors.joinToString(", "), state.book!!.imageUrl, state.book!!.pageCount.toString())
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Call, "Añadir marcador") { isFabExpanded = false; showBookmarkDialog = true } }
+                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Call, stringResource(R.string.bookdetail_fab_bookmark)) { isFabExpanded = false; showBookmarkDialog = true } }
                     Spacer(Modifier.height(8.dp))
 
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                        SmallFabItem(Icons.Default.Edit, "Escribir reseña") {
+                        SmallFabItem(Icons.Default.Edit, stringResource(R.string.bookdetail_fab_review)) {
                             isFabExpanded = false
                             viewModel.checkEmailVerification { isVerified ->
                                 if (isVerified) showReviewDialog = true
-                                else Toast.makeText(context, "Verifica tu correo electrónico para poder opinar.", Toast.LENGTH_LONG).show()
+                                else Toast.makeText(context, context.getString(R.string.bookdetail_toast_verify_review), Toast.LENGTH_LONG).show()
                             }
                         }
                     }
                     Spacer(Modifier.height(8.dp))
 
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                        SmallFabItem(Icons.Default.Send, "Escribir comentario") {
+                        SmallFabItem(Icons.Default.Send, stringResource(R.string.bookdetail_fab_comment)) {
                             isFabExpanded = false
                             viewModel.checkEmailVerification { isVerified ->
                                 if (isVerified) showCommentDialog = true
-                                else Toast.makeText(context, "Verifica tu correo electrónico para participar en la charla.", Toast.LENGTH_LONG).show()
+                                else Toast.makeText(context, context.getString(R.string.bookdetail_toast_verify_comment), Toast.LENGTH_LONG).show()
                             }
                         }
                     }
                     Spacer(Modifier.height(8.dp))
 
-                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Search, "Ver opiniones") { isFabExpanded = false; coroutineScope.launch { listState.animateScrollToItem(2) } } }
+                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Search, stringResource(R.string.bookdetail_fab_see_reviews)) { isFabExpanded = false; coroutineScope.launch { listState.animateScrollToItem(2) } } }
                     Spacer(Modifier.height(16.dp))
                     val rotation by animateFloatAsState(if (isFabExpanded) 45f else 0f)
                     FloatingActionButton(onClick = { isFabExpanded = !isFabExpanded }, containerColor = ColorArcMediumBrown, contentColor = Color.White, shape = CircleShape) { Icon(Icons.Default.Add, null, modifier = Modifier.rotate(rotation)) }
@@ -155,20 +157,20 @@ fun BookDetailScreen(
                         BookHeaderSection(
                             book = book,
                             savedInList = state.savedInList,
-                            isFavorite = state.isFavorite, // 🔥 Lee directamente del estado del ViewModel
+                            isFavorite = state.isFavorite, // Lee directamente del estado del ViewModel
                             onFavoriteClick = {
-                                viewModel.toggleFavorite(book) // 🔥 Llama a la función del ViewModel
+                                viewModel.toggleFavorite(book) // Llama a la función del ViewModel
                             },
                             onListAction = {
-                                // Pendientes y Leídos siguen siendo excluyentes
+                                // Pendientes y Leídos siguen siendo excluyentes. Los textos de la lógica no se traducen.
                                 if (state.savedInList == it) showDeleteDialog = true
                                 else viewModel.addToList(book, it)
                             }
                         )
                     }
                     item { SynopsisSection(book.description) }
-                    item { Text("Opiniones de la comunidad", fontFamily = CenturyGotic, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks, modifier = Modifier.padding(24.dp, 16.dp)) }
-                    if (state.reviews.isEmpty()) item { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text("Nadie ha opinado todavía.", color = Color.Gray) } }
+                    item { Text(stringResource(R.string.bookdetail_reviews_title), fontFamily = CenturyGotic, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks, modifier = Modifier.padding(24.dp, 16.dp)) }
+                    if (state.reviews.isEmpty()) item { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text(stringResource(R.string.bookdetail_reviews_empty), color = Color.Gray) } }
                     else items(state.reviews) { ReviewItem(it) }
                 }
             }
@@ -195,12 +197,12 @@ fun BookHeaderSection(
         Text(book.authors.joinToString(", "), fontSize = 16.sp, fontFamily = CenturyGotic, color = ColorArcDarkBrown, modifier = Modifier.padding(top = 8.dp))
         Spacer(modifier = Modifier.height(24.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            // 🔥 FAVORITOS INDEPENDIENTE
-            StatusButton(label = "Favoritos", isActive = isFavorite, activeIcon = Icons.Default.Favorite, inactiveIcon = Icons.Default.FavoriteBorder, onClick = onFavoriteClick)
+            // FAVORITOS INDEPENDIENTE
+            StatusButton(label = stringResource(R.string.bookdetail_status_favorites), isActive = isFavorite, activeIcon = Icons.Default.Favorite, inactiveIcon = Icons.Default.FavoriteBorder, onClick = onFavoriteClick)
 
-            // 🔥 LEÍDOS Y PENDIENTES EXCLUYENTES
-            StatusButton(label = "Leídos", isActive = savedInList == "Leídos", activeIcon = Icons.Default.CheckCircle, inactiveIcon = Icons.Outlined.CheckCircle, onClick = { onListAction("Leídos") })
-            StatusButton(label = "Pendientes", isActive = savedInList == "Pendientes", activeIcon = Icons.Default.Info, inactiveIcon = Icons.Default.Info, onClick = { onListAction("Pendientes") })
+            // LEÍDOS Y PENDIENTES EXCLUYENTES
+            StatusButton(label = stringResource(R.string.bookdetail_status_read), isActive = savedInList == "Leídos", activeIcon = Icons.Default.CheckCircle, inactiveIcon = Icons.Outlined.CheckCircle, onClick = { onListAction("Leídos") })
+            StatusButton(label = stringResource(R.string.bookdetail_status_pending), isActive = savedInList == "Pendientes", activeIcon = Icons.Default.Info, inactiveIcon = Icons.Default.Info, onClick = { onListAction("Pendientes") })
         }
     }
 }
@@ -229,9 +231,9 @@ fun SmallFabItem(icon: ImageVector, label: String, onClick: () -> Unit) {
 @Composable
 fun SynopsisSection(description: String) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp)) {
-        Text("Sinopsis", fontSize = 18.sp, fontFamily = CenturyGotic, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks)
+        Text(stringResource(R.string.bookdetail_synopsis_title), fontSize = 18.sp, fontFamily = CenturyGotic, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(if (description.isNotBlank()) description else "No hay descripción disponible.", fontSize = 14.sp, lineHeight = 22.sp, color = Color.DarkGray, textAlign = TextAlign.Justify)
+        Text(if (description.isNotBlank()) description else stringResource(R.string.bookdetail_synopsis_empty), fontSize = 14.sp, lineHeight = 22.sp, color = Color.DarkGray, textAlign = TextAlign.Justify)
     }
 }
 
@@ -254,7 +256,7 @@ fun ReviewItem(review: Review) {
 @Composable
 fun PremiumReviewDialog(onDismiss: () -> Unit, onSubmit: (Int, String) -> Unit) {
     var rating by remember { mutableIntStateOf(0) }; var reviewText by remember { mutableStateOf("") }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Escribe tu opinión", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.bookdetail_review_dialog_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -263,37 +265,37 @@ fun PremiumReviewDialog(onDismiss: () -> Unit, onSubmit: (Int, String) -> Unit) 
                         IconButton(onClick = { rating = i }) { Icon(if (isSel) Icons.Default.Star else Icons.Outlined.Star, null, tint = color, modifier = Modifier.size(38.dp)) }
                     }
                 }
-                OutlinedTextField(value = reviewText, onValueChange = { reviewText = it }, label = { Text("Tu reseña") }, modifier = Modifier.fillMaxWidth(), minLines = 4, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown, focusedLabelColor = ColorArcMediumBrown))
+                OutlinedTextField(value = reviewText, onValueChange = { reviewText = it }, label = { Text(stringResource(R.string.bookdetail_review_label)) }, modifier = Modifier.fillMaxWidth(), minLines = 4, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown, focusedLabelColor = ColorArcMediumBrown))
             }
         },
-        confirmButton = { Button(onClick = { onSubmit(rating, reviewText) }, enabled = rating > 0 && reviewText.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown), shape = RoundedCornerShape(12.dp)) { Text("Publicar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
+        confirmButton = { Button(onClick = { onSubmit(rating, reviewText) }, enabled = rating > 0 && reviewText.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.bookdetail_action_publish)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.bookdetail_action_cancel), color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
 }
 
 @Composable
 fun PremiumAddBookmarkDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, Boolean) -> Unit) {
     var p by remember { mutableStateOf("") }; var q by remember { mutableStateOf("") }; var c by remember { mutableStateOf("") }; var pub by remember { mutableStateOf(true) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Añadir Marcador", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.bookdetail_bookmark_dialog_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(value = p, onValueChange = { if(it.all { char -> char.isDigit() }) p = it }, label = { Text("Pág *") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp))
-                    OutlinedTextField(value = c, onValueChange = { c = it }, label = { Text("Capítulo") }, modifier = Modifier.weight(2f), singleLine = true, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = p, onValueChange = { if(it.all { char -> char.isDigit() }) p = it }, label = { Text(stringResource(R.string.bookdetail_bookmark_page)) }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = c, onValueChange = { c = it }, label = { Text(stringResource(R.string.bookdetail_bookmark_chapter)) }, modifier = Modifier.weight(2f), singleLine = true, shape = RoundedCornerShape(12.dp))
                 }
-                OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text("Frase memorable *") }, modifier = Modifier.fillMaxWidth(), minLines = 3, shape = RoundedCornerShape(12.dp))
+                OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text(stringResource(R.string.bookdetail_bookmark_quote)) }, modifier = Modifier.fillMaxWidth(), minLines = 3, shape = RoundedCornerShape(12.dp))
                 PrivacyToggleButton(isPublic = pub, onToggle = { pub = it })
             }
         },
-        confirmButton = { Button(onClick = { onConfirm(p, q, c, pub) }, enabled = p.isNotEmpty() && q.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown), shape = RoundedCornerShape(12.dp)) { Text("Guardar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
+        confirmButton = { Button(onClick = { onConfirm(p, q, c, pub) }, enabled = p.isNotEmpty() && q.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.bookdetail_action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.bookdetail_action_cancel), color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
 }
 
 @Composable
 fun PremiumDeleteDialog(listName: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("¿Quitar libro?", fontFamily = GuardianCity, color = Color.Red.copy(0.7f)) },
-        text = { Text("Se eliminará de tu lista '$listName'.") },
-        confirmButton = { Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f)), shape = RoundedCornerShape(12.dp)) { Text("Eliminar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Mantener", color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.bookdetail_delete_dialog_title), fontFamily = GuardianCity, color = Color.Red.copy(0.7f)) },
+        text = { Text(stringResource(R.string.bookdetail_delete_dialog_body, listName)) },
+        confirmButton = { Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f)), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.bookdetail_action_delete)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.bookdetail_action_keep), color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
 }
 
 @Composable
@@ -305,10 +307,10 @@ fun PrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
     Surface(modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp), color = ColorHeaderBeige.copy(0.5f), border = androidx.compose.foundation.BorderStroke(1.dp, ColorArcMediumBrown.copy(0.3f))) {
         Row {
             Box(Modifier.weight(1f).fillMaxHeight().clip(CircleShape).background(pubCol).clickable { onToggle(true) }, Alignment.Center) {
-                Row { Icon(Icons.Default.Call, null, tint = pubText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Público", color = pubText, fontWeight = FontWeight.Bold) }
+                Row { Icon(Icons.Default.Call, null, tint = pubText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.bookdetail_privacy_public), color = pubText, fontWeight = FontWeight.Bold) }
             }
             Box(Modifier.weight(1f).fillMaxHeight().clip(CircleShape).background(privCol).clickable { onToggle(false) }, Alignment.Center) {
-                Row { Icon(Icons.Default.Lock, null, tint = privText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Privado", color = privText, fontWeight = FontWeight.Bold) }
+                Row { Icon(Icons.Default.Lock, null, tint = privText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.bookdetail_privacy_private), color = privText, fontWeight = FontWeight.Bold) }
             }
         }
     }
@@ -331,7 +333,7 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Unirse a la charla",
+                    text = stringResource(R.string.bookdetail_comment_dialog_title),
                     fontFamily = GuardianCity,
                     fontWeight = FontWeight.Bold,
                     color = ColorArcDarkBrown,
@@ -345,7 +347,7 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Comparte tus pensamientos. Puedes indicar en qué capítulo vas para dar contexto a los demás.",
+                    text = stringResource(R.string.bookdetail_comment_dialog_desc),
                     color = Color.Gray,
                     fontSize = 14.sp,
                     lineHeight = 18.sp
@@ -354,7 +356,7 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
                 OutlinedTextField(
                     value = chapterText,
                     onValueChange = { chapterText = it },
-                    label = { Text("Capítulo (Opcional)") },
+                    label = { Text(stringResource(R.string.bookdetail_comment_chapter_optional)) },
                     leadingIcon = {
                         Icon(Icons.Default.MenuBook, contentDescription = null, tint = ColorArcMediumBrown)
                     },
@@ -371,7 +373,7 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
                 OutlinedTextField(
                     value = commentText,
                     onValueChange = { commentText = it },
-                    label = { Text("Tu comentario *") },
+                    label = { Text(stringResource(R.string.bookdetail_comment_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 4,
                     maxLines = 6,
@@ -391,11 +393,11 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
                 colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
                 shape = RoundedCornerShape(12.dp),
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
-            ) { Text("Publicar", fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+            ) { Text(stringResource(R.string.bookdetail_action_publish), fontWeight = FontWeight.Bold, fontSize = 16.sp) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = Color.Gray, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.bookdetail_action_cancel), color = Color.Gray, fontWeight = FontWeight.Bold)
             }
         },
         containerColor = Color.White,

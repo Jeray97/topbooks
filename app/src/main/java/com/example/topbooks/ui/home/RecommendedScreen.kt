@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,7 +47,7 @@ fun RecommendedScreen(
     val friendsState by viewModel.friendsBooks.collectAsState()
 
     // Usamos el género por defecto que tienes configurado en el ViewModel
-    val genreUsed = "Ficción"
+    val genreUsed = stringResource(R.string.recommended_default_genre)
 
     RecommendedContent(
         popularState = popularState,
@@ -81,7 +82,7 @@ fun RecommendedContent(
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = "Recomendados",
+                text = stringResource(R.string.recommended_title),
                 fontFamily = CenturyGotic,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
@@ -93,7 +94,7 @@ fun RecommendedContent(
 
             // 1. POPULARES
             BrownCardSection(
-                title = "Populares (Nuevos)",
+                title = stringResource(R.string.recommended_section_popular),
                 resource = popularState,
                 onBookClick = onBookClick,
                 backgroundColor = ColorBackGroundCategorySection,
@@ -106,7 +107,7 @@ fun RecommendedContent(
 
             // 2. GUSTOS
             BrownCardSection(
-                title = "Según tus gustos ($genreForTastes)",
+                title = stringResource(R.string.recommended_section_tastes, genreForTastes),
                 resource = tastesState,
                 onBookClick = onBookClick,
                 backgroundColor = ColorBackGroundRecommendedSection,
@@ -119,10 +120,10 @@ fun RecommendedContent(
 
             // 3. AMIGOS
             BrownCardSection(
-                title = "Favoritos de tus amigos",
+                title = stringResource(R.string.recommended_section_friends),
                 resource = friendsState,
                 onBookClick = onBookClick,
-                isEmptyMessage = "Tus amigos aún no tienen favoritos",
+                isEmptyMessage = stringResource(R.string.recommended_friends_empty),
                 backgroundColor = ColorBackGroundFavoritesSection,
                 onArrowClick = {
                     onSectionClick("friends", "General", ColorBackGroundFavoritesSection.toArgb())
@@ -139,7 +140,7 @@ fun BrownCardSection(
     title: String,
     resource: Resource<List<Book>>,
     onBookClick: (String) -> Unit,
-    isEmptyMessage: String = "No hay libros disponibles",
+    isEmptyMessage: String = stringResource(R.string.recommended_empty_default),
     backgroundColor: Color = ColorArcDarkBrown,
     onArrowClick: () -> Unit = {}
 ) {
@@ -213,7 +214,7 @@ fun BrownCardSection(
                 }
                 is Resource.Error -> {
                     Text(
-                        text = "No se pudo cargar",
+                        text = stringResource(R.string.recommended_error_loading),
                         color = Color.White,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(horizontal = 16.dp)

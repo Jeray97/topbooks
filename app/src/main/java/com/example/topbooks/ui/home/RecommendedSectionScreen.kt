@@ -12,10 +12,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.topbooks.R
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.ui.components.BookItem
 import com.example.topbooks.ui.components.TopBar
@@ -41,10 +43,10 @@ fun RecommendedSectionScreen(
     val state by viewModel.booksState.collectAsState()
 
     val title = when(sectionType) {
-        "popular" -> "Populares y Nuevos" // Adaptado a los types pasados por AppNavigation
-        "tastes" -> "Para ti: $genre"
-        "friends" -> "Actividad de Amigos"
-        else -> "Libros"
+        "popular" -> stringResource(R.string.recommended_section_title_popular)
+        "tastes" -> stringResource(R.string.recommended_section_title_tastes, genre)
+        "friends" -> stringResource(R.string.recommended_section_title_friends)
+        else -> stringResource(R.string.recommended_section_title_default)
     }
 
     RecommendedSectionContent(
@@ -53,7 +55,6 @@ fun RecommendedSectionScreen(
         backgroundColor = backgroundColor,
         onBackClick = onBackClick,
         onBookClick = onBookClick,
-        // CORRECCIÓN: Usamos el nombre real de tu ViewModel (loadMore)
         onLoadMore = { viewModel.loadMore() }
     )
 }
@@ -95,7 +96,7 @@ fun RecommendedSectionContent(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    // CAMBIO 3: Usamos weight(1f) para que ocupe to-do el espacio restante
+                    // CAMBIO 3: Usamos weight(1f) para que ocupe todo el espacio restante
                     .weight(1f),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
@@ -117,13 +118,13 @@ fun RecommendedSectionContent(
                         }
                         is Resource.Error -> {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("Error al cargar contenido.", color = Color.White)
+                                Text(stringResource(R.string.recommended_section_error), color = Color.White)
                             }
                         }
                         is Resource.Success -> {
                             if (state.data.isEmpty()) {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text("No se encontraron libros.", color = Color.White)
+                                    Text(stringResource(R.string.recommended_section_empty), color = Color.White)
                                 }
                             } else {
                                 val gridState = rememberLazyGridState()

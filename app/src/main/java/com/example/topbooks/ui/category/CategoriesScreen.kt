@@ -94,7 +94,7 @@ fun CategoriesScreen(
                 SearchBarCustom(onBookClick = onBookClick, onScanClick = onScanClick)
 
                 Text(
-                    text = "Categorías",
+                    text = stringResource(R.string.categories_title),
                     fontFamily = CenturyGotic,
                     fontSize = 24.sp,
                     color = ColorTituloCategoriaDetalle,

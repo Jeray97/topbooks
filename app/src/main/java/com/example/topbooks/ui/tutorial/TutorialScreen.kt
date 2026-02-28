@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.topbooks.R
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.CategoryProvider
 import kotlinx.coroutines.launch
@@ -93,7 +94,7 @@ fun TutorialScreen(
                     TextButton(onClick = {
                         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
                     }) {
-                        Text("Atrás", color = ColorArcDarkBrown, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.tutorial_btn_back), color = ColorArcDarkBrown, fontWeight = FontWeight.SemiBold)
                     }
                 } else {
                     Spacer(modifier = Modifier.width(60.dp))
@@ -116,7 +117,7 @@ fun TutorialScreen(
                     if (uiState.isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
                     } else {
-                        Text(if (pagerState.currentPage < 2) "Siguiente" else "Comenzar")
+                        Text(if (pagerState.currentPage < 2) stringResource(R.string.tutorial_btn_next) else stringResource(R.string.tutorial_btn_start))
                     }
                 }
             }
@@ -142,7 +143,7 @@ fun WelcomePage() {
         }
         Spacer(Modifier.height(32.dp))
         Text(
-            "¡Bienvenido a TopBooks!",
+            stringResource(R.string.tutorial_welcome_title),
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
             color = ColorArcDarkBrown,
@@ -151,7 +152,7 @@ fun WelcomePage() {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            "Configura tus preferencias para recibir recomendaciones personalizadas.",
+            stringResource(R.string.tutorial_welcome_subtitle),
             textAlign = TextAlign.Center,
             color = Color.Gray,
             fontFamily = CenturyGotic,
@@ -166,8 +167,8 @@ fun GenresPage(selected: Set<String>, available: List<String>, onGenreClick: (St
         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("¿Qué te gusta leer?", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontFamily = GuardianCity)
-        Text("Elige uno o más géneros", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 16.dp))
+        Text(stringResource(R.string.tutorial_genres_title), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontFamily = GuardianCity)
+        Text(stringResource(R.string.tutorial_genres_subtitle), fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 16.dp))
 
         // Grid ajustado
         LazyVerticalGrid(
@@ -212,14 +213,14 @@ fun BooksPage(
     onBookClick: (String) -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
-        Text("Recomendaciones iniciales", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontFamily = GuardianCity)
-        Text("Marca los que te interesen", fontSize = 14.sp, color = Color.Gray)
+        Text(stringResource(R.string.tutorial_books_title), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontFamily = GuardianCity)
+        Text(stringResource(R.string.tutorial_books_subtitle), fontSize = 14.sp, color = Color.Gray)
         Spacer(Modifier.height(16.dp))
 
         if (isLoading) {
             Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = ColorArcMediumBrown) }
         } else if (books.isEmpty()) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) { Text("No hay sugerencias disponibles", color = Color.Gray) }
+            Box(Modifier.fillMaxSize(), Alignment.Center) { Text(stringResource(R.string.tutorial_books_empty), color = Color.Gray) }
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),

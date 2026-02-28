@@ -22,10 +22,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.topbooks.R
 import com.example.topbooks.data.model.Comment
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
@@ -56,7 +58,7 @@ fun ReviewsScreen(
         ) {
             item {
                 Text(
-                    text = if (bookId != null) "Hilo de conversación" else "Actividad de la Comunidad",
+                    text = if (bookId != null) stringResource(R.string.reviews_title_thread) else stringResource(R.string.reviews_title_community),
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Bold,
                     fontSize = 24.sp,
@@ -77,7 +79,7 @@ fun ReviewsScreen(
                         comment = comment,
                         onBookClick = { onBookClick(comment.bookId) },
                         onReply = { text -> viewModel.addReply(comment, text) },
-                        onCheckVerification = { callback -> viewModel.checkEmailVerification(callback) }, // 🟢 PASAMOS LA FUNCIÓN DE VERIFICACIÓN
+                        onCheckVerification = { callback -> viewModel.checkEmailVerification(callback) },
                         isHighlighted = isHighlighted
                     )
                 }
@@ -95,7 +97,7 @@ fun ReviewItem(
     isHighlighted: Boolean = false
 ) {
     var showReplyDialog by remember { mutableStateOf(false) }
-    val context = LocalContext.current // 🟢 Necesario para el Toast
+    val context = LocalContext.current
 
     if (showReplyDialog) {
         ReplyDialog(onDismiss = { showReplyDialog = false }, onConfirm = onReply)
@@ -115,7 +117,7 @@ fun ReviewItem(
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
                     Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD54F), modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Destacado", color = ColorArcMediumBrown, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(stringResource(R.string.reviews_badge_highlighted), color = ColorArcMediumBrown, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
 
@@ -126,9 +128,9 @@ fun ReviewItem(
                     Text(comment.userName, color = ColorArcDarkBrown, fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
                     val subtitleText = if (comment.chapter.isNotBlank()) {
-                        "sobre ${comment.bookTitle} • Cap. ${comment.chapter}"
+                        stringResource(R.string.reviews_subtitle_with_chapter, comment.bookTitle, comment.chapter)
                     } else {
-                        "sobre ${comment.bookTitle}"
+                        stringResource(R.string.reviews_subtitle_book_only, comment.bookTitle)
                     }
 
                     Text(
@@ -174,7 +176,7 @@ fun ReviewItem(
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f), thickness = 1.dp)
 
-            // 🟢 BOTÓN DE RESPONDER CON VERIFICACIÓN
+            // BOTÓN DE RESPONDER
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 horizontalArrangement = Arrangement.End
@@ -183,14 +185,14 @@ fun ReviewItem(
                     onClick = {
                         onCheckVerification { isVerified ->
                             if (isVerified) showReplyDialog = true
-                            else Toast.makeText(context, "Verifica tu correo electrónico para responder.", Toast.LENGTH_LONG).show()
+                            else Toast.makeText(context, context.getString(R.string.reviews_toast_verify_email), Toast.LENGTH_LONG).show()
                         }
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = ColorArcMediumBrown)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.Reply, contentDescription = "Responder", modifier = Modifier.size(18.dp))
+                    Icon(Icons.AutoMirrored.Filled.Reply, contentDescription = stringResource(R.string.reviews_button_reply), modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Responder", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(stringResource(R.string.reviews_button_reply), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
         }
@@ -203,13 +205,13 @@ fun ReplyDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Añadir respuesta", fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
+            Text(stringResource(R.string.reviews_dialog_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
         },
         text = {
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                placeholder = { Text("Escribe algo amable...") },
+                placeholder = { Text(stringResource(R.string.reviews_dialog_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 shape = RoundedCornerShape(12.dp),
@@ -221,10 +223,10 @@ fun ReplyDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                 onClick = { if(text.isNotBlank()) onConfirm(text); onDismiss() },
                 colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
                 shape = RoundedCornerShape(12.dp)
-            ) { Text("Publicar") }
+            ) { Text(stringResource(R.string.reviews_dialog_publish)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.reviews_dialog_cancel), color = Color.Gray) }
         },
         containerColor = Color.White,
         shape = RoundedCornerShape(24.dp)

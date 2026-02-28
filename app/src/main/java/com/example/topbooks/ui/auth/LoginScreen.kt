@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -72,7 +73,7 @@ fun LoginScreen(
                     viewModel.loginWithGoogle(token, onLoginSuccess)
                 }
             } catch (e: ApiException) {
-                Toast.makeText(context, "Error en Google: ${e.statusCode}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, context.getString(R.string.login_error_google, e.statusCode), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -107,15 +108,15 @@ fun LoginContent(
 
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Recuperar contraseña", fontFamily = GuardianCity, fontWeight = FontWeight.Normal) },
+            title = { Text(stringResource(R.string.login_reset_title), fontFamily = GuardianCity, fontWeight = FontWeight.Normal) },
             text = {
                 Column {
-                    Text("Introduce tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.", color = Color.Gray, fontSize = 14.sp)
+                    Text(stringResource(R.string.login_reset_desc), color = Color.Gray, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = resetEmail,
                         onValueChange = { resetEmail = it },
-                        label = { Text("Correo electrónico") },
+                        label = { Text(stringResource(R.string.login_field_email)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown, focusedLabelColor = ColorArcMediumBrown)
@@ -136,11 +137,11 @@ fun LoginContent(
                     colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)
                 ) {
                     if (isSending) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                    else Text("Enviar enlace")
+                    else Text(stringResource(R.string.login_action_send_link))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showResetDialog = false }) { Text("Cancelar", color = Color.Gray) }
+                TextButton(onClick = { showResetDialog = false }) { Text(stringResource(R.string.login_action_cancel), color = Color.Gray) }
             },
             containerColor = Color.White,
             shape = RoundedCornerShape(16.dp)
@@ -163,7 +164,7 @@ fun LoginContent(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Bienvenido a",
+                text = stringResource(R.string.login_welcome_prefix),
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Normal,
                     fontSize = 24.sp,
@@ -178,7 +179,7 @@ fun LoginContent(
                 modifier = Modifier.padding(bottom = 8.dp)
             ) {
                 Text(
-                    text = "TopBooks",
+                    text = stringResource(R.string.app_name),
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.ExtraBold,
@@ -194,7 +195,7 @@ fun LoginContent(
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Correo electrónico") },
+                label = { Text(stringResource(R.string.login_field_email)) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                 singleLine = true,
@@ -209,7 +210,7 @@ fun LoginContent(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Contraseña") },
+                label = { Text(stringResource(R.string.login_field_password)) },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
@@ -222,7 +223,7 @@ fun LoginContent(
 
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
                 Text(
-                    text = "¿Has olvidado tu contraseña?",
+                    text = stringResource(R.string.login_forgot_password),
                     color = Color.DarkGray,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -245,7 +246,7 @@ fun LoginContent(
                     enabled = email.isNotEmpty() && password.isNotEmpty(),
                     colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)
                 ) {
-                    Text("Iniciar Sesión")
+                    Text(stringResource(R.string.login_btn_submit))
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -257,21 +258,21 @@ fun LoginContent(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google),
-                        contentDescription = "Logo Google",
+                        contentDescription = stringResource(R.string.login_google_desc),
                         tint = Color.Unspecified,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Continuar con Google", color = Color.Black)
+                    Text(stringResource(R.string.login_btn_google), color = Color.Black)
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("¿No tienes cuenta? ", color = Color.Black)
+                Text(stringResource(R.string.login_no_account), color = Color.Black)
                 Text(
-                    text = "Regístrate aquí",
+                    text = stringResource(R.string.login_register_here),
                     color = ColorArcDarkBrown,
                     fontWeight = FontWeight.Normal,
                     modifier = Modifier.clickable { onNavigateToRegister() }

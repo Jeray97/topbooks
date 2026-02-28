@@ -9,9 +9,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import com.example.topbooks.R
 import com.example.topbooks.ui.theme.ColorHeaderBeige
 import com.example.topbooks.ui.theme.ColorTextPrimary
 import com.example.topbooks.ui.theme.ColorTitleCategoryDetail
@@ -25,21 +27,20 @@ fun TopBar(
     CenterAlignedTopAppBar(
         title = {
             Text(
-                text = "TopBooks",
+                text = stringResource(R.string.app_name),
                 // Usamos fuente y color de texto
                 fontFamily = GuardianCity,
                 color = ColorTitleCategoryDetail,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Left
-
             )
         },
         navigationIcon = {
             IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
+                    contentDescription = stringResource(R.string.desc_back_icon),
                     tint = ColorTextPrimary // La flecha del color del texto
                 )
             }
