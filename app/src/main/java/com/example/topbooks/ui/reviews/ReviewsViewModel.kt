@@ -26,7 +26,8 @@ class ReviewsViewModel(
     private val feedRepository: SocialFeedRepository = SocialFeedRepositoryImpl(),
     private val communityRepository: CommunityRepository = CommunityRepositoryImpl(),
     private val userRepository: UserRepository = UserRepositoryImpl(),
-    private val booksRepository: BooksRepository = BooksRepository()
+    private val booksRepository: BooksRepository = BooksRepository(),
+    private val authRepository: AuthRepository = AuthRepositoryImpl()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReviewsFeedState())
@@ -83,7 +84,7 @@ class ReviewsViewModel(
 
     // 🟢 NUEVA FUNCIÓN PARA VERIFICAR EL EMAIL
     fun checkEmailVerification(onResult: (Boolean) -> Unit) {
-        val isVerified = userRepository.isEmailVerified()
+        val isVerified = authRepository.isEmailVerified()
         onResult(isVerified)
     }
 

@@ -191,7 +191,7 @@ fun AppNavigation(
         composable("config") {
             ConfigScreen(
                 viewModel = viewModel(factory = ConfigViewModel.Factory(settingsManager)),
-                onLogoutSuccess = {
+                onSignOut = {
                     authViewModel.signOut()
                     navController.navigate("login") { popUpTo(0) { inclusive = true } }
                 },

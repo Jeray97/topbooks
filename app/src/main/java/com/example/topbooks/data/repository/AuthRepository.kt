@@ -15,10 +15,15 @@ interface AuthRepository {
     fun logout()
     suspend fun loginWithGoogle(idToken: String): Result<Boolean>
 
-    // 🟢 NUEVAS FUNCIONES DE SEGURIDAD
+    // NUEVAS FUNCIONES DE SEGURIDAD
     suspend fun sendPasswordResetEmail(email: String): Result<Boolean>
     suspend fun sendEmailVerification(): Result<Boolean>
     suspend fun reloadUser(): Result<Boolean>
+    suspend fun deleteAccount(): Result<Boolean>
+
+    // FUNCIONES INTEGRADAS DESDE USER_REPOSITORY
+    fun isEmailVerified(): Boolean
+    fun resendVerificationEmail(onComplete: (Result<Boolean>) -> Unit)
 }
 
 // 2. IMPLEMENTACIÓN DE LA INTERFAZ
@@ -44,17 +49,15 @@ class AuthRepositoryImpl : AuthRepository {
             val firebaseUser = authResult.user
 
             if (firebaseUser != null) {
-                // Creamos el modelo de usuario
                 val newUser = User(
                     uid = firebaseUser.uid,
                     displayName = name,
                     displayNameLowercase = name.lowercase(Locale.getDefault()),
                     email = email,
                     photoURL = "capibara_1",
-                    isTutorialCompleted = false // Forzamos el tutorial
+                    isTutorialCompleted = false
                 )
 
-                // RUTA ESTÁNDAR: users/{uid}
                 firestore.collection("users").document(firebaseUser.uid)
                     .set(newUser)
                     .await()
@@ -75,7 +78,6 @@ class AuthRepositoryImpl : AuthRepository {
             val firebaseUser = authResult.user
 
             if (firebaseUser != null) {
-                // Verificamos si ya existe en Firestore
                 val userRef = firestore.collection("users").document(firebaseUser.uid)
                 val doc = userRef.get().await()
 
@@ -104,7 +106,6 @@ class AuthRepositoryImpl : AuthRepository {
         auth.signOut()
     }
 
-    // 🟢 IMPLEMENTACIÓN DE RECUPERACIÓN DE CONTRASEÑA
     override suspend fun sendPasswordResetEmail(email: String): Result<Boolean> {
         return try {
             auth.sendPasswordResetEmail(email).await()
@@ -114,7 +115,6 @@ class AuthRepositoryImpl : AuthRepository {
         }
     }
 
-    // 🟢 IMPLEMENTACIÓN DE VERIFICACIÓN DE EMAIL
     override suspend fun sendEmailVerification(): Result<Boolean> {
         return try {
             auth.currentUser?.sendEmailVerification()?.await()
@@ -124,11 +124,42 @@ class AuthRepositoryImpl : AuthRepository {
         }
     }
 
-    // 🟢 ACTUALIZAR ESTADO DEL USUARIO DESDE FIREBASE
     override suspend fun reloadUser(): Result<Boolean> {
         return try {
             auth.currentUser?.reload()?.await()
             Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    //Implementación de estado de verificación
+    override fun isEmailVerified(): Boolean {
+        return auth.currentUser?.isEmailVerified == true
+    }
+
+    //Implementación de reenvío con callback
+    override fun resendVerificationEmail(onComplete: (Result<Boolean>) -> Unit) {
+        val user = auth.currentUser
+        if (user != null && !user.isEmailVerified) {
+            user.sendEmailVerification()
+                .addOnSuccessListener { onComplete(Result.success(true)) }
+                .addOnFailureListener { onComplete(Result.failure(it)) }
+        } else {
+            onComplete(Result.failure(Exception("Usuario no encontrado o ya verificado")))
+        }
+    }
+
+    override suspend fun deleteAccount(): Result<Boolean> {
+        val user = auth.currentUser
+        return try {
+            user?.let {
+                // Primero eliminamos el documento del usuario en Firestore
+                firestore.collection("users").document(it.uid).delete().await()
+                // Luego eliminamos el usuario de Autenticación
+                it.delete().await()
+                Result.success(true)
+            } ?: Result.failure(Exception("No hay usuario autenticado"))
         } catch (e: Exception) {
             Result.failure(e)
         }

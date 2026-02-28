@@ -47,6 +47,8 @@ import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.AvatarHelper
 import kotlinx.coroutines.launch
 
+
+// TODO cambiar botonera para que soporte favoritos siempre
 @Composable
 fun BookDetailScreen(
     bookId: String,

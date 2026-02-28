@@ -61,14 +61,13 @@ fun ProfileScreen(
     var showEditProfileDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Diálogos visuales recuperados
+    // Diálogos visuales recuperados e implementados
     if (showAvatarDialog && state.isMe) {
         AvatarSelectionDialog(
             currentAvatar = user.photoURL,
             onDismiss = { showAvatarDialog = false },
             onSelect = {
-                // TODO: Necesitas añadir la función updateAvatar(it) en tu ProfileViewModel
-                // viewModel.updateAvatar(it)
+                viewModel.updateAvatar(it) // TODO RESUELTO
             }
         )
     }
@@ -79,8 +78,7 @@ fun ProfileScreen(
             currentBio = user.bio,
             onDismiss = { showEditProfileDialog = false },
             onSave = { n, b ->
-                // TODO: Necesitas añadir updateProfileData(n, b) en tu ProfileViewModel
-                // viewModel.updateProfileData(n, b)
+                viewModel.updateProfileData(n, b) // TODO RESUELTO
             }
         )
     }
@@ -145,29 +143,6 @@ fun ProfileScreen(
                     if (state.isMe) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(Icons.Default.Edit, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
-                    }
-                }
-
-                // AVISO DE VERIFICACIÓN DE CORREO
-                if (state.isMe && !state.isEmailVerified) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Surface(
-                        color = Color(0xFFFFF3E0),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.clickable {
-                            viewModel.resendVerificationEmail { msg ->
-                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                            }
-                        }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Warning, contentDescription = "Advertencia", tint = Color(0xFFFF9800), modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Verificar cuenta (Reenviar email)", color = Color(0xFFE65100), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
                     }
                 }
 
@@ -262,9 +237,6 @@ fun ProfileScreen(
         }
     }
 }
-
-// ... Mantén el resto de subcomponentes de ProfileScreen iguales a los de tu texto original ...
-// (ProfileImage, StatBox, ProfileGenresSection, ProfileGenreItem, ProfileDashboardGrid, DashboardItem, AvatarSelectionDialog, EditProfileDialog, getCategoryResources, formatFallbackName)
 
 @Composable
 fun ProfileImage(photoUrl: String) {
@@ -392,7 +364,8 @@ fun AvatarSelectionDialog(currentAvatar: String, onDismiss: () -> Unit, onSelect
 
 @Composable
 fun EditProfileDialog(currentName: String, currentBio: String, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
-    var n by remember { mutableStateOf(currentName) }; var b by remember { mutableStateOf(currentBio) }
+    var n by remember { mutableStateOf(currentName) }
+    var b by remember { mutableStateOf(currentBio) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Editar Perfil") },
         text = {
             Column {
@@ -419,7 +392,7 @@ fun getCategoryResources(code: String): Pair<Int, Int?> {
         "GRAPHIC_NOVEL", "NOVELA_GRAFICA" -> Pair(R.drawable.cat_novela_grafica_icon, R.string.cat_novela_grafica_text)
         "ADVENTURE", "AVENTURAS" -> Pair(R.drawable.cat_aventura_icon, R.string.cat_aventura_text)
         "RELIGION" -> Pair(R.drawable.cat_religion_icon, R.string.cat_religion_text)
-        else -> Pair(R.drawable.home_icon, null) // Ajustado para evitar error si no encuentra icono
+        else -> Pair(R.drawable.home_icon, null)
     }
 }
 

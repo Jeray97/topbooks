@@ -7,13 +7,11 @@ import kotlinx.coroutines.tasks.await
 
 interface UserRepository {
     fun getCurrentUserId(): String?
-    fun isEmailVerified(): Boolean
     suspend fun getUserProfile(userId: String): Result<User?>
     suspend fun getFavoriteCovers(userId: String, limit: Long = 5): Result<List<String>>
     suspend fun getFavoriteIds(userId: String): Result<List<String>>
     suspend fun isFriend(myUid: String, targetUid: String): Result<Boolean>
     suspend fun toggleFriendship(myUid: String, targetUid: String, targetName: String, targetPhoto: String, isAdding: Boolean): Result<Boolean>
-    fun resendVerificationEmail(onComplete: (Result<Boolean>) -> Unit)
     suspend fun updateAvatar(userId: String, avatarUrl: String): Result<Boolean>
     suspend fun updateProfileData(userId: String, name: String, bio: String): Result<Boolean>
 }
@@ -23,8 +21,6 @@ class UserRepositoryImpl : UserRepository {
     private val auth = FirebaseAuth.getInstance()
 
     override fun getCurrentUserId(): String? = auth.currentUser?.uid
-
-    override fun isEmailVerified(): Boolean = auth.currentUser?.isEmailVerified == true
 
     override suspend fun getUserProfile(userId: String): Result<User?> {
         return try {
@@ -81,17 +77,6 @@ class UserRepositoryImpl : UserRepository {
             Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
-        }
-    }
-
-    override fun resendVerificationEmail(onComplete: (Result<Boolean>) -> Unit) {
-        val user = auth.currentUser
-        if (user != null && !user.isEmailVerified) {
-            user.sendEmailVerification()
-                .addOnSuccessListener { onComplete(Result.success(true)) }
-                .addOnFailureListener { onComplete(Result.failure(it)) }
-        } else {
-            onComplete(Result.failure(Exception("Usuario no encontrado o ya verificado")))
         }
     }
 

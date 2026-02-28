@@ -23,8 +23,8 @@ data class BookDetailState(
 class BookDetailViewModel(
     private val booksRepository: BooksRepository = BooksRepository(),
     private val progressRepository: ProgressRepository = ProgressRepositoryImpl(),
-    private val feedRepository: SocialFeedRepository = SocialFeedRepositoryImpl(),
-    private val userRepository: UserRepository = UserRepositoryImpl()
+    private val userRepository: UserRepository = UserRepositoryImpl(),
+    private val authRepository: AuthRepository = AuthRepositoryImpl()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BookDetailState())
@@ -67,7 +67,7 @@ class BookDetailViewModel(
     }
 
     fun checkEmailVerification(onResult: (Boolean) -> Unit) {
-        onResult(userRepository.isEmailVerified())
+        onResult(authRepository.isEmailVerified())
     }
 
     fun addToList(book: Book, listName: String) {

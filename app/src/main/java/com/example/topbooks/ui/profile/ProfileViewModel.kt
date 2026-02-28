@@ -36,9 +36,8 @@ class ProfileViewModel(
         val finalUserId = if (targetUserId.isNullOrEmpty()) myUid else targetUserId
         val isMe = (finalUserId == myUid)
 
-        _uiState.update { it.copy(isLoading = true, isMe = isMe, isEmailVerified = repository.isEmailVerified()) }
-
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) } // Iniciamos estado de carga
             try {
                 // 🚀 Consultas en paralelo usando nuestro repositorio limpio
                 val userDeferred = async { repository.getUserProfile(finalUserId) }
@@ -59,6 +58,7 @@ class ProfileViewModel(
                         favoriteCovers = covers,
                         favoriteIds = ids,
                         isFriend = isFriend,
+                        isMe = isMe, // <--- EL ERROR ESTABA AQUÍ: Faltaba pasar la variable de si es el propio perfil
                         isLoading = false
                     )
                 }
@@ -84,16 +84,6 @@ class ProfileViewModel(
                     // Si falla la red, revertimos el botón a su estado original
                     _uiState.update { it.copy(isFriend = currentState) }
                 }
-        }
-    }
-
-    fun resendVerificationEmail(onResult: (String) -> Unit) {
-        repository.resendVerificationEmail { result ->
-            if (result.isSuccess) {
-                onResult("Correo de verificación reenviado.")
-            } else {
-                onResult("Error al enviar el correo. Inténtalo más tarde.")
-            }
         }
     }
 
