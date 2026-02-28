@@ -1,7 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">TopBooks</string>
 
-    <string name="welcome_title" translatable="false">TopBooks</string>
     <string name="search_hint">Search book…</string>
 
     <string name="section_categories">Categories</string>
@@ -14,7 +12,7 @@
     <string name="desc_arrow_forward">See more</string>
 
     <string name="home_bottom">Home</string>
-    <string name="progress_bottom">My Collection</string>
+    <string name="progress_bottom">Collection</string>
     <string name="social_bottom">Social</string>
     <string name="reviews_bottom">Reviews</string>
     <string name="profile_bottom">Profile</string>
