@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -27,6 +28,8 @@ import com.example.topbooks.ui.components.CategoriesBackground
 import com.example.topbooks.ui.components.SearchBarCustom
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
+import com.example.topbooks.utils.CategoryProvider
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -43,29 +46,13 @@ fun CategoriesScreen(
     onBookClick: (String) -> Unit,
     onScanClick: () -> Unit
 ) {
-    val categories = listOf(
-        //TODO mejorar con Strings.xml
-        // Fila 1
-        CategoryUi("Historia", R.drawable.cat_historia_icon, "subject:history"),
-        CategoryUi("Biografías", R.drawable.cat_documental_icon, "subject:biography"),
-        CategoryUi("Horror", R.drawable.cat_horror_icon, "subject:horror"),
-        CategoryUi("Arte", R.drawable.cat_comedia_icon, "subject:comedy"),
-        // Fila 2
-        CategoryUi("Romance", R.drawable.cat_romance_icon, "subject:romance"),
-        CategoryUi("Misterio", R.drawable.cat_misterio_icon, "subject:mystery"),
-        CategoryUi("Manga", R.drawable.cat_manga_icon, "subject:manga"),
-        CategoryUi("Fantasía", R.drawable.cat_fantasia_icon, "subject:fantasy"),
-        // Fila 3
-        CategoryUi("Infantil", R.drawable.cat_infantil_icon, "subject:childrens"),
-        CategoryUi("Filosofía", R.drawable.cat_filosofia_icon, "subject:filosophy"),
-        CategoryUi("Poesía", R.drawable.cat_poesia_icon, "subject:poetry"),
-        CategoryUi("Novela Gráfica", R.drawable.cat_novela_grafica_icon, "subject:GraphicNovel"),
-        // Fila 4
-        CategoryUi("Aventuras", R.drawable.cat_aventura_icon, "subject:aventure"),
-        CategoryUi("Ciencia Ficción", R.drawable.cat_ciencia_ficcion_icon, "subject:science fiction"),
-        CategoryUi("Bibliografía", R.drawable.cat_bibliografia_icon, "subject:bibliography"),
-        CategoryUi("Religión", R.drawable.cat_religion_icon, "subject:religion")
-    )
+    // 🔥 GENERAMOS LA LISTA DINÁMICAMENTE DESDE EL PROVIDER
+    val categories = CategoryProvider.allCategories.map { code ->
+        val catData = CategoryProvider.getCategoryResources(code)
+        val catName = if (catData.nameRes != null) stringResource(id = catData.nameRes) else CategoryProvider.formatFallbackName(code)
+        val querySubject = code.lowercase(Locale.ROOT).replace("_", " ")
+        CategoryUi(name = catName, iconRes = catData.iconRes, query = "subject:$querySubject")
+    }
 
     val rows = categories.chunked(4)
 
@@ -185,17 +172,13 @@ fun calculateOffset(
         val distFromCenter = abs(xPos - (widthPx / 2))
 
         // Ecuación de la elipse
-        // 1.0 es Double, así que term será Double
         val term = 1.0 - (distFromCenter * distFromCenter) / (radiusX * radiusX)
-        
-        // Convertimos explícitamente a Float para operar con radiusY (que es Float)
+
         val heightAtX = if (term > 0) (radiusY * sqrt(term)).toFloat() else 0f
 
-        // Ahora to-do es Float
         val drop = radiusY - heightAtX
         val baseMarginPx = 25.dp.toPx()
 
-        // Float + Float = Float. Ahora .toDp() funciona correctamente.
         (drop + baseMarginPx).toDp()
     }
 }

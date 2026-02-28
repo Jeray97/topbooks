@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topbooks.ui.theme.*
+import com.example.topbooks.utils.CategoryProvider
 import kotlinx.coroutines.launch
 
 @Composable
@@ -65,7 +67,8 @@ fun TutorialScreen(
                     0 -> WelcomePage()
                     1 -> GenresPage(
                         selected = uiState.selectedGenres,
-                        available = viewModel.availableGenres,
+                        // 🔥 Usamos los géneros del provider si no están en el ViewModel
+                        available = CategoryProvider.allCategories,
                         onGenreClick = { viewModel.toggleGenre(it) }
                     )
                     2 -> BooksPage(
@@ -175,6 +178,10 @@ fun GenresPage(selected: Set<String>, available: List<String>, onGenreClick: (St
         ) {
             items(available) { genre ->
                 val isSel = selected.contains(genre)
+                // 🔥 OBTENEMOS DATOS DEL PROVIDER
+                val catData = CategoryProvider.getCategoryResources(genre)
+                val displayName = if (catData.nameRes != null) stringResource(id = catData.nameRes) else CategoryProvider.formatFallbackName(genre)
+
                 Surface(
                     onClick = { onGenreClick(genre) },
                     shape = RoundedCornerShape(12.dp),
@@ -185,7 +192,7 @@ fun GenresPage(selected: Set<String>, available: List<String>, onGenreClick: (St
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = genre,
+                            text = displayName,
                             color = if (isSel) Color.White else ColorArcDarkBrown,
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp

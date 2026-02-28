@@ -39,6 +39,7 @@ import com.example.topbooks.R
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.AvatarHelper
+import com.example.topbooks.utils.CategoryProvider
 import java.util.Locale
 
 @Composable
@@ -274,7 +275,9 @@ fun ProfileGenresSection(genres: List<String>) {
 
 @Composable
 fun ProfileGenreItem(genreCode: String) {
-    val (iconRes, nameRes) = getCategoryResources(genreCode)
+    // 1. Usamos el proveedor centralizado
+    val categoryData = CategoryProvider.getCategoryResources(genreCode)
+
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(60.dp)) {
         Box(
             modifier = Modifier
@@ -284,12 +287,24 @@ fun ProfileGenreItem(genreCode: String) {
                 .border(1.dp, ColorArcMediumBrown, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(painter = painterResource(id = iconRes), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(28.dp))
+            Icon(
+                painter = painterResource(id = categoryData.iconRes),
+                contentDescription = null,
+                tint = Color.Unspecified,
+                modifier = Modifier.size(28.dp)
+            )
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = if (nameRes != null) stringResource(id = nameRes) else formatFallbackName(genreCode),
-            fontSize = 11.sp, color = ColorArcDarkBrown, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, lineHeight = 12.sp, maxLines = 2
+            // 2. Le pasamos los datos
+            text = if (categoryData.nameRes != null) stringResource(id = categoryData.nameRes)
+            else CategoryProvider.formatFallbackName(genreCode),
+            fontSize = 11.sp,
+            color = ColorArcDarkBrown,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
+            lineHeight = 12.sp,
+            maxLines = 2
         )
     }
 }
@@ -378,26 +393,3 @@ fun EditProfileDialog(currentName: String, currentBio: String, onDismiss: () -> 
     )
 }
 
-fun getCategoryResources(code: String): Pair<Int, Int?> {
-    return when (code.uppercase(Locale.ROOT).trim()) {
-        "HISTORY", "HISTORIA" -> Pair(R.drawable.cat_historia_icon, R.string.cat_historia_text)
-        "FANTASY", "FANTASIA" -> Pair(R.drawable.cat_fantasia_icon, R.string.cat_fantasia_text)
-        "SCIFI", "CIENCIA_FICCION" -> Pair(R.drawable.cat_ciencia_ficcion_icon, R.string.cat_ciencia_ficcion_text)
-        "ROMANCE" -> Pair(R.drawable.cat_romance_icon, R.string.cat_romance_text)
-        "MYSTERY", "MISTERIO" -> Pair(R.drawable.cat_misterio_icon, R.string.cat_misterio_text)
-        "MANGA" -> Pair(R.drawable.cat_manga_icon, R.string.cat_manga_text)
-        "KIDS", "INFANTIL" -> Pair(R.drawable.cat_infantil_icon, R.string.cat_infantil_text)
-        "PHILOSOPHY", "FILOSOFIA" -> Pair(R.drawable.cat_filosofia_icon, R.string.cat_filosofia_text)
-        "POETRY", "POESIA" -> Pair(R.drawable.cat_poesia_icon, R.string.cat_poesia_text)
-        "GRAPHIC_NOVEL", "NOVELA_GRAFICA" -> Pair(R.drawable.cat_novela_grafica_icon, R.string.cat_novela_grafica_text)
-        "ADVENTURE", "AVENTURAS" -> Pair(R.drawable.cat_aventura_icon, R.string.cat_aventura_text)
-        "RELIGION" -> Pair(R.drawable.cat_religion_icon, R.string.cat_religion_text)
-        else -> Pair(R.drawable.home_icon, null)
-    }
-}
-
-fun formatFallbackName(code: String): String {
-    return code.lowercase()
-        .replace("_", " ")
-        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
-}

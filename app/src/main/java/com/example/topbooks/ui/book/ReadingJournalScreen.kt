@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -29,12 +30,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.topbooks.R
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.model.Journal
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.search.SearchViewModel
 import com.example.topbooks.ui.theme.*
+import com.example.topbooks.utils.CategoryProvider
 
 // --- COLORES ADAPTADOS ---
 val JournalDark = ColorTitleCategoryDetail
@@ -83,7 +84,11 @@ fun ReadingJournalScreen(
     var showSaveDialog by remember { mutableStateOf(false) }
     var expandedGenre by remember { mutableStateOf(false) }
 
-    val genreOptions = listOf("Romance", "Fantasía", "Terror", "Misterio", "Ciencia Ficción", "Drama", "Aventura", "Historia", "Thriller")
+    // 🔥 GENERAMOS LOS GÉNEROS DINÁMICAMENTE PARA EL DIÁLOGO DEL DIARIO
+    val genreOptions = CategoryProvider.allCategories.map { code ->
+        val data = CategoryProvider.getCategoryResources(code)
+        if (data.nameRes != null) stringResource(id = data.nameRes) else CategoryProvider.formatFallbackName(code)
+    } + listOf("Otro")
 
     LaunchedEffect(bookId) { viewModel.loadJournal(bookId) }
 
@@ -163,7 +168,7 @@ fun ReadingJournalScreen(
                             characters = characters,
                             nicknames = nicknames,
                             moments = moments,
-                            quotes = moments, // Fusionamos frases aquí
+                            quotes = moments,
                             notes = "",
                             startDate = startDate,
                             endDate = endDate
@@ -241,8 +246,9 @@ fun ReadingJournalScreen(
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
                                             if (genre.isNotEmpty()) {
+                                                // 🔥 OBTENEMOS EL ICONO DIRECTAMENTE DEL PROVIDER
                                                 Image(
-                                                    painter = painterResource(getGenreIcon(genre)),
+                                                    painter = painterResource(CategoryProvider.getCategoryResources(genre).iconRes),
                                                     contentDescription = null,
                                                     modifier = Modifier.size(16.dp)
                                                 )
@@ -272,7 +278,8 @@ fun ReadingJournalScreen(
                                         genreOptions.forEach { opt ->
                                             DropdownMenuItem(
                                                 text = { Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Image(painterResource(getGenreIcon(opt)), null, Modifier.size(20.dp))
+                                                    // 🔥 OBTENEMOS EL ICONO DEL PROVIDER TAMBIÉN AQUÍ
+                                                    Image(painterResource(CategoryProvider.getCategoryResources(opt).iconRes), null, Modifier.size(20.dp))
                                                     Spacer(Modifier.width(8.dp))
                                                     Text(opt, fontFamily = CenturyGotic)
                                                 }},
@@ -315,7 +322,6 @@ fun ReadingJournalScreen(
                         }
                     }
 
-                    // 🟢 CÓDIGO NUEVO: Campo de frases expandido al 100% del ancho
                     item {
                         JournalLinedTextField(
                             label = "Frases y momentos favoritos",
@@ -341,18 +347,6 @@ fun ReadingJournalScreen(
                 }
             }
         }
-    }
-}
-
-fun getGenreIcon(genre: String): Int {
-    return when (genre.uppercase()) {
-        "ROMANCE" -> R.drawable.cat_romance_icon
-        "FANTASÍA" -> R.drawable.cat_fantasia_icon
-        "TERROR" -> R.drawable.cat_horror_icon
-        "MISTERIO" -> R.drawable.cat_misterio_icon
-        "CIENCIA FICCIÓN" -> R.drawable.cat_ciencia_ficcion_icon
-        "HISTORIA" -> R.drawable.cat_historia_icon
-        else -> R.drawable.cat_misterio_icon
     }
 }
 
