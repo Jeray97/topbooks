@@ -14,13 +14,16 @@ data class Reply(
 
 data class Comment(
     val commentId: String = "",
-    val bookId: String = "", // ID como String
-    val userId: String = "", // ID como String
+    val bookId: String = "",
+    val userId: String = "",
     val chapter: String = "",
     val text: String = "",
     val rating: Int = 0,
     val likes: Int = 0,
     val edited: Boolean = false,
+
+    val participantIds: List<String> = emptyList(),
+
     @ServerTimestamp
     val createAt: Date? = null,
 

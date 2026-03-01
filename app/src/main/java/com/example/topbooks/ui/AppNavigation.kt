@@ -34,6 +34,7 @@ import com.example.topbooks.ui.tutorial.TutorialScreen
 import com.example.topbooks.ui.reviews.ReviewsScreen
 import com.example.topbooks.ui.profile.ProfileScreen
 import com.example.topbooks.ui.profile.UserListScreen
+import com.example.topbooks.ui.reviews.SingleCommentScreen // 🔥 AÑADIDO
 
 @Composable
 fun AppNavigation(
@@ -89,7 +90,6 @@ fun AppNavigation(
             })
         }
 
-        // Aquí es donde inyectamos tu MainScreen con su barra
         composable("main") {
             MainScreen(
                 onNavigateToConfig = { navController.navigate("config") },
@@ -140,7 +140,11 @@ fun AppNavigation(
                 type = type,
                 userId = userId,
                 onBackClick = { navController.popBackStack() },
-                onBookClick = { id: String -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") }
+                onBookClick = { id: String -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
+                // 🔥 AÑADIDO: Dirigimos al hilo individual al pulsar un comentario
+                onCommentClick = { _: String, cid: String ->
+                    if (cid.isNotEmpty()) navController.navigate("single_comment/$cid")
+                }
             )
         }
 
@@ -148,8 +152,9 @@ fun AppNavigation(
             SocialActivityScreen(
                 onBackClick = { navController.popBackStack() },
                 onBookClick = { id: String -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
-                onCommentClick = { bid: String, _: String ->
-                    if (bid.isNotEmpty()) navController.navigate("reviews_thread/$bid")
+                // 🔥 AÑADIDO: Dirigimos al hilo individual también desde el feed social
+                onCommentClick = { _: String, cid: String ->
+                    if (cid.isNotEmpty()) navController.navigate("single_comment/$cid")
                 }
             )
         }
@@ -161,6 +166,18 @@ fun AppNavigation(
             ReviewsScreen(
                 onBackClick = { navController.popBackStack() },
                 onBookClick = { id: String -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") }
+            )
+        }
+
+        //NUEVA RUTA PARA EL HILO INDIVIDUAL
+        composable(
+            route = "single_comment/{commentId}",
+            arguments = listOf(navArgument("commentId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val commentId = backStackEntry.arguments?.getString("commentId") ?: ""
+            SingleCommentScreen(
+                commentId = commentId,
+                onBackClick = { navController.popBackStack() }
             )
         }
 

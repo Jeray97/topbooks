@@ -260,7 +260,7 @@
     <string name="friends_activity_empty_desc">Sigue a más amigos para ver sus favoritos.</string>
 
     <string name="friends_title">Encuentra amigos</string>
-    <string name="friends_search_hint">Buscar amigos...</string>
+    <string name="friends_search_hint">Buscar amigos…</string>
     <string name="friends_action_clear">Borrar</string>
     <string name="friends_section_my_friends">Mis amigos</string>
     <string name="friends_empty_my_friends">Aún no tienes amigos añadidos</string>
@@ -269,7 +269,7 @@
     <string name="friends_section_interactions">Interacciones recientes</string>
     <string name="friends_empty_interactions">Añade amigos para ver su actividad</string>
     <string name="friends_search_empty">No se encontraron usuarios</string>
-    <string name="friends_section_loading_default">Buscando usuarios...</string>
+    <string name="friends_section_loading_default">Buscando usuarios…</string>
     <string name="friends_interaction_format"> %1$s </string>
 
     <!-- SOCIAL -->
@@ -280,8 +280,13 @@
     <string name="social_action_reply">respondió a %1$s</string>
     <string name="social_action_format">%1$s %2$s</string>
     <string name="social_default_user">Usuario</string>
-    <string name="social_empty_title">Todo está muy tranquilo...</string>
+    <string name="social_empty_title">Todo está muy tranquilo…</string>
     <string name="social_empty_desc">Tus amigos aún no han realizado actividades.</string>
+    <string name="single_comment_thread">Hilo de conversación</string>
+    <string name="single_comment_chapter">Cap. %1$s</string>
+    <string name="single_comment_no_replies">No hay respuestas aún.</string>
+    <string name="single_comment_not_found">Comentario no encontrado</string>
+    <string name="boton_enviar_desc">Enviar comentario.</string>
 
     <!-- DETALLE DE LIBRO -->
     <string name="bookdetail_fab_journal">Diario de lectura</string>

@@ -46,7 +46,16 @@ class ProgressRepositoryImpl : ProgressRepository {
         return try {
             ensureBookInGlobal(book)
             val ref = db.collection("comments").document()
-            ref.set(hashMapOf("commentId" to ref.id, "bookId" to book.id, "userId" to uid, "text" to text, "chapter" to chapter, "createAt" to com.google.firebase.Timestamp.now(), "replies" to emptyList<Any>())).await()
+            ref.set(hashMapOf(
+                "commentId" to ref.id,
+                "bookId" to book.id,
+                "userId" to uid,
+                "text" to text,
+                "chapter" to chapter,
+                "createAt" to com.google.firebase.Timestamp.now(),
+                "replies" to emptyList<Any>(),
+                "participantIds" to listOf(uid)
+            )).await()
             Result.success(true)
         } catch (e: Exception) { Result.failure(e) }
     }

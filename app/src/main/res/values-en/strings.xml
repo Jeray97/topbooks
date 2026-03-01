@@ -221,6 +221,8 @@
     <string name="social_empty_title">Everything is very quiet...</string>
     <string name="social_empty_desc">Your friends have not performed any activities yet.</string>
 
+    <string name="single_comment_not_found">Comment not found</string>
+    <string name="boton_enviar_desc">Send comment.</string>
     <string name="bookdetail_fab_journal">Reading journal</string>
     <string name="bookdetail_fab_bookmark">Add bookmark</string>
     <string name="bookdetail_fab_review">Write review</string>
@@ -334,5 +336,8 @@
     <string name="conf_delete_wrong_password">The password is incorrect.</string>
     <string name="conf_delete_success">Account successfully deleted.</string>
     <string name="conf_delete_recent_login_required">For security reasons, log out and log back in to delete your account.</string>
+    <string name="single_comment_thread">Thread</string>
+    <string name="single_comment_chapter">Chapter. %1$s</string>
+    <string name="single_comment_no_replies">No replies yet.</string>
 
 </resources>

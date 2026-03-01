@@ -25,10 +25,8 @@ import com.example.topbooks.ui.theme.TopBooksTheme
 
 class MainActivity : ComponentActivity() {
 
-    // 1. ESTADO REACTIVO: Guarda la ruta a la que queremos navegar por Deep Link
     private var pendingRoute by mutableStateOf<String?>(null)
 
-    // Manejador del permiso de notificaciones (Android 13+)
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -62,7 +60,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // 🟢 Mantenemos AppNavigation aquí. ¡Es lo correcto!
                     AppNavigation(
                         navController = navController,
                         settingsManager = settingsManager
@@ -99,8 +96,13 @@ class MainActivity : ComponentActivity() {
                 }
             }
             "NEW_REPLY" -> {
+                //LAS NOTIFICACIONES ABREN EL HILO INDIVIDUAL
+                val commentId = intent.getStringExtra("commentId")
                 val bookId = intent.getStringExtra("bookId")
-                if (!bookId.isNullOrEmpty()) {
+
+                if (!commentId.isNullOrEmpty()) {
+                    pendingRoute = "single_comment/$commentId"
+                } else if (!bookId.isNullOrEmpty()) {
                     pendingRoute = "reviews_thread/$bookId"
                 }
             }
