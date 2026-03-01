@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Comment
+import com.example.topbooks.data.model.Journal
+import com.example.topbooks.data.model.Review
 import com.example.topbooks.data.repository.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -18,10 +20,13 @@ data class SimpleUser(val uid: String = "", val name: String = "", val photo: St
 data class SimpleBook(val id: String = "", val title: String = "", val imageUrl: String = "")
 data class BookmarkUI(val id: String = "", val bookId: String = "", val bookTitle: String = "", val quote: String = "", val chapter: String = "", val page: String = "", val isPublic: Boolean = true)
 
+// 🔥 LISTAS SEPARADAS Y ESTRICTAS PARA CADA TIPO
 data class UserListState(
     val friends: List<SimpleUser> = emptyList(),
     val readBooks: List<SimpleBook> = emptyList(),
-    val reviews: List<Comment> = emptyList(),
+    val reviews: List<Review> = emptyList(),
+    val comments: List<Comment> = emptyList(),
+    val journals: List<Journal> = emptyList(),
     val bookmarks: List<BookmarkUI> = emptyList(),
     val favorites: List<SimpleBook> = emptyList(),
     val isLoading: Boolean = false
@@ -31,7 +36,8 @@ class UserListViewModel(
     private val progressRepo: ProgressRepository = ProgressRepositoryImpl(),
     private val feedRepo: SocialFeedRepository = SocialFeedRepositoryImpl(),
     private val communityRepo: CommunityRepository = CommunityRepositoryImpl(),
-    private val userRepo: UserRepository = UserRepositoryImpl()
+    private val userRepo: UserRepository = UserRepositoryImpl(),
+    private val booksRepo: BooksRepository = BooksRepository() // 🔥 AÑADIDO PARA ENRIQUECER TÍTULOS
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UserListState())
@@ -53,6 +59,7 @@ class UserListViewModel(
                 "comments" -> fetchComments(userId)
                 "bookmarks" -> fetchBookmarks(userId)
                 "favorites" -> fetchFavorites(userId)
+                "journals" -> fetchJournals(userId) // 🔥 AHORA CARGA DIARIOS
             }
         }
     }
@@ -81,15 +88,37 @@ class UserListViewModel(
     }
 
     private suspend fun fetchReviews(userId: String) {
-        val comments = feedRepo.getUserComments(userId).getOrDefault(emptyList())
-        _uiState.update { it.copy(reviews = comments, isLoading = false) }
+        val reviewsList = feedRepo.getUserReviews(userId).getOrDefault(emptyList())
+        // 🔥 Buscamos el título y portada en la base de datos de libros
+        val enriched = reviewsList.map { r ->
+            val book = booksRepo.getBookDetail(r.bookId).getOrNull()
+            if (book != null) r.copy(bookTitle = book.title, bookImageUrl = book.imageUrl) else r
+        }
+        _uiState.update { it.copy(reviews = enriched, isLoading = false) }
     }
 
-    private suspend fun fetchComments(userId: String) = fetchReviews(userId)
+    private suspend fun fetchComments(userId: String) {
+        val commentsList = feedRepo.getUserComments(userId).getOrDefault(emptyList())
+        // 🔥 Enriquecemos los comentarios también
+        val enriched = commentsList.map { c ->
+            val book = booksRepo.getBookDetail(c.bookId).getOrNull()
+            if (book != null) c.copy(bookTitle = book.title, bookImageUrl = book.imageUrl) else c
+        }
+        _uiState.update { it.copy(comments = enriched, isLoading = false) }
+    }
+
+    private suspend fun fetchJournals(userId: String) {
+        val journalsList = progressRepo.getUserJournals(userId).getOrDefault(emptyList())
+        _uiState.update { it.copy(journals = journalsList, isLoading = false) }
+    }
 
     private suspend fun fetchBookmarks(userId: String) {
         val marks = progressRepo.getBookmarks(userId).getOrDefault(emptyList())
-        _uiState.update { it.copy(bookmarks = marks, isLoading = false) }
+        val enriched = marks.map { b ->
+            val book = booksRepo.getBookDetail(b.bookId).getOrNull()
+            if (book != null) b.copy(bookTitle = book.title) else b
+        }
+        _uiState.update { it.copy(bookmarks = enriched, isLoading = false) }
     }
 
     fun deleteComment(commentId: String) {
@@ -127,22 +156,16 @@ class UserListViewModel(
         }
     }
 
-    // 🟢 NUEVA FUNCIÓN AÑADIDA PARA EDITAR EL MARCADOR
     fun updateBookmark(bookmark: BookmarkUI) {
         viewModelScope.launch {
             try {
-                // Empaquetamos solo los datos que pueden ser editados
                 val updatedData = mapOf(
                     "page" to bookmark.page,
                     "chapter" to bookmark.chapter,
                     "quote" to bookmark.quote,
                     "isPublic" to bookmark.isPublic
                 )
-
-                // Actualizamos en Firebase
                 progressRepo.updateUserSubdocument("bookmarks", bookmark.bookId, updatedData)
-
-                // Recargamos la lista para ver el cambio instantáneo
                 loadList(currentListType, currentUserId)
             } catch (e: Exception) {
                 Log.e("UserListVM", "Error al actualizar marcador: ${e.message}")

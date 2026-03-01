@@ -30,6 +30,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topbooks.R
+import com.example.topbooks.data.model.Comment
+import com.example.topbooks.data.model.Journal
+import com.example.topbooks.data.model.Review
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
 import com.google.firebase.auth.FirebaseAuth
@@ -84,21 +87,22 @@ fun UserListScreen(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
+                    // 🔥 EL CORAZÓN DEL PROBLEMA ESTABA AQUÍ. AHORA CADA TIPO MAPEA A SU LISTA CORRECTA.
                     when(type) {
                         "friends" -> items(state.friends) { FriendItem(it, onUserClick) }
                         "read" -> items(state.readBooks) { BookItem(it, onBookClick) }
                         "favorites" -> items(state.favorites) { BookItem(it, onBookClick) }
                         "bookmarks" -> items(state.bookmarks) { BookmarkListItem(it, onBookClick, viewModel, isMe) }
-                        "journals" -> items(state.reviews) { ReviewListItem(it, onJournalClick) }
+                        "journals" -> items(state.journals) { JournalListItem(it, onJournalClick) }
                         "reviews" -> items(state.reviews) {
                             ReviewListItem(
                                 review = it,
                                 onBookClick = onBookClick,
-                                onDelete = { viewModel.deleteReview(it.commentId) },
+                                onDelete = { viewModel.deleteReview(it.id) },
                                 isMe = isMe
                             )
                         }
-                        "comments" -> items(state.reviews) {
+                        "comments" -> items(state.comments) {
                             CommentListItem(
                                 comment = it,
                                 onCommentClick = onCommentClick,
@@ -113,7 +117,9 @@ fun UserListScreen(
                         "read" -> state.readBooks.isEmpty()
                         "favorites" -> state.favorites.isEmpty()
                         "bookmarks" -> state.bookmarks.isEmpty()
-                        "reviews", "journals", "comments" -> state.reviews.isEmpty()
+                        "reviews" -> state.reviews.isEmpty()
+                        "comments" -> state.comments.isEmpty()
+                        "journals" -> state.journals.isEmpty()
                         else -> true
                     }
 
@@ -123,6 +129,40 @@ fun UserListScreen(
                                 Text(stringResource(R.string.userlist_empty_message), color = Color.Gray)
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun JournalListItem(journal: Journal, onClick: (String) -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onClick(journal.bookId) },
+        colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
+            AsyncImage(
+                model = journal.bookImageUrl,
+                contentDescription = null,
+                modifier = Modifier.size(50.dp, 75.dp).clip(RoundedCornerShape(4.dp)),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = journal.bookTitle.ifEmpty { "Libro" },
+                    color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(text = "Formato: ${journal.format}", color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
+                Spacer(Modifier.height(8.dp))
+                Row {
+                    repeat(5) { i ->
+                        val color = if(i < journal.mainRating) Color(0xFFFFD54F) else Color.White.copy(alpha = 0.3f)
+                        Icon(Icons.Default.Star, null, tint = color, modifier = Modifier.size(14.dp))
                     }
                 }
             }
@@ -280,7 +320,7 @@ fun BookItem(book: SimpleBook, onClick: (String) -> Unit) {
 
 @Composable
 fun ReviewListItem(
-    review: com.example.topbooks.data.model.Comment,
+    review: Review,
     onBookClick: (String) -> Unit,
     onDelete: (() -> Unit)? = null,
     isMe: Boolean = false
@@ -347,7 +387,7 @@ fun ReviewListItem(
 
 @Composable
 fun CommentListItem(
-    comment: com.example.topbooks.data.model.Comment,
+    comment: Comment,
     onCommentClick: (String, String) -> Unit,
     onDelete: () -> Unit,
     isMe: Boolean

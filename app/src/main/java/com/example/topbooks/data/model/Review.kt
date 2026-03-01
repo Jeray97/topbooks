@@ -11,10 +11,11 @@ data class Review(
     val text: String = "",
     val likes: Int = 0,
 
-
     @ServerTimestamp
     val createAt: Date? = null,
 
     var userName: String = "Usuario",
-    var userPhotoUrl: String = ""
+    var userPhotoUrl: String = "",
+    var bookTitle: String = "",
+    var bookImageUrl: String = ""
 )

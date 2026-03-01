@@ -1,6 +1,7 @@
 package com.example.topbooks.data.repository
 
 import com.example.topbooks.data.model.Book
+import com.example.topbooks.data.model.Journal
 import com.example.topbooks.ui.profile.BookmarkUI
 import com.example.topbooks.ui.profile.SimpleBook
 import com.google.firebase.auth.FirebaseAuth
@@ -17,6 +18,8 @@ interface ProgressRepository {
 
     suspend fun getReadBooks(userId: String): Result<List<SimpleBook>>
     suspend fun getBookmarks(userId: String): Result<List<BookmarkUI>>
+    // 🔥 Añadido el fetcher de diarios
+    suspend fun getUserJournals(userId: String): Result<List<Journal>>
 
     suspend fun deleteDocument(collection: String, documentId: String): Result<Boolean>
     suspend fun deleteUserSubdocument(collection: String, documentId: String): Result<Boolean>
@@ -94,6 +97,14 @@ class ProgressRepositoryImpl : ProgressRepository {
                 BookmarkUI(id = it.id, bookId = it.getString("bookId") ?: "", quote = it.getString("quote") ?: "", chapter = it.getString("chapter") ?: "", page = it.getString("page") ?: "", isPublic = it.getBoolean("isPublic") ?: true)
             }
             Result.success(marks)
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    // 🔥 Implementación del fetcher de diarios
+    override suspend fun getUserJournals(userId: String): Result<List<Journal>> {
+        return try {
+            val snap = db.collection("users").document(userId).collection("journals").get().await()
+            Result.success(snap.toObjects(Journal::class.java))
         } catch (e: Exception) { Result.failure(e) }
     }
 
