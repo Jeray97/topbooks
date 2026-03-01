@@ -143,7 +143,7 @@ fun MainScreen(
 
             composable(BottomNavItem.Reviews.route) {
                 ReviewsScreen(
-                    onBackClick = { },
+                    onBackClick = { bottomNavController.popBackStack() },
                     onBookClick = onNavigateToBookDetail
                 )
             }
@@ -154,7 +154,7 @@ fun MainScreen(
                     onNavigateToSettings = onNavigateToConfig,
                     onNavigateToDetail = onNavigateToBookDetail,
                     onNavigateToList = onNavigateToList,
-                    onBackClick = { }
+                    onBackClick = { bottomNavController.popBackStack() }
                 )
             }
         }
