@@ -37,8 +37,8 @@ import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.search.SearchViewModel
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.CategoryProvider
+import java.util.UUID
 
-// --- COLORES ADAPTADOS ---
 val JournalDark = ColorTitleCategoryDetail
 val JournalMedium = ColorBackGroundRecommendedSection
 val JournalLight = Color.White.copy(alpha = 0.6f)
@@ -60,7 +60,10 @@ fun ReadingJournalScreen(
     val existingJournal = uiState.existingJournal
     val isLoadingJournal = uiState.isLoadingJournal
 
-    // --- ESTADOS ---
+    var currentBookId by remember {
+        mutableStateOf(if (bookId == "new" || bookId.isEmpty()) UUID.randomUUID().toString() else bookId)
+    }
+
     var title by remember { mutableStateOf(initialTitle) }
     var author by remember { mutableStateOf(initialAuthor) }
     var pages by remember { mutableStateOf(initialPages) }
@@ -85,7 +88,9 @@ fun ReadingJournalScreen(
     var showSaveDialog by remember { mutableStateOf(false) }
     var expandedGenre by remember { mutableStateOf(false) }
 
-    // 🔥 GENERAMOS LOS GÉNEROS DINÁMICAMENTE PARA EL DIÁLOGO DEL DIARIO
+    // 🔥 ESTADO DEL NUEVO DIÁLOGO DE BORRADO
+    var showDeleteJournalDialog by remember { mutableStateOf(false) }
+
     val genreOptions = CategoryProvider.allCategories.map { code ->
         val data = CategoryProvider.getCategoryResources(code)
         if (data.nameRes != null) stringResource(id = data.nameRes) else CategoryProvider.formatFallbackName(code)
@@ -95,6 +100,7 @@ fun ReadingJournalScreen(
 
     LaunchedEffect(existingJournal) {
         existingJournal?.let { journal ->
+            currentBookId = journal.bookId
             title = journal.title.ifEmpty { initialTitle }
             author = journal.author.ifEmpty { initialAuthor }
             pages = journal.pages.ifEmpty { initialPages }
@@ -124,6 +130,7 @@ fun ReadingJournalScreen(
 
     if (showSearchDialog) {
         SearchBookDialog(onDismiss = { showSearchDialog = false }, onBookSelected = { b ->
+            currentBookId = b.id
             title = b.title; author = b.authors.firstOrNull() ?: ""; coverUrl = b.imageUrl
             pages = if (b.pageCount > 0) b.pageCount.toString() else pages
             showSearchDialog = false
@@ -151,8 +158,14 @@ fun ReadingJournalScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        val finalId = if (currentBookId.isEmpty() || currentBookId == "new") {
+                            UUID.randomUUID().toString()
+                        } else {
+                            currentBookId
+                        }
+
                         val journal = Journal(
-                            bookId = bookId,
+                            bookId = finalId,
                             bookTitle = title,
                             bookImageUrl = coverUrl,
                             title = title,
@@ -181,6 +194,29 @@ fun ReadingJournalScreen(
                 ) { Text(stringResource(R.string.journal_action_confirm)) }
             },
             dismissButton = { TextButton(onClick = { showSaveDialog = false }) { Text(stringResource(R.string.journal_action_cancel), color = Color.Gray) } },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+
+    // 🔥 NUEVO DIÁLOGO DE CONFIRMACIÓN PARA BORRAR USANDO STRINGS.XML
+    if (showDeleteJournalDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteJournalDialog = false },
+            title = { Text(stringResource(R.string.journal_delete_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = Color.Red.copy(0.7f)) },
+            text = { Text(stringResource(R.string.journal_delete_body), color = Color.Gray) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteJournal(currentBookId)
+                        showDeleteJournalDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f))
+                ) { Text(stringResource(R.string.userlist_action_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteJournalDialog = false }) { Text(stringResource(R.string.journal_action_cancel), color = Color.Gray) }
+            },
             containerColor = Color.White,
             shape = RoundedCornerShape(24.dp)
         )
@@ -247,7 +283,6 @@ fun ReadingJournalScreen(
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
                                             if (genre.isNotEmpty()) {
-                                                // 🔥 OBTENEMOS EL ICONO DIRECTAMENTE DEL PROVIDER
                                                 Image(
                                                     painter = painterResource(CategoryProvider.getCategoryResources(genre).iconRes),
                                                     contentDescription = null,
@@ -279,7 +314,6 @@ fun ReadingJournalScreen(
                                         genreOptions.forEach { opt ->
                                             DropdownMenuItem(
                                                 text = { Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    // 🔥 OBTENEMOS EL ICONO DEL PROVIDER TAMBIÉN AQUÍ
                                                     Image(painterResource(CategoryProvider.getCategoryResources(opt).iconRes), null, Modifier.size(20.dp))
                                                     Spacer(Modifier.width(8.dp))
                                                     Text(opt, fontFamily = CenturyGotic)
@@ -333,16 +367,35 @@ fun ReadingJournalScreen(
                         )
                     }
 
+                    // 🔥 ACTUALIZADO: LOS DOS BOTONES JUNTOS
                     item {
-                        Button(
-                            onClick = { showSaveDialog = true },
-                            modifier = Modifier.fillMaxWidth().height(50.dp).padding(bottom = 16.dp),
-                            enabled = !isSaving,
-                            colors = ButtonDefaults.buttonColors(containerColor = JournalDark),
-                            shape = RoundedCornerShape(12.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                            else Text(stringResource(R.string.journal_save_title), fontWeight = FontWeight.Bold, color = Color.White, fontFamily = CenturyGotic)
+                            // Solo mostramos el botón de "Eliminar" si el diario ya existía
+                            if (existingJournal != null) {
+                                OutlinedButton(
+                                    onClick = { showDeleteJournalDialog = true },
+                                    modifier = Modifier.weight(1f).height(50.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, Color.Red.copy(0.7f)),
+                                    enabled = !isSaving
+                                ) {
+                                    Text(stringResource(R.string.userlist_action_delete), color = Color.Red.copy(0.7f), fontWeight = FontWeight.Bold, fontFamily = CenturyGotic)
+                                }
+                            }
+
+                            Button(
+                                onClick = { showSaveDialog = true },
+                                modifier = Modifier.weight(if (existingJournal != null) 1f else 2f).height(50.dp),
+                                enabled = !isSaving,
+                                colors = ButtonDefaults.buttonColors(containerColor = JournalDark),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                if (isSaving) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                                else Text(stringResource(R.string.journal_save_title), fontWeight = FontWeight.Bold, color = Color.White, fontFamily = CenturyGotic)
+                            }
                         }
                     }
                 }
@@ -392,7 +445,6 @@ fun FormatoLecturaCard(selected: String, onSelect: (String) -> Unit) {
             Text(stringResource(R.string.journal_section_format), Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = JournalDark, fontSize = 11.sp, fontFamily = CenturyGotic)
             Spacer(Modifier.height(6.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                // Mantenemos la lógica de backend ("Físico") pero la etiqueta es dinámica
                 FormatOption(stringResource(R.string.journal_format_physical), Icons.AutoMirrored.Filled.MenuBook, selected == "Físico") { onSelect("Físico") }
                 FormatOption(stringResource(R.string.journal_format_digital), Icons.Default.TabletMac, selected == "Digital") { onSelect("Digital") }
                 FormatOption(stringResource(R.string.journal_format_audio), Icons.Default.Headphones, selected == "Audio") { onSelect("Audio") }

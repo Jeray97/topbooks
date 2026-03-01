@@ -87,13 +87,20 @@ fun UserListScreen(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-                    // 🔥 EL CORAZÓN DEL PROBLEMA ESTABA AQUÍ. AHORA CADA TIPO MAPEA A SU LISTA CORRECTA.
                     when(type) {
                         "friends" -> items(state.friends) { FriendItem(it, onUserClick) }
                         "read" -> items(state.readBooks) { BookItem(it, onBookClick) }
                         "favorites" -> items(state.favorites) { BookItem(it, onBookClick) }
                         "bookmarks" -> items(state.bookmarks) { BookmarkListItem(it, onBookClick, viewModel, isMe) }
-                        "journals" -> items(state.journals) { JournalListItem(it, onJournalClick) }
+                        // 🔥 ACTUALIZADO: Pasamos la acción onDelete al JournalListItem
+                        "journals" -> items(state.journals) {
+                            JournalListItem(
+                                journal = it,
+                                onClick = onJournalClick,
+                                onDelete = { viewModel.deleteJournal(it.bookId) },
+                                isMe = isMe
+                            )
+                        }
                         "reviews" -> items(state.reviews) {
                             ReviewListItem(
                                 review = it,
@@ -136,8 +143,35 @@ fun UserListScreen(
     }
 }
 
+// 🔥 ACTUALIZADO CON ICONO DE BORRAR Y STRINGS.XML
 @Composable
-fun JournalListItem(journal: Journal, onClick: (String) -> Unit) {
+fun JournalListItem(
+    journal: Journal,
+    onClick: (String) -> Unit,
+    onDelete: (() -> Unit)? = null,
+    isMe: Boolean = false
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog && onDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(stringResource(R.string.journal_delete_title), fontFamily = CenturyGotic, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+            text = { Text(stringResource(R.string.userlist_delete_journal_body), color = Color.DarkGray) },
+            confirmButton = {
+                Button(
+                    onClick = { onDelete(); showDeleteDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(0.7f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text(stringResource(R.string.userlist_action_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.userlist_action_cancel), color = Color.Gray) }
+            },
+            containerColor = Color.White, shape = RoundedCornerShape(24.dp)
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onClick(journal.bookId) },
         colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown),
@@ -153,11 +187,11 @@ fun JournalListItem(journal: Journal, onClick: (String) -> Unit) {
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = journal.bookTitle.ifEmpty { "Libro" },
+                    text = journal.bookTitle.ifEmpty { stringResource(R.string.journal_default_book_title) },
                     color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp
                 )
                 Spacer(Modifier.height(4.dp))
-                Text(text = "Formato: ${journal.format}", color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
+                Text(text = stringResource(R.string.journal_format_prefix, journal.format), color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
                 Spacer(Modifier.height(8.dp))
                 Row {
                     repeat(5) { i ->
@@ -166,10 +200,17 @@ fun JournalListItem(journal: Journal, onClick: (String) -> Unit) {
                     }
                 }
             }
+
+            if (isMe && onDelete != null) {
+                IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.userlist_action_delete), tint = Color.White.copy(alpha = 0.7f))
+                }
+            }
         }
     }
 }
 
+// ... Resto del archivo (BookmarkListItem, FriendItem, BookItem, etc.) igual que antes
 @Composable
 fun BookmarkListItem(bookmark: BookmarkUI, onBookClick: (String) -> Unit, viewModel: UserListViewModel, isMe: Boolean) {
     var showEditDialog by remember { mutableStateOf(false) }

@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// 1. AGRUPAMOS EL ESTADO DE LA UI
 data class JournalUiState(
     val existingJournal: Journal? = null,
     val isLoadingJournal: Boolean = false,
@@ -21,7 +20,6 @@ data class JournalUiState(
 )
 
 class ReadingJournalViewModel(
-    // 2. INYECTAMOS EL REPOSITORIO (Por defecto usamos la implementación de Firebase)
     private val repository: JournalRepository = JournalRepositoryImpl()
 ) : ViewModel() {
 
@@ -45,6 +43,19 @@ class ReadingJournalViewModel(
             _uiState.update { it.copy(isSaving = true, errorMessage = null) }
 
             repository.saveJournal(journal).onSuccess {
+                _uiState.update { it.copy(isSaving = false, saveSuccess = true) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isSaving = false, errorMessage = error.message) }
+            }
+        }
+    }
+
+    fun deleteJournal(bookId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, errorMessage = null) }
+
+            repository.deleteJournal(bookId).onSuccess {
+                // Reutilizamos saveSuccess para navegar hacia atrás
                 _uiState.update { it.copy(isSaving = false, saveSuccess = true) }
             }.onFailure { error ->
                 _uiState.update { it.copy(isSaving = false, errorMessage = error.message) }

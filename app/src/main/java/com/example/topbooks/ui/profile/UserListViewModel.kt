@@ -20,7 +20,6 @@ data class SimpleUser(val uid: String = "", val name: String = "", val photo: St
 data class SimpleBook(val id: String = "", val title: String = "", val imageUrl: String = "")
 data class BookmarkUI(val id: String = "", val bookId: String = "", val bookTitle: String = "", val quote: String = "", val chapter: String = "", val page: String = "", val isPublic: Boolean = true)
 
-// 🔥 LISTAS SEPARADAS Y ESTRICTAS PARA CADA TIPO
 data class UserListState(
     val friends: List<SimpleUser> = emptyList(),
     val readBooks: List<SimpleBook> = emptyList(),
@@ -37,7 +36,8 @@ class UserListViewModel(
     private val feedRepo: SocialFeedRepository = SocialFeedRepositoryImpl(),
     private val communityRepo: CommunityRepository = CommunityRepositoryImpl(),
     private val userRepo: UserRepository = UserRepositoryImpl(),
-    private val booksRepo: BooksRepository = BooksRepository() // 🔥 AÑADIDO PARA ENRIQUECER TÍTULOS
+    private val booksRepo: BooksRepository = BooksRepository(),
+    private val journalRepo: JournalRepository = JournalRepositoryImpl()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UserListState())
@@ -59,7 +59,7 @@ class UserListViewModel(
                 "comments" -> fetchComments(userId)
                 "bookmarks" -> fetchBookmarks(userId)
                 "favorites" -> fetchFavorites(userId)
-                "journals" -> fetchJournals(userId) // 🔥 AHORA CARGA DIARIOS
+                "journals" -> fetchJournals(userId)
             }
         }
     }
@@ -89,7 +89,6 @@ class UserListViewModel(
 
     private suspend fun fetchReviews(userId: String) {
         val reviewsList = feedRepo.getUserReviews(userId).getOrDefault(emptyList())
-        // 🔥 Buscamos el título y portada en la base de datos de libros
         val enriched = reviewsList.map { r ->
             val book = booksRepo.getBookDetail(r.bookId).getOrNull()
             if (book != null) r.copy(bookTitle = book.title, bookImageUrl = book.imageUrl) else r
@@ -99,7 +98,6 @@ class UserListViewModel(
 
     private suspend fun fetchComments(userId: String) {
         val commentsList = feedRepo.getUserComments(userId).getOrDefault(emptyList())
-        // 🔥 Enriquecemos los comentarios también
         val enriched = commentsList.map { c ->
             val book = booksRepo.getBookDetail(c.bookId).getOrNull()
             if (book != null) c.copy(bookTitle = book.title, bookImageUrl = book.imageUrl) else c
@@ -108,8 +106,15 @@ class UserListViewModel(
     }
 
     private suspend fun fetchJournals(userId: String) {
-        val journalsList = progressRepo.getUserJournals(userId).getOrDefault(emptyList())
-        _uiState.update { it.copy(journals = journalsList, isLoading = false) }
+        val journalsList = journalRepo.getAllJournals(userId).getOrDefault(emptyList())
+        val enriched = journalsList.map { j ->
+            // Optimización: si el ID es muy largo, es manual, no buscamos en internet
+            if (j.bookId.length > 20) return@map j
+
+            val book = booksRepo.getBookDetail(j.bookId).getOrNull()
+            if (book != null) j.copy(bookTitle = book.title, bookImageUrl = book.imageUrl) else j
+        }
+        _uiState.update { it.copy(journals = enriched, isLoading = false) }
     }
 
     private suspend fun fetchBookmarks(userId: String) {
@@ -121,55 +126,36 @@ class UserListViewModel(
         _uiState.update { it.copy(bookmarks = enriched, isLoading = false) }
     }
 
+    // 🔥 NUEVO: Función para eliminar diario de la lista
+    fun deleteJournal(bookId: String) {
+        viewModelScope.launch {
+            journalRepo.deleteJournal(bookId)
+            loadList(currentListType, currentUserId)
+        }
+    }
+
     fun deleteComment(commentId: String) {
-        viewModelScope.launch {
-            progressRepo.deleteDocument("comments", commentId)
-            loadList(currentListType, currentUserId)
-        }
+        viewModelScope.launch { progressRepo.deleteDocument("comments", commentId); loadList(currentListType, currentUserId) }
     }
-
     fun deleteReview(reviewId: String) {
-        viewModelScope.launch {
-            progressRepo.deleteDocument("reviews", reviewId)
-            loadList(currentListType, currentUserId)
-        }
+        viewModelScope.launch { progressRepo.deleteDocument("reviews", reviewId); loadList(currentListType, currentUserId) }
     }
-
     fun removeBookmark(bookId: String) {
-        viewModelScope.launch {
-            progressRepo.deleteUserSubdocument("bookmarks", bookId)
-            loadList(currentListType, currentUserId)
-        }
+        viewModelScope.launch { progressRepo.deleteUserSubdocument("bookmarks", bookId); loadList(currentListType, currentUserId) }
     }
-
     fun removeFavorite(bookId: String) {
-        viewModelScope.launch {
-            progressRepo.deleteUserSubdocument("favorites", bookId)
-            loadList(currentListType, currentUserId)
-        }
+        viewModelScope.launch { progressRepo.deleteUserSubdocument("favorites", bookId); loadList(currentListType, currentUserId) }
     }
-
     fun removeReadBook(bookId: String) {
-        viewModelScope.launch {
-            progressRepo.deleteUserSubdocument("read_books", bookId)
-            loadList(currentListType, currentUserId)
-        }
+        viewModelScope.launch { progressRepo.deleteUserSubdocument("read_books", bookId); loadList(currentListType, currentUserId) }
     }
-
     fun updateBookmark(bookmark: BookmarkUI) {
         viewModelScope.launch {
             try {
-                val updatedData = mapOf(
-                    "page" to bookmark.page,
-                    "chapter" to bookmark.chapter,
-                    "quote" to bookmark.quote,
-                    "isPublic" to bookmark.isPublic
-                )
+                val updatedData = mapOf("page" to bookmark.page, "chapter" to bookmark.chapter, "quote" to bookmark.quote, "isPublic" to bookmark.isPublic)
                 progressRepo.updateUserSubdocument("bookmarks", bookmark.bookId, updatedData)
                 loadList(currentListType, currentUserId)
-            } catch (e: Exception) {
-                Log.e("UserListVM", "Error al actualizar marcador: ${e.message}")
-            }
+            } catch (e: Exception) { Log.e("UserListVM", "Error al actualizar marcador: ${e.message}") }
         }
     }
 }

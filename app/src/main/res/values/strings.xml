@@ -357,6 +357,11 @@
     <string name="journal_field_nicknames">Apodos</string>
     <string name="journal_field_moments">Frases y momentos favoritos</string>
     <string name="journal_search_hint">Buscar libro…</string>
+    <string name="journal_delete_title">Eliminar Diario</string>
+    <string name="userlist_delete_journal_body">¿Estás seguro de que quieres eliminar este diario de lectura? Perderás todas tus notas y clasificaciones.</string>
+    <string name="journal_delete_body">¿Estás seguro de que deseas eliminar este diario? Esta acción no se puede deshacer.</string>
+    <string name="journal_format_prefix">Formato: %1$s</string>
+    <string name="journal_default_book_title">Libro</string>
 
     <!-- TOPBAR -->
     <string name="desc_clear_icon">Borrar</string>

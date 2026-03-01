@@ -23,7 +23,9 @@ data class ProgressState(
 class ProgressViewModel(
     private val progressRepo: ProgressRepository = ProgressRepositoryImpl(),
     private val userRepo: UserRepository = UserRepositoryImpl(),
-    private val booksRepo: BooksRepository = BooksRepository()
+    private val booksRepo: BooksRepository = BooksRepository(),
+    // 🔥 1. AÑADIMOS EL REPOSITORIO DE DIARIOS
+    private val journalRepo: JournalRepository = JournalRepositoryImpl()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProgressState())
@@ -44,6 +46,9 @@ class ProgressViewModel(
             val favCoversDeferred = async { userRepo.getFavoriteCovers(uid, 50).getOrDefault(emptyList()) }
             val favIdsDeferred = async { userRepo.getFavoriteIds(uid).getOrDefault(emptyList()) }
 
+            // 🔥 2. PEDIMOS LOS DIARIOS DE FORMA ASÍNCRONA
+            val journalsDeferred = async { journalRepo.getAllJournals(uid).getOrDefault(emptyList()) }
+
             val readBooks = readDeferred.await()
             val pendingBooks = bookmarksDeferred.await().map { SimpleBook(it.bookId, it.bookTitle, "") }
 
@@ -51,12 +56,19 @@ class ProgressViewModel(
             val favCovers = favCoversDeferred.await()
             val favoriteBooks = favIds.zip(favCovers).map { SimpleBook(it.first, imageUrl = it.second) }
 
-            // Enriquecemos portadas de pendientes y leídos
+            // 3. RECIBIMOS LOS DIARIOS Y LOS CONVERTIMOS A SimpleBook
+            val myJournals = journalsDeferred.await().map {
+                SimpleBook(id = it.bookId, title = it.bookTitle, imageUrl = it.bookImageUrl)
+            }
+
+            // Enriquecemos portadas (Añadimos myJournals a la lista de enriquecimiento)
             val enrichedPending = enrichWithGlobalBooks(pendingBooks)
             val enrichedRead = enrichWithGlobalBooks(readBooks)
+            val enrichedJournals = enrichWithGlobalBooks(myJournals) // 🔥 Buscamos el título/portada en la API
 
             _uiState.update {
                 it.copy(
+                    journals = enrichedJournals, // 🔥 4. LO AÑADIMOS AL ESTADO
                     read = enrichedRead,
                     pending = enrichedPending,
                     favorites = favoriteBooks,
@@ -69,6 +81,9 @@ class ProgressViewModel(
     private suspend fun enrichWithGlobalBooks(list: List<SimpleBook>): List<SimpleBook> {
         return list.map { book ->
             viewModelScope.async {
+                //Evitamos hacer peticiones a la API para los diarios creados manualmente
+                if (book.id.length > 20) return@async book
+
                 val apiBook = booksRepo.getBookDetail(book.id).getOrNull()
                 book.copy(
                     title = apiBook?.title ?: book.title,
