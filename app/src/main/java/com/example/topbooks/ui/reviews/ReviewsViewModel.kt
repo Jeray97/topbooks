@@ -39,7 +39,7 @@ class ReviewsViewModel(
         loadSocialFeed()
     }
 
-    // 🟢 Modificado para aceptar bookId opcional
+
     fun loadSocialFeed(bookId: String? = null, targetCommentId: String? = null) {
         currentBookId = bookId
 
@@ -82,10 +82,12 @@ class ReviewsViewModel(
         }
     }
 
-    // 🟢 NUEVA FUNCIÓN PARA VERIFICAR EL EMAIL
+
     fun checkEmailVerification(onResult: (Boolean) -> Unit) {
-        val isVerified = authRepository.isEmailVerified()
-        onResult(isVerified)
+        viewModelScope.launch {
+            authRepository.reloadUser()
+            onResult(authRepository.isEmailVerified())
+        }
     }
 
     fun openReplyDialog(comment: Comment) {
@@ -96,7 +98,7 @@ class ReviewsViewModel(
         _uiState.update { it.copy(targetReview = null) }
     }
 
-    // 🟢 Adaptada para que funcione como la esperas en la UI (recibe el comment y el text)
+
     fun addReply(targetComment: Comment, text: String) {
         val myUid = userRepository.getCurrentUserId() ?: return
 
@@ -113,7 +115,7 @@ class ReviewsViewModel(
 
                 feedRepository.addReply(targetComment.commentId, newReply, targetToken, targetComment.bookId)
 
-                // Recargamos manteniendo el bookId si estábamos en uno
+
                 loadSocialFeed(currentBookId)
             } catch (e: Exception) {
                 Log.e("ReviewsVM", "Error al enviar respuesta: ${e.message}")
@@ -138,4 +140,6 @@ class ReviewsViewModel(
             }
         }.awaitAll()
     }
+
+
 }

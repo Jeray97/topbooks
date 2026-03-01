@@ -100,7 +100,12 @@ class BookDetailViewModel(
     }
 
     fun checkEmailVerification(onResult: (Boolean) -> Unit) {
-        onResult(authRepository.isEmailVerified())
+        viewModelScope.launch {
+            //Forzamos la recarga del usuario desde el servidor de Firebase
+            authRepository.reloadUser()
+            // Ahora sí comprobamos el estado real actualizado
+            onResult(authRepository.isEmailVerified())
+        }
     }
 
     // 🔥 AHORA SÍ MANEJA "PENDIENTES" Y GARANTIZA EXCLUSIVIDAD EN BASE DE DATOS

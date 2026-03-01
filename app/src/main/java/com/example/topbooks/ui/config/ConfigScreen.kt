@@ -54,6 +54,10 @@ fun ConfigScreen(
     val isDeleting by viewModel.isDeletingAccount.collectAsStateWithLifecycle(initialValue = false)
     var showDeleteDialog by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        viewModel.refreshVerificationStatus()
+    }
+
     Scaffold(
         topBar = { TopBar(onBackClick = onBackClick) },
         containerColor = Color.White

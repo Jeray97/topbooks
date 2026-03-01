@@ -37,11 +37,14 @@ class ConfigViewModel(
         .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = false)
 
     init {
-        checkEmailVerification()
+        refreshVerificationStatus()
     }
 
-    private fun checkEmailVerification() {
-        _isEmailVerified.value = authRepository.isEmailVerified()
+    fun refreshVerificationStatus() {
+        viewModelScope.launch {
+            authRepository.reloadUser()
+            _isEmailVerified.value = authRepository.isEmailVerified()
+        }
     }
 
     fun toggleDarkMode(enabled: Boolean) = viewModelScope.launch { settingsManager.saveDarkMode(enabled) }

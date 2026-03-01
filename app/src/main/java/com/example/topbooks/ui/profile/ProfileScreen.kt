@@ -62,7 +62,7 @@ fun ProfileScreen(
     var showEditProfileDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Diálogos visuales recuperados e implementados
+    // Diálogos visuales
     if (showAvatarDialog && state.isMe) {
         AvatarSelectionDialog(
             currentAvatar = user.photoURL,
@@ -188,55 +188,14 @@ fun ProfileScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // ESTADÍSTICAS
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    StatBox(stringResource(R.string.profile_stat_friends), user.friendsCount.toString()) { onNavigateToList("friends", user.uid) }
-                    StatBox(stringResource(R.string.profile_stat_reviews), user.reviewsCount.toString()) { onNavigateToList("reviews", user.uid) }
-                    StatBox(stringResource(R.string.profile_stat_read), user.booksCompleted.toString()) { onNavigateToList("read", user.uid) }
-                }
-
                 Spacer(modifier = Modifier.height(32.dp))
-
-                // FAVORITOS
-                if (state.favoriteCovers.isNotEmpty()) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(stringResource(R.string.profile_favorite_books), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
-                            if (state.favoriteIds.size > 5) {
-                                Text(stringResource(R.string.profile_view_all), color = ColorArcMediumBrown, fontSize = 12.sp, modifier = Modifier.clickable { onNavigateToList("favorites", user.uid) })
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            items(state.favoriteCovers.size) { index ->
-                                val coverUrl = state.favoriteCovers[index]
-                                val bookId = state.favoriteIds.getOrNull(index) ?: ""
-                                AsyncImage(
-                                    model = coverUrl, contentDescription = null,
-                                    modifier = Modifier
-                                        .size(80.dp, 120.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .clickable { onNavigateToDetail(bookId) },
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(32.dp))
-                    }
-                }
 
                 // SECCIÓN GÉNEROS
                 ProfileGenresSection(user.favoriteGenres)
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // GRID DASHBOARD
+                // GRID DASHBOARD (Mis Diarios, Mis reseñas, etc.)
                 ProfileDashboardGrid(state, user.uid, onNavigateToList)
 
                 Spacer(modifier = Modifier.height(80.dp))
@@ -251,14 +210,6 @@ fun ProfileImage(photoUrl: String) {
         AsyncImage(model = photoUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
     } else {
         Image(painter = painterResource(AvatarHelper.getDrawableId(photoUrl)), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-    }
-}
-
-@Composable
-fun StatBox(label: String, value: String, onClick: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onClick() }) {
-        Text(text = value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
-        Text(text = label, fontSize = 12.sp, color = Color.Gray)
     }
 }
 
