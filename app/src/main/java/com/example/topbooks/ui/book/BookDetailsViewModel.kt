@@ -17,7 +17,7 @@ data class BookDetailState(
     val book: Book? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    // 🔥 Separamos Favoritos de las listas de lectura
+    // 🔥 Favoritos es independiente
     val isFavorite: Boolean = false,
     val savedInList: String? = null, // Solo será "Leídos" o "Pendientes"
     val reviews: List<Review> = emptyList()
@@ -47,18 +47,16 @@ class BookDetailViewModel(
         }
     }
 
-    // 🔥 Comprobamos todas las listas de forma concurrente para mayor velocidad
     private fun checkUserLists(bookId: String) {
         val uid = userRepository.getCurrentUserId() ?: return
 
         viewModelScope.launch {
             try {
-                // Lanzamos las 3 consultas a la vez
+                // Lanzamos las consultas a la vez para mayor velocidad
                 val readDeferred = async { progressRepository.getReadBooks(uid).getOrDefault(emptyList()) }
                 val favsDeferred = async { userRepository.getFavoriteIds(uid).getOrDefault(emptyList()) }
                 val marksDeferred = async { progressRepository.getBookmarks(uid).getOrDefault(emptyList()) }
 
-                // Esperamos los resultados
                 val read = readDeferred.await()
                 val favs = favsDeferred.await()
                 val marks = marksDeferred.await()
@@ -80,15 +78,13 @@ class BookDetailViewModel(
         }
     }
 
-    // 🔥 Nueva función exclusiva para favoritos con actualización optimista
     fun toggleFavorite(book: Book) {
         val currentState = _uiState.value.isFavorite
         val newState = !currentState
 
-        // 1. Actualización optimista de la UI (parece instantáneo)
+        // Actualización optimista de la UI (parece instantáneo)
         _uiState.update { it.copy(isFavorite = newState) }
 
-        // 2. Operación real en Firebase
         viewModelScope.launch {
             try {
                 if (newState) {
@@ -98,7 +94,6 @@ class BookDetailViewModel(
                 }
             } catch (e: Exception) {
                 Log.e("BookDetailVM", "Error al cambiar favorito: ${e.message}")
-                // Si falla, revertimos al estado anterior
                 _uiState.update { it.copy(isFavorite = currentState) }
             }
         }
@@ -108,12 +103,21 @@ class BookDetailViewModel(
         onResult(authRepository.isEmailVerified())
     }
 
+    // 🔥 AHORA SÍ MANEJA "PENDIENTES" Y GARANTIZA EXCLUSIVIDAD EN BASE DE DATOS
     fun addToList(book: Book, listName: String) {
         viewModelScope.launch {
-            // "Pendientes" no está aquí porque se añade mediante "saveBookmark"
             if (listName == "Leídos") {
+                // Si lo marco como leído, lo borro de pendientes
+                progressRepository.deleteUserSubdocument("bookmarks", book.id)
                 progressRepository.markAsRead(book)
                 _uiState.update { it.copy(savedInList = "Leídos") }
+
+            } else if (listName == "Pendientes") {
+                // Si lo marco como pendiente, lo borro de leídos
+                progressRepository.deleteUserSubdocument("read_books", book.id)
+                // Guardamos un marcador básico/vacío en la base de datos
+                progressRepository.saveBookmark(book, "", "", "", false)
+                _uiState.update { it.copy(savedInList = "Pendientes") }
             }
         }
     }
@@ -144,6 +148,8 @@ class BookDetailViewModel(
 
     fun saveBookmark(book: Book, page: String, quote: String, chapter: String, isPublic: Boolean, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            // 🔥 Si crean un marcador con el FAB, garantizamos exclusividad quitándolo de leídos
+            progressRepository.deleteUserSubdocument("read_books", book.id)
             progressRepository.saveBookmark(book, quote, chapter, page, isPublic).onSuccess {
                 _uiState.update { it.copy(savedInList = "Pendientes") }
                 onSuccess()

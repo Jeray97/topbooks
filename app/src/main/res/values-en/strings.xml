@@ -76,6 +76,7 @@
     <string name="conf_delete_account_dialog_no">Cancel</string>
 
     <string name="conf_email_error_toast">Error sending email. Please try again later.</string>
+    <string name="conf_delete_error">Error deleting account. Please try again later.</string>
     <string name="profile_anonymous_reader">Anonymous Reader</string>
     <string name="profile_no_bio_yet">No biography yet.</string>
     <string name="profile_remove_friend">Remove friend</string>
@@ -327,5 +328,11 @@
     <string name="conf_email_not_verified_desc">Please check your email to be able to post reviews and comments.</string>
     <string name="conf_email_resend_button">Forward mail</string>
     <string name="conf_email_verified_toast">Verification email forwarded.</string>
+    <string name="conf_delete_password_label">Password</string>
+    <string name="conf_delete_password_desc">Enter your current password to confirm deletion.</string>
+    <string name="conf_delete_google_desc">You have logged in with Google. If you have not logged in for a long time, the app will ask you to log out and log back in for security reasons.</string>
+    <string name="conf_delete_wrong_password">The password is incorrect.</string>
+    <string name="conf_delete_success">Account successfully deleted.</string>
+    <string name="conf_delete_recent_login_required">For security reasons, log out and log back in to delete your account.</string>
 
 </resources>

@@ -109,13 +109,13 @@ fun BookDetailScreen(
             if (state.book != null) {
                 Column(horizontalAlignment = Alignment.End) {
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                        SmallFabItem(Icons.Default.Call, stringResource(R.string.bookdetail_fab_journal)) {
+                        SmallFabItem(Icons.Default.Book, stringResource(R.string.bookdetail_fab_journal)) {
                             isFabExpanded = false
                             onNavigateToJournal(state.book!!.id, state.book!!.title, state.book!!.authors.joinToString(", "), state.book!!.imageUrl, state.book!!.pageCount.toString())
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Call, stringResource(R.string.bookdetail_fab_bookmark)) { isFabExpanded = false; showBookmarkDialog = true } }
+                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Bookmark, stringResource(R.string.bookdetail_fab_bookmark)) { isFabExpanded = false; showBookmarkDialog = true } }
                     Spacer(Modifier.height(8.dp))
 
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
@@ -202,7 +202,7 @@ fun BookHeaderSection(
 
             // LEÍDOS Y PENDIENTES EXCLUYENTES
             StatusButton(label = stringResource(R.string.bookdetail_status_read), isActive = savedInList == "Leídos", activeIcon = Icons.Default.CheckCircle, inactiveIcon = Icons.Outlined.CheckCircle, onClick = { onListAction("Leídos") })
-            StatusButton(label = stringResource(R.string.bookdetail_status_pending), isActive = savedInList == "Pendientes", activeIcon = Icons.Default.Info, inactiveIcon = Icons.Default.Info, onClick = { onListAction("Pendientes") })
+            StatusButton(label = stringResource(R.string.bookdetail_status_pending), isActive = savedInList == "Pendientes", activeIcon = Icons.Default.AccessTimeFilled, inactiveIcon = Icons.Default.AccessTime, onClick = { onListAction("Pendientes") })
         }
     }
 }
@@ -224,7 +224,7 @@ fun SmallFabItem(icon: ImageVector, label: String, onClick: () -> Unit) {
         Surface(color = Color.White, shape = RoundedCornerShape(8.dp), shadowElevation = 2.dp, modifier = Modifier.padding(end = 8.dp)) {
             Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
         }
-        SmallFloatingActionButton(onClick = onClick, containerColor = ColorHeaderBeige, contentColor = ColorArcDarkBrown) { Icon(icon, contentDescription = label) }
+        SmallFloatingActionButton(onClick = onClick, containerColor = Color.White, contentColor = ColorArcDarkBrown) { Icon(icon, contentDescription = label) }
     }
 }
 
@@ -233,7 +233,7 @@ fun SynopsisSection(description: String) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp)) {
         Text(stringResource(R.string.bookdetail_synopsis_title), fontSize = 18.sp, fontFamily = CenturyGotic, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(if (description.isNotBlank()) description else stringResource(R.string.bookdetail_synopsis_empty), fontSize = 14.sp, lineHeight = 22.sp, color = Color.DarkGray, textAlign = TextAlign.Justify)
+        Text(description.ifBlank { stringResource(R.string.bookdetail_synopsis_empty) }, fontSize = 14.sp, lineHeight = 22.sp, color = Color.DarkGray, textAlign = TextAlign.Justify)
     }
 }
 
