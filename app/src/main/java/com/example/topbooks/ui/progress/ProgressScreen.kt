@@ -92,7 +92,7 @@ fun ProgressScreen(
                         ProgressSection(
                             title = stringResource(R.string.progress_section_pending),
                             books = state.pending,
-                            onSeeAllClick = { onNavigateToList("bookmarks") },
+                            onSeeAllClick = { onNavigateToList("pending") },
                             onBookClick = onBookClick
                         )
                     }

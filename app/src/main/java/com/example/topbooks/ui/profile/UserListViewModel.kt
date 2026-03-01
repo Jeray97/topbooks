@@ -24,6 +24,7 @@ data class UserListState(
     val friends: List<SimpleUser> = emptyList(),
     val readBooks: List<SimpleBook> = emptyList(),
     val reviews: List<Review> = emptyList(),
+    val pendingBooks: List<SimpleBook> = emptyList(),
     val comments: List<Comment> = emptyList(),
     val journals: List<Journal> = emptyList(),
     val bookmarks: List<BookmarkUI> = emptyList(),
@@ -55,6 +56,7 @@ class UserListViewModel(
             when (listType) {
                 "friends" -> fetchFriends(userId)
                 "read" -> fetchReadBooks(userId)
+                "pending" -> fetchPendingBooks(userId)
                 "reviews" -> fetchReviews(userId)
                 "comments" -> fetchComments(userId)
                 "bookmarks" -> fetchBookmarks(userId)
@@ -157,5 +159,15 @@ class UserListViewModel(
                 loadList(currentListType, currentUserId)
             } catch (e: Exception) { Log.e("UserListVM", "Error al actualizar marcador: ${e.message}") }
         }
+    }
+
+    private suspend fun fetchPendingBooks(userId: String) {
+        // Los pendientes son marcadores, pero los transformamos en SimpleBook para dibujarlos como libros
+        val marks = progressRepo.getBookmarks(userId).getOrDefault(emptyList())
+        val pending = marks.map { b ->
+            val book = booksRepo.getBookDetail(b.bookId).getOrNull()
+            SimpleBook(id = b.bookId, title = book?.title ?: b.bookTitle, imageUrl = book?.imageUrl ?: "")
+        }
+        _uiState.update { it.copy(pendingBooks = pending, isLoading = false) }
     }
 }

@@ -56,10 +56,12 @@ fun UserListScreen(
         viewModel.loadList(type, userId)
     }
 
+    // 🔥 ACTUALIZADO: Añadido el título para "pending"
     val title = when(type) {
         "friends" -> stringResource(R.string.userlist_title_friends)
         "reviews" -> stringResource(R.string.userlist_title_reviews)
         "read" -> stringResource(R.string.userlist_title_read)
+        "pending" -> stringResource(R.string.progress_section_pending)
         "journals" -> stringResource(R.string.userlist_title_journals)
         "bookmarks" -> stringResource(R.string.userlist_title_bookmarks)
         "comments" -> stringResource(R.string.userlist_title_comments)
@@ -87,12 +89,13 @@ fun UserListScreen(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
+                    // 🔥 ACTUALIZADO: Añadido "pending" dibujando BookItem
                     when(type) {
                         "friends" -> items(state.friends) { FriendItem(it, onUserClick) }
                         "read" -> items(state.readBooks) { BookItem(it, onBookClick) }
+                        "pending" -> items(state.pendingBooks) { BookItem(it, onBookClick) }
                         "favorites" -> items(state.favorites) { BookItem(it, onBookClick) }
                         "bookmarks" -> items(state.bookmarks) { BookmarkListItem(it, onBookClick, viewModel, isMe) }
-                        // 🔥 ACTUALIZADO: Pasamos la acción onDelete al JournalListItem
                         "journals" -> items(state.journals) {
                             JournalListItem(
                                 journal = it,
@@ -119,9 +122,11 @@ fun UserListScreen(
                         }
                     }
 
+                    // 🔥 ACTUALIZADO: Añadido "pending" a la comprobación de vacío
                     val isEmpty = when(type) {
                         "friends" -> state.friends.isEmpty()
                         "read" -> state.readBooks.isEmpty()
+                        "pending" -> state.pendingBooks.isEmpty()
                         "favorites" -> state.favorites.isEmpty()
                         "bookmarks" -> state.bookmarks.isEmpty()
                         "reviews" -> state.reviews.isEmpty()
@@ -143,7 +148,6 @@ fun UserListScreen(
     }
 }
 
-// 🔥 ACTUALIZADO CON ICONO DE BORRAR Y STRINGS.XML
 @Composable
 fun JournalListItem(
     journal: Journal,
@@ -210,7 +214,6 @@ fun JournalListItem(
     }
 }
 
-// ... Resto del archivo (BookmarkListItem, FriendItem, BookItem, etc.) igual que antes
 @Composable
 fun BookmarkListItem(bookmark: BookmarkUI, onBookClick: (String) -> Unit, viewModel: UserListViewModel, isMe: Boolean) {
     var showEditDialog by remember { mutableStateOf(false) }
