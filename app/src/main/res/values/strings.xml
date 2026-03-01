@@ -121,6 +121,13 @@
     <string name="conf_email_resend_button">Reenviar correo</string>
     <string name="conf_email_verified_toast">Correo de verificación reenviado.</string>
     <string name="conf_email_error_toast">Error al enviar el correo. Inténtalo más tarde.</string>
+    <string name="conf_delete_password_label">Contraseña</string>
+    <string name="conf_delete_password_desc">Introduce tu contraseña actual para confirmar la eliminación.</string>
+    <string name="conf_delete_google_desc">Iniciaste sesión con Google. Si hace mucho que no entras, la app te pedirá que cierres sesión y vuelvas a conectarte por seguridad.</string>
+    <string name="conf_delete_wrong_password">La contraseña es incorrecta.</string>
+    <string name="conf_delete_success">Cuenta eliminada correctamente.</string>
+    <string name="conf_delete_recent_login_required">Por seguridad, cierra sesión y vuelve a entrar para eliminar tu cuenta.</string>
+    <string name="conf_delete_error">Error al eliminar la cuenta. Inténtalo más tarde.</string>
 
     <!-- PERFIL -->
     <string name="profile_anonymous_reader">Lector Anónimo</string>

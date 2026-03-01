@@ -3,9 +3,13 @@ package com.example.topbooks.ui.config
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.topbooks.R
 import com.example.topbooks.data.preferences.SettingsManager
 import com.example.topbooks.data.repository.AuthRepository
 import com.example.topbooks.data.repository.AuthRepositoryImpl
+import com.google.firebase.auth.EmailAuthProvider
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,25 +22,19 @@ class ConfigViewModel(
     private val authRepository: AuthRepository = AuthRepositoryImpl()
 ) : ViewModel() {
 
-    // Estado para saber si el email está verificado
     private val _isEmailVerified = MutableStateFlow(true)
     val isEmailVerified: StateFlow<Boolean> = _isEmailVerified.asStateFlow()
     private val _isDeletingAccount = MutableStateFlow(false)
     val isDeletingAccount: StateFlow<Boolean> = _isDeletingAccount.asStateFlow()
 
     val darkModeEnabled: StateFlow<Boolean> = settingsManager.darkModeFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
+        .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = false)
 
     val notificationsEnabled: StateFlow<Boolean> = settingsManager.notificationsFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = true
-        )
+        .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = true)
+
+    val publicJournalDefaultEnabled: StateFlow<Boolean> = settingsManager.publicJournalDefaultFlow
+        .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = false)
 
     init {
         checkEmailVerification()
@@ -46,33 +44,23 @@ class ConfigViewModel(
         _isEmailVerified.value = authRepository.isEmailVerified()
     }
 
-    fun toggleDarkMode(enabled: Boolean) {
-        viewModelScope.launch { settingsManager.saveDarkMode(enabled) }
-    }
+    fun toggleDarkMode(enabled: Boolean) = viewModelScope.launch { settingsManager.saveDarkMode(enabled) }
+    fun toggleNotifications(enabled: Boolean) = viewModelScope.launch { settingsManager.saveNotifications(enabled) }
+    fun togglePublicJournalDefault(enabled: Boolean) = viewModelScope.launch { settingsManager.savePublicJournalDefault(enabled) }
 
-    fun toggleNotifications(enabled: Boolean) {
-        viewModelScope.launch { settingsManager.saveNotifications(enabled) }
-    }
-
-    // Función para reenviar email de verificación
     fun resendVerificationEmail(onResult: (String) -> Unit) {
         authRepository.resendVerificationEmail { result ->
-            if (result.isSuccess) {
-                onResult("Correo de verificación reenviado.")
-            } else {
-                onResult("Error al enviar el correo. Inténtalo más tarde.")
-            }
+            if (result.isSuccess) onResult("Correo de verificación reenviado.")
+            else onResult("Error al enviar el correo. Inténtalo más tarde.")
         }
     }
 
-    // Función para cambiar contraseña
     fun sendPasswordReset(onResult: (String) -> Unit) {
-        val email = authRepository.currentUser?.email
+        val email = FirebaseAuth.getInstance().currentUser?.email
         if (email.isNullOrEmpty()) {
             onResult("No se pudo obtener el correo del usuario.")
             return
         }
-
         viewModelScope.launch {
             authRepository.sendPasswordResetEmail(email).onSuccess {
                 onResult("Se ha enviado un correo para restablecer tu contraseña.")
@@ -82,33 +70,66 @@ class ConfigViewModel(
         }
     }
 
-    // Estado para la preferencia de privacidad
-    val publicJournalDefaultEnabled: StateFlow<Boolean> = settingsManager.publicJournalDefaultFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
-    // Función para alternar la privacidad
-    fun togglePublicJournalDefault(enabled: Boolean) {
-        viewModelScope.launch { settingsManager.savePublicJournalDefault(enabled) }
-    }
-
     fun signOut() {
         authRepository.logout()
     }
 
-    fun deleteAccount(onResult: (Boolean, String) -> Unit) {
-        viewModelScope.launch {
-            _isDeletingAccount.value = true
+    // 🔥 DETECTA SI EL USUARIO ES DE GOOGLE
+    fun isGoogleUser(): Boolean {
+        val user = FirebaseAuth.getInstance().currentUser
+        return user?.providerData?.any { it.providerId == "google.com" } == true
+    }
 
-            authRepository.deleteAccount().onSuccess {
+    // 🔥 REAUTENTICA CON CONTRASEÑA Y LUEGO BORRA LA CUENTA
+    fun reauthenticateAndDelete(password: String, onResult: (Boolean, Int) -> Unit) {
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            onResult(false, R.string.conf_delete_error)
+            return
+        }
+
+        _isDeletingAccount.value = true
+
+        if (isGoogleUser()) {
+            // Usuarios de Google no tienen contraseña, se intenta borrar directo
+            viewModelScope.launch {
+                authRepository.deleteAccount().onSuccess {
+                    _isDeletingAccount.value = false
+                    onResult(true, R.string.conf_delete_success)
+                }.onFailure { error ->
+                    _isDeletingAccount.value = false
+                    val isRecentLoginRequired = error is FirebaseAuthRecentLoginRequiredException || error.message?.contains("recent", ignoreCase = true) == true
+                    if (isRecentLoginRequired) onResult(false, R.string.conf_delete_recent_login_required)
+                    else onResult(false, R.string.conf_delete_error)
+                }
+            }
+        } else {
+            // Usuarios normales: Reautenticar con contraseña primero
+            val email = user.email
+            if (email.isNullOrEmpty()) {
                 _isDeletingAccount.value = false
-                onResult(true, "Cuenta eliminada correctamente.")
-            }.onFailure { error ->
-                _isDeletingAccount.value = false
-                onResult(false, error.message ?: "Error al eliminar la cuenta. Es posible que debas volver a iniciar sesión primero.")
+                onResult(false, R.string.conf_delete_error)
+                return
+            }
+
+            val credential = EmailAuthProvider.getCredential(email, password)
+            user.reauthenticate(credential).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    // Contraseña correcta, procedemos a borrar
+                    viewModelScope.launch {
+                        authRepository.deleteAccount().onSuccess {
+                            _isDeletingAccount.value = false
+                            onResult(true, R.string.conf_delete_success)
+                        }.onFailure {
+                            _isDeletingAccount.value = false
+                            onResult(false, R.string.conf_delete_error)
+                        }
+                    }
+                } else {
+                    // Contraseña incorrecta
+                    _isDeletingAccount.value = false
+                    onResult(false, R.string.conf_delete_wrong_password)
+                }
             }
         }
     }

@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,9 +46,7 @@ fun ConfigScreen(
 ) {
     val context = LocalContext.current
 
-    // 1. Observamos el estado de verificación del email
     val isEmailVerified by viewModel.isEmailVerified.collectAsStateWithLifecycle()
-
     val darkModeEnabled by viewModel.darkModeEnabled.collectAsStateWithLifecycle()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
     val publicJournalDefaultEnabled by viewModel.publicJournalDefaultEnabled.collectAsStateWithLifecycle()
@@ -74,7 +73,6 @@ fun ConfigScreen(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp)
             )
 
-            // 2. Banner de advertencia si la cuenta no está verificada
             if (!isEmailVerified) {
                 VerificationWarningCard(
                     onResendClick = {
@@ -185,25 +183,53 @@ fun ConfigScreen(
             }
         }
 
+        // 🔥 DIÁLOGO DE ELIMINACIÓN ACTUALIZADO CON CONTRASEÑA
         if (showDeleteDialog) {
+            var passwordConfirm by remember { mutableStateOf("") }
+            val isGoogleUser = remember { viewModel.isGoogleUser() }
+
             AlertDialog(
                 onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
                 title = { Text(stringResource(R.string.conf_delete_account_dialog_title), fontWeight = FontWeight.Bold) },
-                text = { Text(stringResource(R.string.conf_delete_account_dialog_body)) },
+                text = {
+                    Column {
+                        Text(stringResource(R.string.conf_delete_account_dialog_body))
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        if (isGoogleUser) {
+                            Text(stringResource(R.string.conf_delete_google_desc), color = Color.Gray, fontSize = 13.sp)
+                        } else {
+                            Text(stringResource(R.string.conf_delete_password_desc), color = Color.Gray, fontSize = 13.sp)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = passwordConfirm,
+                                onValueChange = { passwordConfirm = it },
+                                label = { Text(stringResource(R.string.conf_delete_password_label)) },
+                                visualTransformation = PasswordVisualTransformation(),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color.Red,
+                                    focusedLabelColor = Color.Red
+                                )
+                            )
+                        }
+                    }
+                },
                 containerColor = Color.White,
                 confirmButton = {
                     Button(
                         onClick = {
-                            viewModel.deleteAccount { success, message ->
+                            viewModel.reauthenticateAndDelete(passwordConfirm) { success, messageResId ->
                                 showDeleteDialog = false
-                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, context.getString(messageResId), Toast.LENGTH_LONG).show()
                                 if (success) {
                                     onSignOut()
                                 }
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        enabled = !isDeleting
+                        enabled = (!isGoogleUser && passwordConfirm.isNotEmpty() && !isDeleting) || (isGoogleUser && !isDeleting)
                     ) {
                         if (isDeleting) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -225,7 +251,6 @@ fun ConfigScreen(
     }
 }
 
-// 3. Componente visual para la advertencia de verificación
 @Composable
 fun VerificationWarningCard(onResendClick: () -> Unit) {
     ElevatedCard(
@@ -235,37 +260,14 @@ fun VerificationWarningCard(onResendClick: () -> Unit) {
         colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFF3E0)),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = null,
-                tint = Color(0xFFE65100)
-            )
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color(0xFFE65100))
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.conf_email_not_verified_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFFE65100),
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = stringResource(R.string.conf_email_not_verified_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.DarkGray
-                )
-                TextButton(
-                    onClick = onResendClick,
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text(
-                        stringResource(R.string.conf_email_resend_button),
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE65100)
-                    )
+                Text(text = stringResource(R.string.conf_email_not_verified_title), style = MaterialTheme.typography.titleMedium, color = Color(0xFFE65100), fontWeight = FontWeight.Bold)
+                Text(text = stringResource(R.string.conf_email_not_verified_desc), style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
+                TextButton(onClick = onResendClick, contentPadding = PaddingValues(0.dp)) {
+                    Text(stringResource(R.string.conf_email_resend_button), fontWeight = FontWeight.Bold, color = Color(0xFFE65100))
                 }
             }
         }
@@ -273,48 +275,18 @@ fun VerificationWarningCard(onResendClick: () -> Unit) {
 }
 
 @Composable
-fun ConfigSection(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit
-) {
+fun ConfigSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(modifier = Modifier.padding(vertical = 12.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = ColorArcDarkBrown,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-        )
-
-        ElevatedCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = Color.White),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
-        ) {
+        Text(text = title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
+        ElevatedCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White), elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)) {
             Column(content = content)
         }
     }
 }
 
 @Composable
-fun ConfigActionItem(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    titleColor: Color = ColorArcDarkBrown,
-    iconColor: Color = ColorArcDarkBrown,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+fun ConfigActionItem(icon: ImageVector, title: String, description: String, titleColor: Color = ColorArcDarkBrown, iconColor: Color = ColorArcDarkBrown, onClick: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 16.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, Modifier.size(24.dp), tint = iconColor)
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
@@ -326,36 +298,14 @@ fun ConfigActionItem(
 }
 
 @Composable
-fun ConfigSwitchItem(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    isChecked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCheckedChange(!isChecked) }
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+fun ConfigSwitchItem(icon: ImageVector, title: String, description: String, isChecked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth().clickable { onCheckedChange(!isChecked) }.padding(horizontal = 16.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, Modifier.size(24.dp), tint = ColorArcDarkBrown)
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = ColorArcDarkBrown, fontWeight = FontWeight.Medium)
             Text(description, style = MaterialTheme.typography.bodySmall, color = ColorPremiumTextSecondary)
         }
-        Switch(
-            checked = isChecked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = ColorArcDarkBrown,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = Color(0xFFE0E0E0),
-                uncheckedBorderColor = Color.Transparent
-            )
-        )
+        Switch(checked = isChecked, onCheckedChange = onCheckedChange, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ColorArcDarkBrown, uncheckedThumbColor = Color.White, uncheckedTrackColor = Color(0xFFE0E0E0), uncheckedBorderColor = Color.Transparent))
     }
 }
