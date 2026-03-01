@@ -110,7 +110,6 @@ class UserListViewModel(
     private suspend fun fetchJournals(userId: String) {
         val journalsList = journalRepo.getAllJournals(userId).getOrDefault(emptyList())
         val enriched = journalsList.map { j ->
-            // Optimización: si el ID es muy largo, es manual, no buscamos en internet
             if (j.bookId.length > 20) return@map j
 
             val book = booksRepo.getBookDetail(j.bookId).getOrNull()
@@ -119,16 +118,31 @@ class UserListViewModel(
         _uiState.update { it.copy(journals = enriched, isLoading = false) }
     }
 
+    // 🔥 MODIFICADO: Ahora filtramos los "marcadores vacíos" que pertenecen a pendientes
     private suspend fun fetchBookmarks(userId: String) {
         val marks = progressRepo.getBookmarks(userId).getOrDefault(emptyList())
-        val enriched = marks.map { b ->
+
+        // Solo conservamos los que tengan algún contenido real escrito por el usuario
+        val realBookmarks = marks.filter {
+            it.quote.isNotBlank() || it.chapter.isNotBlank() || it.page.isNotBlank()
+        }
+
+        val enriched = realBookmarks.map { b ->
             val book = booksRepo.getBookDetail(b.bookId).getOrNull()
             if (book != null) b.copy(bookTitle = book.title) else b
         }
         _uiState.update { it.copy(bookmarks = enriched, isLoading = false) }
     }
 
-    // 🔥 NUEVO: Función para eliminar diario de la lista
+    private suspend fun fetchPendingBooks(userId: String) {
+        val marks = progressRepo.getBookmarks(userId).getOrDefault(emptyList())
+        val pending = marks.map { b ->
+            val book = booksRepo.getBookDetail(b.bookId).getOrNull()
+            SimpleBook(id = b.bookId, title = book?.title ?: b.bookTitle, imageUrl = book?.imageUrl ?: "")
+        }
+        _uiState.update { it.copy(pendingBooks = pending, isLoading = false) }
+    }
+
     fun deleteJournal(bookId: String) {
         viewModelScope.launch {
             journalRepo.deleteJournal(bookId)
@@ -159,15 +173,5 @@ class UserListViewModel(
                 loadList(currentListType, currentUserId)
             } catch (e: Exception) { Log.e("UserListVM", "Error al actualizar marcador: ${e.message}") }
         }
-    }
-
-    private suspend fun fetchPendingBooks(userId: String) {
-        // Los pendientes son marcadores, pero los transformamos en SimpleBook para dibujarlos como libros
-        val marks = progressRepo.getBookmarks(userId).getOrDefault(emptyList())
-        val pending = marks.map { b ->
-            val book = booksRepo.getBookDetail(b.bookId).getOrNull()
-            SimpleBook(id = b.bookId, title = book?.title ?: b.bookTitle, imageUrl = book?.imageUrl ?: "")
-        }
-        _uiState.update { it.copy(pendingBooks = pending, isLoading = false) }
     }
 }

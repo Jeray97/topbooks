@@ -121,21 +121,3 @@ fun CategoryDetailContent(
         }
     }
 }
-
-@Preview(showBackground = true)
-@Composable
-fun CategoryDetailScreenPreview() {
-    val librosFalsos = listOf(
-        Book("1", "Libro 1", listOf("Autor"), "Desc", "", "2025"),
-        Book("2", "Libro 2", listOf("Autor"), "Desc", "", "2025")
-    )
-    MaterialTheme {
-        CategoryDetailContent(
-            categoryName = "Romance",
-            state = Resource.Success(librosFalsos),
-            onBackClick = {},
-            onBookClick = {},
-            onScanClick = {}
-        )
-    }
-}

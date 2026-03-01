@@ -330,6 +330,9 @@
     <string name="bookdetail_comment_chapter_optional">Capítulo (Opcional)</string>
     <string name="bookdetail_comment_label">Tu comentario *</string>
 
+    <string name="bookdetail_badge_saga">📚 Parte de una Saga</string>
+    <string name="bookdetail_badge_standalone">📖 Autoconclusivo</string>
+
     <!-- DIARIO DE LECTURA -->
     <string name="journal_genre_other">Otro</string>
     <string name="journal_save_title">Guardar en mi diario</string>

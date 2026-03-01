@@ -264,6 +264,7 @@
     <string name="bookdetail_comment_chapter_optional">Chapter (Optional)</string>
     <string name="bookdetail_comment_label">Your comment *</string>
 
+    <string name="bookdetail_badge_standalone">📖 Self-contained</string>
     <string name="journal_genre_other">Other</string>
     <string name="journal_save_title">Save to my journal</string>
     <string name="journal_save_desc">Do you want this entry to be visible on your profile for your friends?</string>
@@ -291,6 +292,7 @@
     <string name="journal_field_moments">Favorite quotes and moments</string>
     <string name="journal_search_hint">Search book…</string>
 
+    <string name="journal_default_book_title">Book</string>
     <string name="desc_clear_icon">Clear</string>
     <string name="desc_back_icon">Back</string>
     <string name="book_unknown_author">Unknown</string>
@@ -339,5 +341,10 @@
     <string name="single_comment_thread">Thread</string>
     <string name="single_comment_chapter">Chapter. %1$s</string>
     <string name="single_comment_no_replies">No replies yet.</string>
+    <string name="bookdetail_badge_saga">📚 Part of a Saga</string>
+    <string name="journal_delete_title">Delete Diary</string>
+    <string name="userlist_delete_journal_body">Are you sure you want to delete this reading journal? You will lose all your notes and ratings.</string>
+    <string name="journal_delete_body">Are you sure you want to delete this diary? This action cannot be undone.</string>
+    <string name="journal_format_prefix">Format: %1$s</string>
 
 </resources>

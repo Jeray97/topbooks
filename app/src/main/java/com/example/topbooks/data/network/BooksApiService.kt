@@ -12,11 +12,13 @@ import retrofit2.http.Url
 
 interface BooksApiService {
 
-    // --- GOOGLE BOOKS ---
+    // --- GOOGLE BOOKS MEJORADO ---
     @GET("https://www.googleapis.com/books/v1/volumes")
     suspend fun searchBooksGoogle(
         @Query("q") query: String,
         @Query("key") apiKey: String,
+        @Query("startIndex") startIndex: Int = 0,
+        @Query("orderBy") orderBy: String = "relevance",
         @Query("maxResults") maxResults: Int = 40,
         @Query("langRestrict") lang: String = "es",
         @Query("printType") printType: String = "books"
@@ -36,7 +38,6 @@ interface BooksApiService {
         @Query("limit") limit: Int = 20
     ): Response<OpenLibrarySearchResponse>
 
-    // Endpoint para el detalle
     @GET("https://openlibrary.org/works/{id}.json")
     suspend fun getWorkDetailOpenLibrary(
         @Path("id") id: String

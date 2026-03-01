@@ -264,22 +264,3 @@ fun WhiteBookItem(book: Book, onClick: () -> Unit) {
         }
     }
 }
-
-@Preview(showBackground = true, heightDp = 900)
-@Composable
-fun RecommendedScreenPreview() {
-    val dummyBooks = listOf(
-        Book("1", "El Nombre del Viento", listOf("P. Rothfuss"), "", "", "2007"),
-        Book("2", "Dune", listOf("F. Herbert"), "", "", "1965")
-    )
-
-    RecommendedContent(
-        popularState = Resource.Success(dummyBooks),
-        tastesState = Resource.Success(dummyBooks),
-        friendsState = Resource.Success(emptyList()),
-        genreForTastes = "Fantasía Épica",
-        onBackClick = {},
-        onBookClick = {},
-        onSectionClick = { _, _, _ -> }
-    )
-}

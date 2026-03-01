@@ -13,64 +13,104 @@ class BooksRepository {
     private val apiService = RetrofitClient.instance
     private val API_KEY = BuildConfig.API_KEY
 
-    // --- AÑADIDO: Soporte para PAGINACIÓN (page y limit) ---
     suspend fun getBooks(
         query: String,
         orderBy: String = "relevance",
         filterModern: Boolean = false,
-        page: Int = 1,      // Página actual
-        limit: Int = 20     // Libros por página
+        page: Int = 1,
+        limit: Int = 20
     ): Result<List<Book>> {
         return try {
-            val langCode = if (Locale.getDefault().language == "es") "spa" else "eng"
-            var finalQuery = "$query language:$langCode"
+            val langCode = Locale.getDefault().language
+            val startIndex = (page - 1) * limit
+
+            var finalQuery = query
 
             if (filterModern) {
                 val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-                val startYear = currentYear - 3
-                finalQuery += " first_publish_year:[$startYear TO $currentYear]"
+                val lastYear = currentYear - 1
+                finalQuery = "$query $lastYear"
             }
 
-            val sortParam = if (orderBy == "newest") "new" else null
-
-            // Nota: En OpenLibrary API, el parámetro 'page' funciona con el 'limit'.
-            // Añadimos &page=X a la query interna o usamos el soporte si Retrofit lo tuviera mapeado.
-            // Como tu interfaz Retrofit original tenía 'limit' pero no 'page' explícito en searchBooksOpenLibrary,
-            // asumiremos que la API responde al parámetro estándar "page".
-            // *Si tu BooksApiService no tiene 'page', funcionará trayendo siempre la 1ra página,
-            // pero para este ejemplo asumimos que el endpoint lo soporta o lo añadimos a la query string*.
-
-            // Truco: Añadimos 'page' manualmente a la query si la API interface no lo expone directamente
-            // o idealmente actualiza tu BooksApiService para aceptar @Query("page") page: Int.
-
-            // Suponiendo que tu BooksApiService es: searchBooksOpenLibrary(@Query("q")..., @Query("page")...)
-            // Como no puedo editar tu interface aquí, usaré una lógica de "offset" simulado o
-            // confiaré en que la implementación base traiga suficientes.
-
-            // Para que funcione REALMENTE la paginación, tu BooksApiService debería tener:
-            // @Query("page") page: Int
-
-            val response = apiService.searchBooksOpenLibrary(finalQuery, sortParam, limit)
+            val response = apiService.searchBooksGoogle(
+                query = finalQuery,
+                apiKey = API_KEY,
+                startIndex = startIndex,
+                // 🔥 Pedimos el máximo permitido a Google (40) para tener de sobra tras filtrar
+                maxResults = 40,
+                orderBy = "relevance",
+                lang = langCode
+            )
 
             if (response.isSuccessful) {
-                val books = response.body()?.docs?.map { it.toDomain() } ?: emptyList()
-                Result.success(books.filter { it.imageUrl.isNotEmpty() })
+                var books = response.body()?.items?.map { it.toDomain() } ?: emptyList()
+                // Solo aceptamos libros con portada y autor
+                books = books.filter { it.imageUrl.isNotEmpty() && it.authors.isNotEmpty() }
+
+                // 🔥 APLICAMOS EL FILTRO INTELIGENTE DE VARIEDAD
+                // Solo lo aplicamos en las secciones de recomendados y categorías, no en búsquedas directas
+                if (filterModern || query.contains("subject:")) {
+                    books = applyVarietyFilter(books)
+                }
+
+                // Devolvemos la cantidad exacta que nos pidió la pantalla
+                Result.success(books.take(limit))
             } else {
-                Result.failure(Exception("OpenLib Error: ${response.code()}"))
+                Result.failure(Exception("Google API Error: ${response.code()}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    // ... (Resto de funciones: searchHybrid, getBookDetail se mantienen igual)
+    // --- EL CEREBRO DEL FILTRO DE VARIEDAD ---
+    private fun applyVarietyFilter(books: List<Book>): List<Book> {
+        val filteredList = mutableListOf<Book>()
+        val authorCounts = mutableMapOf<String, Int>()
+
+        for (book in books) {
+            val author = book.authors.firstOrNull() ?: "Unknown"
+
+            // 1. Limpiamos el título de símbolos y sacamos las palabras clave (>2 letras)
+            val cleanTitle = book.title.lowercase().replace(Regex("[^a-z0-9áéíóúñ ]"), "")
+            val words = cleanTitle.split(" ").filter { it.length > 2 } // ignoramos la, el, y, de...
+
+            // 2. Tomamos las 2 primeras palabras fuertes como "Identificador de Saga"
+            val prefix = words.take(2).joinToString(" ")
+
+            val authorCount = authorCounts.getOrDefault(author, 0)
+
+            // 3. Comprobamos si ya añadimos un libro con este mismo identificador (Ej: "harry potter")
+            val hasSameSaga = filteredList.any { existingBook ->
+                val existingClean = existingBook.title.lowercase().replace(Regex("[^a-z0-9áéíóúñ ]"), "")
+                val existingWords = existingClean.split(" ").filter { it.length > 2 }
+                val existingPrefix = existingWords.take(2).joinToString(" ")
+
+                prefix.isNotEmpty() && prefix == existingPrefix
+            }
+
+            // 4. Regla estricta: Máximo 2 libros del mismo autor y NUNCA de la misma saga
+            if (authorCount < 2 && !hasSameSaga) {
+                filteredList.add(book)
+                authorCounts[author] = authorCount + 1
+            }
+        }
+
+        // Medida de seguridad: Si el filtro fue demasiado agresivo, devolvemos la lista original sin duplicados
+        if (filteredList.size < 4 && books.size >= 4) {
+            return books.distinctBy { it.title.lowercase().trim() }
+        }
+
+        return filteredList
+    }
+
     suspend fun searchHybrid(query: String): Result<List<Book>> = coroutineScope {
         try {
             val lang = Locale.getDefault().language
-            val googleJob = async { apiService.searchBooksGoogle(query, API_KEY, maxResults=20, lang=lang, printType="books") }
+            val googleJob = async { apiService.searchBooksGoogle(query, API_KEY, startIndex = 0, maxResults = 20, orderBy = "relevance", lang = lang, printType = "books") }
             val olJob = async {
                 val olLang = if (lang == "es") "spa" else "eng"
-                apiService.searchBooksOpenLibrary("$query language:$olLang", limit=15)
+                apiService.searchBooksOpenLibrary("$query language:$olLang", limit = 15)
             }
 
             val googleResp = googleJob.await()
@@ -79,8 +119,9 @@ class BooksRepository {
             val listGoogle = googleResp.body()?.items?.map { it.toDomain() } ?: emptyList()
             val listOL = olResp.body()?.docs?.map { it.toDomain() } ?: emptyList()
 
-            val combined = (listOL + listGoogle)
-                .filter { it.imageUrl.isNotEmpty() }
+            // En la barra de búsqueda manual SÍ dejamos que salgan libros de la misma saga
+            val combined = (listGoogle + listOL)
+                .filter { it.imageUrl.isNotEmpty() && it.authors.isNotEmpty() }
                 .distinctBy { it.title.lowercase().trim() }
 
             Result.success(combined)

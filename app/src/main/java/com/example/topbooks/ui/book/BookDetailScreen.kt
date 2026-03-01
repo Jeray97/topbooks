@@ -195,7 +195,26 @@ fun BookHeaderSection(
         Spacer(modifier = Modifier.height(24.dp))
         Text(book.title, fontSize = 24.sp, fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks, textAlign = TextAlign.Center, lineHeight = 28.sp, modifier = Modifier.padding(horizontal = 24.dp))
         Text(book.authors.joinToString(", "), fontSize = 16.sp, fontFamily = CenturyGotic, color = ColorArcDarkBrown, modifier = Modifier.padding(top = 8.dp))
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 🔥 NUEVA ETIQUETA: SAGA VS LIBRO ÚNICO
+        Surface(
+            color = if (book.isSaga) ColorArcMediumBrown.copy(alpha = 0.15f) else Color.LightGray.copy(alpha = 0.3f),
+            shape = CircleShape,
+        ) {
+            Text(
+                text = if (book.isSaga) stringResource(R.string.bookdetail_badge_saga) else stringResource(R.string.bookdetail_badge_standalone),
+                color = if (book.isSaga) ColorArcDarkBrown else Color.DarkGray,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = CenturyGotic,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
+
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             // FAVORITOS INDEPENDIENTE
             StatusButton(label = stringResource(R.string.bookdetail_status_favorites), isActive = isFavorite, activeIcon = Icons.Default.Favorite, inactiveIcon = Icons.Default.FavoriteBorder, onClick = onFavoriteClick)

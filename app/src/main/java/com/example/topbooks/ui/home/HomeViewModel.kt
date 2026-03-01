@@ -24,7 +24,7 @@ class HomeViewModel(
     private val booksRepository: BooksRepository = BooksRepository(),
     private val communityRepository: CommunityRepository = CommunityRepositoryImpl(),
     private val userRepository: UserRepository = UserRepositoryImpl()
-) : ViewModel() { // 🟢 Adiós AndroidViewModel
+) : ViewModel() {
 
     private val _categoryBooks = MutableStateFlow<Resource<List<Book>>>(Resource.Loading)
     val categoryBooks: StateFlow<Resource<List<Book>>> = _categoryBooks.asStateFlow()
@@ -36,8 +36,9 @@ class HomeViewModel(
     val friendsBooks: StateFlow<Resource<List<FriendBookRecommendation>>> = _friendsBooks.asStateFlow()
 
     init {
-        fetchBooks("subject:fiction", _categoryBooks)
-        fetchBooks("subject:fantasy", _recommendedBooks)
+        // 🔥 AÑADIMOS filterModern = true PARA QUE TRAIGA LO MEJOR DEL AÑO
+        fetchBooks("subject:fiction", _categoryBooks, filterModern = true)
+        fetchBooks("subject:fantasy", _recommendedBooks, filterModern = true)
         fetchFriendsFavorites()
     }
 
@@ -52,7 +53,6 @@ class HomeViewModel(
                     return@launch
                 }
 
-                // 🟢 Usamos coroutineScope igual que hicimos antes
                 val recommendations = coroutineScope {
                     friendIds.map { friendId ->
                         async {
@@ -78,10 +78,12 @@ class HomeViewModel(
         }
     }
 
-    private fun fetchBooks(query: String, state: MutableStateFlow<Resource<List<Book>>>) {
+    // 🔥 MODIFICADA PARA ACEPTAR EL FILTRO MODERNO
+    private fun fetchBooks(query: String, state: MutableStateFlow<Resource<List<Book>>>, filterModern: Boolean = false) {
         viewModelScope.launch {
             state.value = Resource.Loading
-            val result = booksRepository.getBooks(query)
+            // Pasamos el parámetro filterModern al repositorio
+            val result = booksRepository.getBooks(query = query, filterModern = filterModern)
             if (result.isSuccess) {
                 state.value = Resource.Success(result.getOrDefault(emptyList()))
             } else {

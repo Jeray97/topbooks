@@ -168,19 +168,3 @@ fun RecommendedSectionContent(
     }
 }
 
-@Preview(showBackground = true, heightDp = 800)
-@Composable
-fun RecommendedSectionPreview() {
-    val books = List(6) {
-        Book("$it", "Libro Demo $it", listOf("Autor"), "", "", "2025")
-    }
-
-    RecommendedSectionContent(
-        title = "Vista Previa",
-        state = Resource.Success(books),
-        backgroundColor = ColorBackGroundRecommendedSection,
-        onBackClick = {},
-        onBookClick = {},
-        onLoadMore = {}
-    )
-}
