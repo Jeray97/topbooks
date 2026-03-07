@@ -172,6 +172,7 @@
     <string name="tutorial_books_subtitle">Mark the ones you are interested in</string>
     <string name="tutorial_books_empty">No suggestions available</string>
 
+    <string name="tour_btn_finish">Let\'s read!</string>
     <string name="home_friends_empty_title">No friends found</string>
     <string name="home_friends_empty_desc">Add friends to see their favorite books</string>
     <string name="home_books_empty">No books found.</string>
@@ -265,6 +266,7 @@
     <string name="bookdetail_comment_label">Your comment *</string>
 
     <string name="bookdetail_badge_standalone">📖 Self-contained</string>
+    <string name="query_popular_bestsellers">Best-selling and most popular books</string>
     <string name="journal_genre_other">Other</string>
     <string name="journal_save_title">Save to my journal</string>
     <string name="journal_save_desc">Do you want this entry to be visible on your profile for your friends?</string>
@@ -346,5 +348,21 @@
     <string name="userlist_delete_journal_body">Are you sure you want to delete this reading journal? You will lose all your notes and ratings.</string>
     <string name="journal_delete_body">Are you sure you want to delete this diary? This action cannot be undone.</string>
     <string name="journal_format_prefix">Format: %1$s</string>
+    <string name="tour_step0_title">Your Library is ready!</string>
+    <string name="tour_step0_desc">Let us give you a quick tour of your new application so you can get to know its ins and outs.</string>
+    <string name="tour_step1_title">🔍 Search Engine and Scanner</string>
+    <string name="tour_step1_desc">Use the bar to search by title and author, or tap the scanner icon to register physical books directly using their barcode.</string>
+    <string name="tour_step2_title">🏠 Home</string>
+    <string name="tour_step2_desc">Discover new releases, explore genres, and find books recommended especially for you.</string>
+    <string name="tour_step3_title">📈 Your Progress</string>
+    <string name="tour_step3_desc">Record your readings, mark books you still need to read, and create immersive Reading Journals.</string>
+    <string name="tour_step4_title">👥 Community</string>
+    <string name="tour_step4_desc">Add your friends to see what they\'re reading and discover their favourite books.</string>
+    <string name="tour_step5_title">⭐ Reviews</string>
+    <string name="tour_step5_desc">Read other users\' opinions, post your own, and discuss in the comments.</string>
+    <string name="tour_step6_title">👤 Your Profile</string>
+    <string name="tour_step6_desc">Set up your avatar, review your genres, and access all your saved lists. All set!</string>
+    <string name="tour_btn_next">Next</string>
+    <string name="query_best_fiction">Best fiction books</string>
 
 </resources>

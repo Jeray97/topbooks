@@ -1,6 +1,7 @@
 package com.example.topbooks.ui
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -22,7 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -37,6 +37,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.topbooks.R
 import com.example.topbooks.ui.home.HomeScreen
 import com.example.topbooks.ui.navigation.BottomNavItem
 import com.example.topbooks.ui.theme.*
@@ -200,41 +201,34 @@ fun MainScreen(
 }
 
 // --- COMPONENTES DEL FOCO DE LUZ ---
-
 @Composable
 fun SpotlightTourOverlay(onFinish: () -> Unit) {
     var currentStep by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
 
-    // 🔥 MAGIA: Guardamos el tamaño exacto de la pantalla en una variable
     var boxSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
 
-    // Usamos un Box normal, Android Studio ya no se quejará
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .navigationBarsPadding() // Protegemos contra la botonera
-            .onSizeChanged { boxSize = it } // Leemos el tamaño en tiempo real
+            .navigationBarsPadding()
+            .onSizeChanged { boxSize = it }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = {}
             )
     ) {
-        // Esperamos un milisegundo a que Android calcule el tamaño antes de dibujar
         if (boxSize.width == 0 || boxSize.height == 0) return@Box
 
         val screenWidth = boxSize.width.toFloat()
         val screenHeight = boxSize.height.toFloat()
 
-        // CONTROLES INDEPENDIENTES
-        // Altura general
+        //CONTROLES INDEPENDIENTES DE POSICIÓN
         val moverArriba = with(density) { 0.dp.toPx() }
-
-        // Ajuste horizontal del Buscador (Paso 1)
-        val ajusteBuscadorX = with(density) { -10.dp.toPx() }
-
-        // Ajuste horizontal de los Botones (Pasos 2 al 6)
+        // Anclamos el buscador al centro perfecto
+        val ajusteBuscadorX = with(density) { 0.dp.toPx() }
+        // Empujamos los botones 2 píxeles a la izquierda
         val ajusteBotonesX = with(density) { 2.dp.toPx() }
 
         val bottomNavY = screenHeight - with(density) { 40.dp.toPx() } - moverArriba
@@ -243,10 +237,7 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
         val sectionWidth = screenWidth / 5f
 
         val targetOffset = when (currentStep) {
-            // Buscador: Usamos su propio ajuste para que quede centrado
             1 -> Offset((screenWidth / 2f) - ajusteBuscadorX, searchBarY)
-
-            // Botones: Les aplicamos su propio micro-ajuste a la izquierda
             2 -> Offset((sectionWidth * 0.5f) - ajusteBotonesX, bottomNavY)
             3 -> Offset((sectionWidth * 1.5f) - ajusteBotonesX, bottomNavY)
             4 -> Offset((sectionWidth * 2.5f) - ajusteBotonesX, bottomNavY)
@@ -324,8 +315,9 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
                         Spacer(Modifier.height(16.dp))
                     }
 
+                    //Usamos stringResource con los IDs extraídos de getStepData
                     Text(
-                        text = stepData.title,
+                        text = stringResource(id = stepData.titleRes),
                         fontFamily = GuardianCity,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
@@ -334,7 +326,7 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = stepData.desc,
+                        text = stringResource(id = stepData.descRes),
                         fontFamily = CenturyGotic,
                         fontSize = 15.sp,
                         color = Color.DarkGray,
@@ -351,7 +343,7 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
                         modifier = Modifier.fillMaxWidth().height(50.dp)
                     ) {
                         Text(
-                            text = if (currentStep < 6) "Siguiente" else "¡A Leer!",
+                            text = if (currentStep < 6) stringResource(R.string.tour_btn_next) else stringResource(R.string.tour_btn_finish),
                             fontWeight = FontWeight.Bold,
                             fontFamily = CenturyGotic,
                             fontSize = 16.sp,
@@ -364,20 +356,20 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
     }
 }
 
-// 🔥 NUEVO: Añadimos highlightIcon a la clase de datos (es opcional)
+//Ahora StepData almacena los IDs (Int) de los recursos de texto
 data class StepData(
-    val title: String,
-    val desc: String,
+    @param:StringRes val titleRes: Int,
+    @param:StringRes val descRes: Int,
     val highlightIcon: androidx.compose.ui.graphics.vector.ImageVector? = null
 )
 
 fun getStepData(step: Int): StepData = when (step) {
-    0 -> StepData("¡Tu Biblioteca está lista!", "Vamos a darte un rápido recorrido por tu nueva aplicación para que conozcas sus rincones.")
-    1 -> StepData("🔍 Buscador y Escáner", "Usa la barra para buscar por título y autor, o toca el icono del escáner para registrar libros físicos directamente usando su código de barras.", Icons.Default.QrCodeScanner)
-    2 -> StepData("🏠 Inicio", "Descubre novedades, explora géneros y encuentra libros recomendados especialmente para ti.")
-    3 -> StepData("📈 Tu Progreso", "Registra tus lecturas, marca libros pendientes y crea Diarios de Lectura inmersivos.")
-    4 -> StepData("👥 Comunidad", "Añade a tus amigos para cotillear qué están leyendo y descubrir sus libros favoritos.")
-    5 -> StepData("⭐ Reseñas", "Lee las opiniones de otros usuarios, publica las tuyas y debate en los comentarios.")
-    6 -> StepData("👤 Tu Perfil", "Configura tu avatar, revisa tus géneros y accede a todas tus listas guardadas. ¡Todo listo!")
-    else -> StepData("", "")
+    0 -> StepData(R.string.tour_step0_title, R.string.tour_step0_desc)
+    1 -> StepData(R.string.tour_step1_title, R.string.tour_step1_desc, Icons.Default.QrCodeScanner)
+    2 -> StepData(R.string.tour_step2_title, R.string.tour_step2_desc)
+    3 -> StepData(R.string.tour_step3_title, R.string.tour_step3_desc)
+    4 -> StepData(R.string.tour_step4_title, R.string.tour_step4_desc)
+    5 -> StepData(R.string.tour_step5_title, R.string.tour_step5_desc)
+    6 -> StepData(R.string.tour_step6_title, R.string.tour_step6_desc)
+    else -> StepData(R.string.tour_step0_title, R.string.tour_step0_desc) // Fallback seguro
 }
