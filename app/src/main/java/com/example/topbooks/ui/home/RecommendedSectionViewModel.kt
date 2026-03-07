@@ -51,8 +51,9 @@ class RecommendedSectionViewModel(
         isLoadingMore = true
         viewModelScope.launch {
             when (currentType) {
-                "popular" -> fetchFromApi("subject:fiction", "newest", true)
-                "tastes" -> fetchFromApi("subject:$currentGenre", "relevance", true)
+                // 🔥 La variable currentGenre ahora trae el texto directo ("Libros populares", etc)
+                "popular" -> fetchFromApi(currentGenre, "relevance", true)
+                "tastes" -> fetchFromApi(currentGenre, "relevance", true)
                 "friends" -> fetchFriendsFavorites()
             }
         }

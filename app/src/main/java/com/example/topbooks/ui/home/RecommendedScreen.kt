@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -39,21 +40,27 @@ import com.example.topbooks.utils.Resource
 fun RecommendedScreen(
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
-    onSectionClick: (String, String, Int) -> Unit, // Callback para navegar
+    onSectionClick: (String, String, Int) -> Unit,
     viewModel: RecommendedViewModel = viewModel()
 ) {
     val popularState by viewModel.popularBooks.collectAsState()
     val tastesState by viewModel.tastesBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
 
-    // Usamos el género por defecto que tienes configurado en el ViewModel
     val genreUsed = stringResource(R.string.recommended_default_genre)
+    val popularQuery = stringResource(R.string.query_popular_bestsellers)
+
+    // 🔥 Disparamos la carga inicial con los idiomas correctos
+    LaunchedEffect(Unit) {
+        viewModel.loadData(popularQuery, genreUsed)
+    }
 
     RecommendedContent(
         popularState = popularState,
         tastesState = tastesState,
         friendsState = friendsState,
         genreForTastes = genreUsed,
+        popularQuery = popularQuery, // Pasamos el parámetro
         onBackClick = onBackClick,
         onBookClick = onBookClick,
         onSectionClick = onSectionClick
@@ -66,6 +73,7 @@ fun RecommendedContent(
     tastesState: Resource<List<Book>>,
     friendsState: Resource<List<Book>>,
     genreForTastes: String,
+    popularQuery: String,
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
     onSectionClick: (String, String, Int) -> Unit
@@ -99,7 +107,8 @@ fun RecommendedContent(
                 onBookClick = onBookClick,
                 backgroundColor = ColorBackGroundCategorySection,
                 onArrowClick = {
-                    onSectionClick("popular", "General", ColorBackGroundCategorySection.toArgb())
+                    // 🔥 Enviamos la query ya traducida
+                    onSectionClick("popular", popularQuery, ColorBackGroundCategorySection.toArgb())
                 }
             )
 
@@ -151,7 +160,6 @@ fun BrownCardSection(
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(vertical = 16.dp)) {
-            // Cabecera clicable
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

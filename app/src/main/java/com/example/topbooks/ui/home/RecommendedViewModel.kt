@@ -28,24 +28,30 @@ class RecommendedViewModel(
     private val _friendsBooks = MutableStateFlow<Resource<List<Book>>>(Resource.Loading)
     val friendsBooks: StateFlow<Resource<List<Book>>> = _friendsBooks.asStateFlow()
 
-    init {
-        fetchPopularBooks()
+    private var isDataLoaded = false
+
+    // 🔥 RECIBE LOS TEXTOS DESDE LA VISTA
+    fun loadData(popularQuery: String, tastesQuery: String) {
+        if (isDataLoaded) return
+        isDataLoaded = true
+        fetchPopularBooks(popularQuery)
+        fetchTastesBooks(tastesQuery)
         fetchFriendsFavorites()
     }
 
-    private fun fetchPopularBooks() {
+    private fun fetchPopularBooks(query: String) {
         viewModelScope.launch {
             _popularBooks.value = Resource.Loading
-            val result = repository.getBooks("subject:fiction", "newest", true, limit = 10)
+            val result = repository.getBooks(query, filterModern = true)
             if (result.isSuccess) _popularBooks.value = Resource.Success(result.getOrDefault(emptyList()))
             else _popularBooks.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error"))
         }
     }
 
-    fun fetchBooksByTastes(genre: String) {
+    private fun fetchTastesBooks(query: String) {
         viewModelScope.launch {
             _tastesBooks.value = Resource.Loading
-            val result = repository.getBooks("subject:$genre", "relevance", true, limit = 10)
+            val result = repository.getBooks(query, filterModern = true)
             if (result.isSuccess) _tastesBooks.value = Resource.Success(result.getOrDefault(emptyList()))
             else _tastesBooks.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error"))
         }

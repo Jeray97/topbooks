@@ -35,10 +35,15 @@ class HomeViewModel(
     private val _friendsBooks = MutableStateFlow<Resource<List<FriendBookRecommendation>>>(Resource.Loading)
     val friendsBooks: StateFlow<Resource<List<FriendBookRecommendation>>> = _friendsBooks.asStateFlow()
 
-    init {
-        // 🔥 AÑADIMOS filterModern = true PARA QUE TRAIGA LO MEJOR DEL AÑO
-        fetchBooks("subject:fiction", _categoryBooks, filterModern = true)
-        fetchBooks("subject:fantasy", _recommendedBooks, filterModern = true)
+    // Control para evitar recargas al girar la pantalla o navegar
+    private var isDataLoaded = false
+
+    // 🔥 Recibe los textos en el idioma del teléfono
+    fun loadData(categoryQuery: String, recommendedQuery: String) {
+        if (isDataLoaded) return
+        isDataLoaded = true
+        fetchBooks(categoryQuery, _categoryBooks, filterModern = true)
+        fetchBooks(recommendedQuery, _recommendedBooks, filterModern = true)
         fetchFriendsFavorites()
     }
 
@@ -46,7 +51,6 @@ class HomeViewModel(
         viewModelScope.launch {
             try {
                 _friendsBooks.value = Resource.Loading
-
                 val friendIds = communityRepository.getMyFriendsIds().getOrDefault(emptySet())
                 if (friendIds.isEmpty()) {
                     _friendsBooks.value = Resource.Success(emptyList())
@@ -68,9 +72,7 @@ class HomeViewModel(
                         }
                     }.awaitAll().flatten()
                 }
-
                 _friendsBooks.value = Resource.Success(recommendations.shuffled().take(10))
-
             } catch (e: Exception) {
                 Log.e("HomeVM", "Error cargando favoritos amigos: ${e.message}")
                 _friendsBooks.value = Resource.Error(e)
@@ -78,11 +80,9 @@ class HomeViewModel(
         }
     }
 
-    // 🔥 MODIFICADA PARA ACEPTAR EL FILTRO MODERNO
     private fun fetchBooks(query: String, state: MutableStateFlow<Resource<List<Book>>>, filterModern: Boolean = false) {
         viewModelScope.launch {
             state.value = Resource.Loading
-            // Pasamos el parámetro filterModern al repositorio
             val result = booksRepository.getBooks(query = query, filterModern = filterModern)
             if (result.isSuccess) {
                 state.value = Resource.Success(result.getOrDefault(emptyList()))

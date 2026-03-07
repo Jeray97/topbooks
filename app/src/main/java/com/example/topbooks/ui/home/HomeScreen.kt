@@ -30,6 +30,7 @@ import com.example.topbooks.data.model.Book
 import com.example.topbooks.ui.components.BookItem
 import com.example.topbooks.ui.components.SearchBarCustom
 import com.example.topbooks.ui.theme.*
+import com.example.topbooks.utils.CategoryProvider
 import com.example.topbooks.utils.Resource
 
 @Composable
@@ -44,6 +45,15 @@ fun HomeScreen(
 ) {
     val recommendedState by viewModel.recommendedBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
+
+    // 🔥 OBTENEMOS EL TEXTO EN EL IDIOMA ACTUAL
+    val categoryQuery = stringResource(R.string.query_best_fiction)
+    val fantasyData = CategoryProvider.getCategoryResources("FANTASY")
+    val recommendedQuery = if (fantasyData.nameRes != null) stringResource(fantasyData.nameRes) else "Fantasía"
+
+    LaunchedEffect(Unit) {
+        viewModel.loadData(categoryQuery, recommendedQuery)
+    }
 
     Scaffold(
         containerColor = ColorBackGroundGeneral
@@ -106,8 +116,6 @@ fun HomeScreen(
                         if (state.data.isEmpty()) {
                             EmptyFriendsMessage()
                         } else {
-                            // Extraemos el libro del objeto FriendBookRecommendation
-                            // para pasárselo a tu componente visual original que espera List<Book>
                             val books = state.data.map { it.book }
                             BookListRowContent(books = books, onBookClick = onBookClick)
                         }
@@ -128,8 +136,6 @@ fun HomeScreen(
         }
     }
 }
-
-// --- COMPONENTES AUXILIARES ---
 
 @Composable
 fun EmptyFriendsMessage() {
