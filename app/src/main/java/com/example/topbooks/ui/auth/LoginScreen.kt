@@ -11,6 +11,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -33,9 +37,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 
-/**
- * Pantalla de inicio de sesión actualizada para el flujo de Onboarding y Recuperación de contraseña.
- */
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel = viewModel(),
@@ -43,8 +44,6 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit
 ) {
     val context = LocalContext.current
-
-    // 🟢 Extraemos el estado para observar errores y carga
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.errorMessage) {
@@ -79,7 +78,7 @@ fun LoginScreen(
     }
 
     LoginContent(
-        isLoading = uiState.isAuthenticating, // 🟢 Usamos el estado reactivo
+        isLoading = uiState.isAuthenticating,
         onLoginClick = { email, pass -> viewModel.login(email, pass, onLoginSuccess) },
         onGoogleClick = { googleLauncher.launch(googleSignInClient.signInIntent) },
         onNavigateToRegister = onNavigateToRegister,
@@ -98,6 +97,10 @@ fun LoginContent(
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    // Control para la visibilidad de la contraseña
+    var passwordVisible by remember { mutableStateOf(false) }
+
     val scrollState = rememberScrollState()
 
     var showResetDialog by remember { mutableStateOf(false) }
@@ -212,9 +215,15 @@ fun LoginContent(
                 onValueChange = { password = it },
                 label = { Text(stringResource(R.string.login_field_password)) },
                 modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                 singleLine = true,
+                trailingIcon = {
+                    val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = null, tint = ColorArcMediumBrown)
+                    }
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White.copy(alpha = 0.8f),
                     unfocusedContainerColor = Color.White.copy(alpha = 0.8f)

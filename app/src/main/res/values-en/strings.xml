@@ -299,7 +299,7 @@
     <string name="desc_back_icon">Back</string>
     <string name="book_unknown_author">Unknown</string>
 
-    <string name="login_error_google">Google Error: %1$s</string>
+    <string name="login_error_google">Google Error: %1$d</string>
     <string name="login_reset_title">Reset password</string>
     <string name="login_reset_desc">Enter your email address and we will send you a link to reset your password.</string>
     <string name="login_field_email">Email address</string>

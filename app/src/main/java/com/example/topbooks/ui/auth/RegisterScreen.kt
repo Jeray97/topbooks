@@ -6,11 +6,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,18 +22,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topbooks.R
 import com.example.topbooks.ui.theme.*
 
-/**
- * Pantalla de registro actualizada para redirigir al tutorial tras el éxito.
- */
 @Composable
 fun RegisterScreen(
     viewModel: AuthViewModel = viewModel(),
@@ -40,8 +37,6 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
-
-    // 🟢 Extraemos el estado
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.errorMessage) {
@@ -52,7 +47,7 @@ fun RegisterScreen(
     }
 
     RegisterContent(
-        isLoading = uiState.isAuthenticating, // 🟢 Usamos el estado reactivo
+        isLoading = uiState.isAuthenticating,
         onRegisterClick = { name, email, pass ->
             viewModel.register(name, email, pass) {
                 Toast.makeText(context, context.getString(R.string.register_toast_success), Toast.LENGTH_LONG).show()
@@ -73,6 +68,10 @@ fun RegisterContent(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+
+    // Estados para controlar la visibilidad de ambas contraseñas
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     val hasUpperCase = remember(password) { password.any { it.isUpperCase() } }
     val hasNumber = remember(password) { password.any { it.isDigit() } }
@@ -147,12 +146,19 @@ fun RegisterContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Campo Contraseña
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text(stringResource(R.string.register_field_password)) },
                 modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = null, tint = ColorArcMediumBrown)
+                    }
+                },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White.copy(alpha = 0.8f),
@@ -162,12 +168,19 @@ fun RegisterContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Campo Confirmar Contraseña
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
                 label = { Text(stringResource(R.string.register_field_confirm_password)) },
                 modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    val image = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                        Icon(imageVector = image, contentDescription = null, tint = ColorArcMediumBrown)
+                    }
+                },
                 singleLine = true,
                 isError = password.isNotEmpty() && confirmPassword.isNotEmpty() && password != confirmPassword,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -176,14 +189,32 @@ fun RegisterContent(
                 )
             )
 
+            // 🔥 NUEVO: Tarjeta semitransparente para los requisitos de contraseña
             if (password.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                    Text(stringResource(R.string.register_pwd_req_title), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                    PasswordReqItem(text = stringResource(R.string.register_pwd_req_length), isMet = isLengthValid)
-                    PasswordReqItem(text = stringResource(R.string.register_pwd_req_uppercase), isMet = hasUpperCase)
-                    PasswordReqItem(text = stringResource(R.string.register_pwd_req_number), isMet = hasNumber)
-                    PasswordReqItem(text = stringResource(R.string.register_pwd_req_special), isMet = hasSpecialChar)
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White.copy(alpha = 0.85f), // Fondo suave y translúcido
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp), // Padding para que respire
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Text(
+                            text = stringResource(R.string.register_pwd_req_title),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorArcDarkBrown, // Color más integrado
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        PasswordReqItem(text = stringResource(R.string.register_pwd_req_length), isMet = isLengthValid)
+                        PasswordReqItem(text = stringResource(R.string.register_pwd_req_uppercase), isMet = hasUpperCase)
+                        PasswordReqItem(text = stringResource(R.string.register_pwd_req_number), isMet = hasNumber)
+                        PasswordReqItem(text = stringResource(R.string.register_pwd_req_special), isMet = hasSpecialChar)
+                    }
                 }
             }
 
