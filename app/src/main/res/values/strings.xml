@@ -358,7 +358,7 @@
     <string name="bookdetail_badge_saga">📚 Parte de una Saga</string>
     <string name="bookdetail_badge_standalone">📖 Autoconclusivo</string>
 
-    <string name="query_best_fiction">Mejores libros de ficción</string>
+    <string name="query_best_fiction">Ficción Novela Bestseller</string>
     <string name="query_popular_bestsellers">Libros más vendidos y populares</string>
 
     <!-- DIARIO DE LECTURA -->

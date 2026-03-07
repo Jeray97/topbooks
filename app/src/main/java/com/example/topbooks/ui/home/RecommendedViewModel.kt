@@ -30,38 +30,80 @@ class RecommendedViewModel(
 
     private var isDataLoaded = false
 
-    // 🔥 RECIBE LOS TEXTOS DESDE LA VISTA
-    fun loadData(popularQuery: String, tastesQuery: String) {
+    fun loadData(popularQuery: String, fallbackTastesQuery: String) {
         if (isDataLoaded) return
         isDataLoaded = true
+
         fetchPopularBooks(popularQuery)
-        fetchTastesBooks(tastesQuery)
+        fetchPersonalizedTastesBooks(fallbackTastesQuery)
         fetchFriendsFavorites()
     }
 
     private fun fetchPopularBooks(query: String) {
         viewModelScope.launch {
             _popularBooks.value = Resource.Loading
+
             val result = repository.getBooks(query, filterModern = true)
-            if (result.isSuccess) _popularBooks.value = Resource.Success(result.getOrDefault(emptyList()))
-            else _popularBooks.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error"))
+
+            if (result.isSuccess) {
+                _popularBooks.value = Resource.Success(result.getOrDefault(emptyList()))
+            } else {
+                _popularBooks.value =
+                    Resource.Error(result.exceptionOrNull() ?: Exception("Error loading popular books"))
+            }
         }
     }
 
-    private fun fetchTastesBooks(query: String) {
+    private fun fetchPersonalizedTastesBooks(fallbackQuery: String) {
         viewModelScope.launch {
+
             _tastesBooks.value = Resource.Loading
-            val result = repository.getBooks(query, filterModern = true)
-            if (result.isSuccess) _tastesBooks.value = Resource.Success(result.getOrDefault(emptyList()))
-            else _tastesBooks.value = Resource.Error(result.exceptionOrNull() ?: Exception("Error"))
+
+            try {
+
+                val uid = userRepo.getCurrentUserId()
+
+                if (uid == null) {
+                    _tastesBooks.value = Resource.Success(emptyList())
+                    return@launch
+                }
+
+                val genres = userRepo.getFavoriteGenres(uid)
+                val favoriteBookIds = userRepo.getFavoriteIds(uid).getOrDefault(emptyList())
+
+                var books: List<Book> = emptyList()
+
+                if (genres.isNotEmpty()) {
+                    books = repository.getBooksByGenres(genres)
+                }
+
+                if (books.isEmpty()) {
+                    books = repository.getBooks(fallbackQuery).getOrDefault(emptyList())
+                }
+
+                val finalBooks = books
+                    .filter { it.id !in favoriteBookIds }
+                    .distinctBy { it.id }
+                    .shuffled()
+                    .take(20)
+
+                _tastesBooks.value = Resource.Success(finalBooks)
+
+            } catch (e: Exception) {
+                _tastesBooks.value = Resource.Error(e)
+            }
         }
     }
 
     private fun fetchFriendsFavorites() {
         viewModelScope.launch {
+
             _friendsBooks.value = Resource.Loading
+
             try {
+
                 val friendIds = communityRepo.getMyFriendsIds().getOrDefault(emptySet())
+
                 if (friendIds.isEmpty()) {
                     _friendsBooks.value = Resource.Success(emptyList())
                     return@launch
@@ -69,20 +111,32 @@ class RecommendedViewModel(
 
                 val allBookIds = coroutineScope {
                     friendIds.map { friendId ->
-                        async { userRepo.getFavoriteIds(friendId).getOrDefault(emptyList()).take(5) }
-                    }.awaitAll().flatten().distinct().take(15)
+                        async {
+                            userRepo.getFavoriteIds(friendId)
+                                .getOrDefault(emptyList())
+                                .take(5)
+                        }
+                    }.awaitAll()
+                        .flatten()
+                        .distinct()
+                        .take(15)
                 }
 
                 val booksDetails = coroutineScope {
-                    allBookIds.map { bookId -> async { repository.getBookDetail(bookId).getOrNull() } }
-                        .awaitAll().filterNotNull()
+                    allBookIds.map { bookId ->
+                        async { repository.getBookDetail(bookId).getOrNull() }
+                    }.awaitAll().filterNotNull()
                 }
 
                 val sortedBooks = booksDetails.sortedByDescending { book ->
-                    Regex("\\d{4}").find(book.lanzamiento)?.value?.toIntOrNull() ?: 0
+                    Regex("\\d{4}")
+                        .find(book.lanzamiento)
+                        ?.value
+                        ?.toIntOrNull() ?: 0
                 }
 
                 _friendsBooks.value = Resource.Success(sortedBooks)
+
             } catch (e: Exception) {
                 _friendsBooks.value = Resource.Error(e)
             }

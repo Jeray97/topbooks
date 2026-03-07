@@ -363,6 +363,6 @@
     <string name="tour_step6_title">👤 Your Profile</string>
     <string name="tour_step6_desc">Set up your avatar, review your genres, and access all your saved lists. All set!</string>
     <string name="tour_btn_next">Next</string>
-    <string name="query_best_fiction">Best fiction books</string>
+    <string name="query_best_fiction">Bestseller Premio Novela</string>
 
 </resources>

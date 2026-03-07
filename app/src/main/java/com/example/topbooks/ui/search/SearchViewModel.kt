@@ -1,5 +1,6 @@
 package com.example.topbooks.ui.search
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Book
@@ -39,8 +40,12 @@ class SearchViewModel(private val repository: BooksRepository = BooksRepository(
             val result = repository.searchHybrid(query)
 
             if (result.isSuccess) {
-                _searchResults.value = result.getOrDefault(emptyList())
+                val books = result.getOrDefault(emptyList())
+                Log.d("SEARCH_DEBUG", "¡Éxito! Libros encontrados: ${books.size}")
+                _searchResults.value = books
             } else {
+                val error = result.exceptionOrNull()
+                Log.e("SEARCH_DEBUG", "¡CRASH EN LA BÚSQUEDA!: ${error?.message}", error)
                 _searchResults.value = emptyList()
             }
             _isLoading.value = false

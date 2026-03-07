@@ -1,5 +1,7 @@
 package com.example.topbooks.data.model
 
+import android.util.Log
+import com.example.topbooks.utils.SeriesDetector
 import com.google.gson.annotations.SerializedName
 
 // --- RESULTADOS DE BÚSQUEDA ---
@@ -16,26 +18,45 @@ data class OpenLibraryDoc(
     @SerializedName("ratings_average") val ratingsAverage: Double?,
     @SerializedName("ratings_count") val ratingsCount: Int?
 ) {
+
     fun toDomain(): Book {
-        val imageUrl = if (coverId != null) "https://covers.openlibrary.org/b/id/$coverId-L.jpg" else ""
+
+        val imageUrl =
+            if (coverId != null)
+                "https://covers.openlibrary.org/b/id/$coverId-L.jpg"
+            else ""
+
+        // ✔ obtener título real
+        val bookTitle = title ?: "Sin título"
+
+        // ✔ detectar saga
+        val series = SeriesDetector.detect(bookTitle)
+
+        Log.d("SERIES_DEBUG", "Title: $title -> series: $series")
+
         return Book(
             id = key?.replace("/works/", "") ?: "unknown",
-            title = title ?: "Sin título",
+            title = bookTitle,
             authors = authorName ?: emptyList(),
             description = "Toca para ver detalles...",
             imageUrl = imageUrl,
             lanzamiento = firstPublishYear?.toString() ?: "",
-            // averageRating = ratingsAverage ?: 0.0 // Si añades rating al modelo Book
+            categories = emptyList(),
+
+            // NUEVO
+            seriesName = series?.name ?: "",
+            seriesIndex = series?.index ?: 0
         )
     }
 }
 
+
 // --- DETALLE DE LIBRO (WORK API) ---
-// Esta es la clase que faltaba o daba error
 data class OpenLibraryWorkDetail(
     @SerializedName("title") val title: String?,
-    // La descripción puede ser un String o un Objeto JSON { type: "text", value: "..." }
-    // Usamos Any para evitar errores de parseo y lo tratamos manualmente
+
+    // Puede ser String o JSON {type:"text",value:"..."}
     @SerializedName("description") val description: Any?,
+
     @SerializedName("covers") val covers: List<Int>?
 )

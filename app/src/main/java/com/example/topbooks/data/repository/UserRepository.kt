@@ -14,6 +14,7 @@ interface UserRepository {
     suspend fun toggleFriendship(myUid: String, targetUid: String, targetName: String, targetPhoto: String, isAdding: Boolean): Result<Boolean>
     suspend fun updateAvatar(userId: String, avatarUrl: String): Result<Boolean>
     suspend fun updateProfileData(userId: String, name: String, bio: String): Result<Boolean>
+    suspend fun getFavoriteGenres(uid: String): List<String>
 }
 
 class UserRepositoryImpl : UserRepository {
@@ -101,5 +102,16 @@ class UserRepositoryImpl : UserRepository {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+
+    override suspend fun getFavoriteGenres(uid: String): List<String> {
+        val snapshot = FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .get()
+            .await()
+
+        return snapshot.get("favoriteGenres") as? List<String> ?: emptyList()
     }
 }

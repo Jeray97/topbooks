@@ -21,8 +21,9 @@ class CategoryDetailViewModel (private val repository: BooksRepository = BooksRe
         viewModelScope.launch {
             _categoryBooks.value = Resource.Loading
 
-            // Llamamos al repositorio con la query que nos pasan (ej: "subject:romance")
-            val result = repository.getBooks(query)
+            // Llamamos al repositorio con la query exacta que nos pasan desde la UI (ej: "subject:Romance")
+            // Le pasamos filterModern = true para que aplique nuestros filtros de fama y año
+            val result = repository.getBooks(query, filterModern = true)
 
             if(result.isSuccess) {
                 val books = result.getOrDefault(emptyList())
