@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.topbooks.BuildConfig
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.network.RetrofitClient
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -11,7 +12,10 @@ import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 import java.util.Locale
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.withContext
+import java.net.URL
 
 class BooksRepository {
 
@@ -215,29 +219,35 @@ class BooksRepository {
 
             val lang = Locale.getDefault().language
 
-            // 2️⃣ BUSCAR EN GOOGLE Y OPENLIBRARY EN PARALELO
+            // 2️⃣ BUSCAR EN GOOGLE Y OPENLIBRARY EN PARALELO (CON ESCUDOS)
             val googleJob = async {
-                apiService.searchBooksGoogle(
-                    query = query,
-                    apiKey = API_KEY,
-                    startIndex = 0,
-                    maxResults = 30,
-                    orderBy = "relevance",
-                    lang = lang,
-                    printType = "books"
-                )
+                try {
+                    apiService.searchBooksGoogle(
+                        query = query,
+                        apiKey = API_KEY,
+                        startIndex = 0,
+                        maxResults = 30,
+                        orderBy = "relevance",
+                        printType = "books"
+                    )
+                } catch (e: Exception) {
+                    null // Si falla internet o Google, devolvemos null en vez de romper la app
+                }
             }
 
             val olJob = async {
-                val olLang = if (lang == "es") "spa" else "eng"
-                apiService.searchBooksOpenLibrary("$query language:$olLang", limit = 20)
+                try {
+                    apiService.searchBooksOpenLibrary(query, limit = 20)
+                } catch (e: Exception) {
+                    null // Si Open Library da Timeout, devolvemos null y la app sigue viva
+                }
             }
 
             val googleResp = googleJob.await()
             val olResp = olJob.await()
 
-            val googleBooks = googleResp.body()?.items?.map { it.toDomain() } ?: emptyList()
-            val openLibraryBooks = olResp.body()?.docs?.map { it.toDomain() } ?: emptyList()
+            val googleBooks = googleResp?.body()?.items?.map { it.toDomain() } ?: emptyList()
+            val openLibraryBooks = olResp?.body()?.docs?.map { it.toDomain() } ?: emptyList()
 
             val sortedGoogle = googleBooks.sortedByDescending { it.ratingsCount }
 
@@ -438,5 +448,73 @@ class BooksRepository {
             .distinct()
 
         return if (normalized.isEmpty()) listOf("general") else normalized
+    }
+
+    suspend fun testSagasRawJson(testQuery: String = "Harry Potter") {
+        withContext(Dispatchers.IO) {
+            try {
+                // 1. Probamos Google Books
+                val googleUrl = "https://www.googleapis.com/books/v1/volumes?q=${testQuery.replace(" ", "+")}&key=$API_KEY"
+                val googleJson = URL(googleUrl).readText()
+
+                Log.d("API_TEST_GOOGLE", "=== GOOGLE BOOKS RAW ===")
+                // Imprimimos los primeros 3000 caracteres para no saturar el Logcat
+                Log.d("API_TEST_GOOGLE", googleJson.take(3000))
+
+                // 2. Probamos Open Library
+                val openLibUrl = "https://openlibrary.org/search.json?q=${testQuery.replace(" ", "+")}&limit=2"
+                val openLibJson = URL(openLibUrl).readText()
+
+                Log.d("API_TEST_OPENLIB", "=== OPEN LIBRARY RAW ===")
+                Log.d("API_TEST_OPENLIB", openLibJson.take(3000))
+
+            } catch (e: Exception) {
+                Log.e("API_TEST_ERROR", "Error espiando APIs: ${e.message}")
+            }
+        }
+    }
+
+    suspend fun updateBookSeries(book: Book, newName: String, newIndex: Int, editorUid: String, editorName: String, editorAvatar: String): Result<Boolean> {
+        return try {
+            // Primero aseguramos que el libro exista en Firebase
+            ensureBookExists(book)
+
+            val updates = mapOf(
+                "seriesName" to newName.trim(),
+                "seriesIndex" to newIndex,
+                "seriesEditorUid" to editorUid,
+                "seriesEditorName" to editorName,
+                "seriesEditorAvatar" to editorAvatar,
+                "seriesEditDate" to System.currentTimeMillis(),
+                "seriesUpvotes" to 0, // Reiniciamos los votos si alguien lo edita
+                "seriesDownvotes" to 0,
+                "seriesVoters" to emptyList<String>()
+            )
+
+            db.collection("books").document(book.id).update(updates).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // 2. Sistema de Votación (Aprobar o Rechazar la edición)
+    suspend fun voteSeriesEdit(bookId: String, uid: String, isUpvote: Boolean): Result<Boolean> {
+        return try {
+            val bookRef = db.collection("books").document(bookId)
+
+            // Usamos FieldValue para actualizaciones atómicas (súper seguro)
+            val voteField = if (isUpvote) "seriesUpvotes" else "seriesDownvotes"
+
+            val updates = mapOf(
+                voteField to FieldValue.increment(1),
+                "seriesVoters" to FieldValue.arrayUnion(uid) // Registramos que este usuario ya votó
+            )
+
+            bookRef.update(updates).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

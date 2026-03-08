@@ -44,9 +44,16 @@ class HomeViewModel(
         if (isDataLoaded) return
         isDataLoaded = true
 
+
+        viewModelScope.launch {
+            booksRepository.testSagasRawJson("Alas de Sangre")
+        }
+
         fetchBooks(categoryQuery, _categoryBooks, filterModern = true)
         fetchPersonalizedRecommendations(fallbackRecommendedQuery)
         fetchFriendsFavorites()
+
+
     }
 
     private fun fetchPersonalizedRecommendations(fallbackQuery: String) {

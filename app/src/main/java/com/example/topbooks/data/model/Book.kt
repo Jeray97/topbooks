@@ -13,10 +13,16 @@ data class Book(
     val pageCount: Int = 0,
     val isMature: Boolean = false,
     val categories: List<String> = emptyList(),
-
-    // NUEVO
     val seriesName: String = "",
-    val seriesIndex: Int = 0
+    val seriesIndex: Int = 0,
+    val provider: String = "Desconocido",
+    val seriesEditorUid: String? = null,
+    val seriesEditorName: String? = null,
+    val seriesEditorAvatar: String? = null,
+    val seriesEditDate: Long? = null,
+    val seriesUpvotes: Int = 0,
+    val seriesDownvotes: Int = 0,
+    val seriesVoters: List<String> = emptyList()
 ) {
 
     val isSaga: Boolean

@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -35,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,6 +68,10 @@ fun BookDetailScreen(
     var showCommentDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showBookmarkDialog by remember { mutableStateOf(false) }
+
+    // 🔥 NUEVOS ESTADOS PARA EL SISTEMA DE SAGAS COMUNITARIO
+    var showEditSeriesDialog by remember { mutableStateOf(false) }
+    var showSeriesInfoDialog by remember { mutableStateOf(false) }
 
     // Cargamos el libro al iniciar la pantalla
     LaunchedEffect(bookId) { viewModel.loadBook(bookId) }
@@ -99,6 +105,151 @@ fun BookDetailScreen(
                 viewModel.removeFromList(state.book!!.id, state.savedInList ?: "")
                 showDeleteDialog = false
             }
+        )
+    }
+
+    // 🔥 FORMULARIO: Editar Saga
+    if (showEditSeriesDialog && state.book != null) {
+        var editName by remember { mutableStateOf(state.book!!.seriesName) }
+        var editIndex by remember { mutableStateOf(if (state.book!!.seriesIndex > 0) state.book!!.seriesIndex.toString() else "") }
+        var isAutoconclusivo by remember { mutableStateOf(!state.book!!.isSaga) }
+
+        AlertDialog(
+            onDismissRequest = { showEditSeriesDialog = false },
+            title = { Text("Editar Información", fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+            text = {
+                Column {
+                    Text("Ayuda a la comunidad a mantener los datos correctos.", fontSize = 13.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = isAutoconclusivo,
+                            onCheckedChange = { isAutoconclusivo = it },
+                            colors = CheckboxDefaults.colors(checkedColor = ColorArcDarkBrown)
+                        )
+                        Text("Es un libro autoconclusivo")
+                    }
+
+                    if (!isAutoconclusivo) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = editName,
+                            onValueChange = { editName = it },
+                            label = { Text("Nombre de la Saga") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ColorArcMediumBrown,
+                                focusedLabelColor = ColorArcMediumBrown,
+                                cursorColor = ColorArcDarkBrown
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = editIndex,
+                            onValueChange = { editIndex = it.filter { char -> char.isDigit() } },
+                            label = { Text("Número del libro") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ColorArcMediumBrown,
+                                focusedLabelColor = ColorArcMediumBrown,
+                                cursorColor = ColorArcDarkBrown
+                            )
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val finalName = if (isAutoconclusivo) "" else editName
+                        val finalIndex = if (isAutoconclusivo) 0 else editIndex.toIntOrNull() ?: 0
+                        viewModel.editSeries(finalName, finalIndex) {
+                            showEditSeriesDialog = false
+                            Toast.makeText(context, "¡Gracias por tu contribución!", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ColorArcDarkBrown)
+                ) { Text("Guardar", color = Color.White) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditSeriesDialog = false }) { Text("Cancelar", color = Color.Gray) }
+            },
+            containerColor = Color.White
+        )
+    }
+
+    // 🔥 FORMULARIO: Información de la Saga (Antitrolls)
+    if (showSeriesInfoDialog && state.book != null) {
+        val book = state.book!!
+        AlertDialog(
+            onDismissRequest = { showSeriesInfoDialog = false },
+            title = { Text("Sobre este dato", fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+            text = {
+                Column {
+                    Text(
+                        "Esta información es extraída automáticamente de internet y puede contener errores. Si detectas un fallo, toca el nombre para corregirlo.",
+                        fontSize = 14.sp,
+                        color = Color.DarkGray
+                    )
+
+                    if (!book.seriesEditorName.isNullOrEmpty()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = Color.LightGray)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text("Última edición por:", fontSize = 12.sp, color = Color.Gray)
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(AvatarHelper.getDrawableId(book.seriesEditorAvatar)),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.LightGray),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(book.seriesEditorName!!, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("¿Es correcta esta edición?", fontSize = 12.sp, color = Color.Gray)
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                            IconButton(onClick = {
+                                viewModel.voteSeriesEdit(true)
+                                Toast.makeText(context, "Voto registrado", Toast.LENGTH_SHORT).show()
+                            }) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.Default.ThumbUp, contentDescription = "Bien", tint = Color(0xFF81C784))
+                                    Text("${book.seriesUpvotes}", fontSize = 12.sp, color = Color.DarkGray)
+                                }
+                            }
+                            IconButton(onClick = {
+                                viewModel.voteSeriesEdit(false)
+                                Toast.makeText(context, "Voto registrado", Toast.LENGTH_SHORT).show()
+                            }) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.Default.ThumbDown, contentDescription = "Mal", tint = Color(0xFFE57373))
+                                    Text("${book.seriesDownvotes}", fontSize = 12.sp, color = Color.DarkGray)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSeriesInfoDialog = false }) {
+                    Text("Entendido", color = ColorArcDarkBrown, fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = Color.White
         )
     }
 
@@ -165,7 +316,10 @@ fun BookDetailScreen(
                                 // Pendientes y Leídos siguen siendo excluyentes. Los textos de la lógica no se traducen.
                                 if (state.savedInList == it) showDeleteDialog = true
                                 else viewModel.addToList(book, it)
-                            }
+                            },
+                            // 🔥 PASAMOS LAS LAMBDAS AL HEADER
+                            onEditSagaClick = { showEditSeriesDialog = true },
+                            onInfoSagaClick = { showSeriesInfoDialog = true }
                         )
                     }
                     item { SynopsisSection(book.description) }
@@ -186,7 +340,9 @@ fun BookHeaderSection(
     savedInList: String?,
     isFavorite: Boolean,
     onFavoriteClick: () -> Unit,
-    onListAction: (String) -> Unit
+    onListAction: (String) -> Unit,
+    onEditSagaClick: () -> Unit,
+    onInfoSagaClick: () -> Unit
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
         Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(10.dp), modifier = Modifier.width(170.dp).height(260.dp)) {
@@ -198,19 +354,40 @@ fun BookHeaderSection(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 🔥 NUEVA ETIQUETA: SAGA VS LIBRO ÚNICO
-        Surface(
-            color = if (book.isSaga) ColorArcMediumBrown.copy(alpha = 0.15f) else Color.LightGray.copy(alpha = 0.3f),
-            shape = CircleShape,
+        // 🔥 NUEVA ETIQUETA: SAGA VS LIBRO ÚNICO (Con soporte para clics de la comunidad)
+        val seriesText = if (book.isSaga) stringResource(R.string.bookdetail_badge_saga) + " [${book.seriesName} #${book.seriesIndex}]" else stringResource(R.string.bookdetail_badge_standalone)
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 8.dp)
         ) {
-            Text(
-                text = if (book.isSaga) stringResource(R.string.bookdetail_badge_saga) else stringResource(R.string.bookdetail_badge_standalone),
-                color = if (book.isSaga) ColorArcDarkBrown else Color.DarkGray,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = CenturyGotic,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-            )
+            Surface(
+                color = ColorArcMediumBrown.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.clickable { onEditSagaClick() }
+            ) {
+                Text(
+                    text = seriesText,
+                    color = ColorArcDarkBrown,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    fontFamily = CenturyGotic,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            IconButton(
+                onClick = { onInfoSagaClick() },
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Información de la Saga",
+                    tint = Color.Gray
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))

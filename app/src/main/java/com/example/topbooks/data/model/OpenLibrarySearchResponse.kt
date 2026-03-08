@@ -42,10 +42,9 @@ data class OpenLibraryDoc(
             imageUrl = imageUrl,
             lanzamiento = firstPublishYear?.toString() ?: "",
             categories = emptyList(),
-
-            // NUEVO
             seriesName = series?.name ?: "",
-            seriesIndex = series?.index ?: 0
+            seriesIndex = series?.index ?: 0,
+            provider = "Open Library"
         )
     }
 }

@@ -31,17 +31,19 @@ class SearchViewModel(private val repository: BooksRepository = BooksRepository(
         }
 
         searchJob = viewModelScope.launch {
-            // Aumentamos un poco el delay (800ms) para no saturar las dos APIs mientras escribes
             delay(800)
             _isLoading.value = true
 
-            // CORRECCIÓN: Ahora usamos searchHybrid en lugar de getBooks
-            // Esto buscará en Google y OpenLibrary en paralelo y combinará los resultados
             val result = repository.searchHybrid(query)
 
             if (result.isSuccess) {
                 val books = result.getOrDefault(emptyList())
                 Log.d("SEARCH_DEBUG", "¡Éxito! Libros encontrados: ${books.size}")
+
+                books.forEach { book ->
+                    Log.d("SEARCH_DEBUG", "Libro: ${book.title} -> Provider: ${book.provider}")
+                }
+
                 _searchResults.value = books
             } else {
                 val error = result.exceptionOrNull()

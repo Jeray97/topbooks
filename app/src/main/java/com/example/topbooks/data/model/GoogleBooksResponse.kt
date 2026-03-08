@@ -42,7 +42,8 @@ data class BookItem(
             isMature = volumeInfo?.maturityRating == "MATURE",
             categories = volumeInfo?.categories ?: emptyList(),
             seriesName = series?.name ?: "",
-            seriesIndex = series?.index ?: 0
+            seriesIndex = series?.index ?: 0,
+            provider = "Google Books"
         )
     }
 }

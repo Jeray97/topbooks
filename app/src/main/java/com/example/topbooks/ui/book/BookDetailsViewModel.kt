@@ -213,4 +213,57 @@ class BookDetailViewModel(
                 }
         }
     }
+
+    fun editSeries(newName: String, newIndex: Int, onSuccess: () -> Unit) {
+        val currentBook = _uiState.value.book ?: return
+        val currentUser = authRepository.currentUser ?: return
+
+        viewModelScope.launch {
+            // Obtenemos los datos bonitos del usuario desde tu UserRepository
+            val userProfile = userRepository.getUserProfile(currentUser.uid).getOrNull()
+            val editorName = userProfile?.displayName ?: "Usuario"
+            val editorAvatar = userProfile?.photoURL ?: "capibara_1"
+
+            booksRepository.updateBookSeries(
+                book = currentBook,
+                newName = newName,
+                newIndex = newIndex,
+                editorUid = currentUser.uid,
+                editorName = editorName,
+                editorAvatar = editorAvatar
+            ).onSuccess {
+                // Actualizamos la UI localmente para no tener que recargar de internet
+                _uiState.update {
+                    it.copy(book = currentBook.copy(
+                        seriesName = newName, seriesIndex = newIndex,
+                        seriesEditorName = editorName, seriesEditorAvatar = editorAvatar,
+                        seriesEditDate = System.currentTimeMillis(),
+                        seriesUpvotes = 0, seriesDownvotes = 0
+                    ))
+                }
+                onSuccess()
+            }
+        }
+    }
+
+    fun voteSeriesEdit(isUpvote: Boolean) {
+        val currentBook = _uiState.value.book ?: return
+        val uid = authRepository.currentUser?.uid ?: return
+
+        // Si ya votó, no hacemos nada
+        if (currentBook.seriesVoters.contains(uid)) return
+
+        viewModelScope.launch {
+            // Actualización optimista en la UI
+            val newUpvotes = if (isUpvote) currentBook.seriesUpvotes + 1 else currentBook.seriesUpvotes
+            val newDownvotes = if (!isUpvote) currentBook.seriesDownvotes + 1 else currentBook.seriesDownvotes
+            val newVoters = currentBook.seriesVoters + uid
+
+            _uiState.update { it.copy(book = currentBook.copy(
+                seriesUpvotes = newUpvotes, seriesDownvotes = newDownvotes, seriesVoters = newVoters
+            ))}
+
+            booksRepository.voteSeriesEdit(currentBook.id, uid, isUpvote)
+        }
+    }
 }
