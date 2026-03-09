@@ -59,7 +59,7 @@ android {
 
 dependencies {
     // --- LIBRERÍAS DE ANDROID Y COMPOSE (Base) ---
-    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.ktx) //
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -72,7 +72,7 @@ dependencies {
     val lifecycle_version = "2.6.2"
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:$lifecycle_version") // Usado en ConfigScreen para collectAsStateWithLifecycle
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:$lifecycle_version")
 
     // --- ICONOS EXTENDIDOS (Material 3) ---
     implementation("androidx.compose.material:material-icons-extended")
