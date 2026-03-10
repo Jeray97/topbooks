@@ -30,22 +30,40 @@ import coil.request.ImageRequest
 import com.example.topbooks.R
 import com.example.topbooks.ui.search.SearchViewModel
 
+/**
+ * Componente reutilizable de Barra de Búsqueda con autocompletado y botón de escáner.
+ * * TÉCNICA VISUAL: Utiliza un menú desplegable "flotante" que muestra los resultados
+ * en tiempo real sin salir de la pantalla actual.
+ *
+ * @param onBookClick Callback que se ejecuta al seleccionar un libro de los resultados. Devuelve el ID del libro.
+ * @param onScanClick Callback que se ejecuta al pulsar el icono del código de barras.
+ * @param viewModel Instancia del [SearchViewModel] que maneja la lógica de búsqueda en las APIs.
+ */
 @Composable
 fun SearchBarCustom(
     onBookClick: (String) -> Unit,
-    onScanClick: () -> Unit, //CALLBACK
+    onScanClick: () -> Unit, // CALLBACK PARA EL ESCÁNER
     viewModel: SearchViewModel = viewModel()
 ) {
-    var text by remember { mutableStateOf("") }
-    var active by remember { mutableStateOf(false) }
+    // --- ESTADOS LOCALES ---
+    var text by remember { mutableStateOf("") } // Texto escrito por el usuario
+    var active by remember { mutableStateOf(false) } // Controla si el dropdown de resultados debe mostrarse
 
+    // --- ESTADOS DEL VIEWMODEL ---
     val results by viewModel.searchResults.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    // Gestor de foco para poder ocultar el teclado por código
     val focusManager = LocalFocusManager.current
+
+    // Paleta de colores local
     val iconGray = Color(0xFF9E9E9E)
 
+    // Usamos zIndex(1f) para asegurar que el dropdown se dibuje por ENCIMA
+    // de cualquier otro elemento de la pantalla (ej. Carruseles de la Home).
     Box(modifier = Modifier.fillMaxWidth().zIndex(1f)) {
         Column {
+            // --- FILA SUPERIOR: INPUT + BOTÓN ESCÁNER ---
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -53,12 +71,13 @@ fun SearchBarCustom(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
+                // CAMPO DE TEXTO (Buscador)
                 TextField(
                     value = text,
                     onValueChange = {
                         text = it
-                        active = true
-                        viewModel.onQueryChange(it)
+                        active = true // Despliega la lista de resultados al empezar a escribir
+                        viewModel.onQueryChange(it) // Dispara la búsqueda en el ViewModel
                     },
                     placeholder = { Text(text = stringResource(R.string.search_hint), color = iconGray) },
                     modifier = Modifier.weight(1f).height(55.dp),
@@ -67,11 +86,12 @@ fun SearchBarCustom(
                         focusedContainerColor = Color.White,
                         unfocusedContainerColor = Color.White,
                         disabledContainerColor = Color.White,
-                        focusedIndicatorColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent, // Quita la línea inferior por defecto de Material
                         unfocusedIndicatorColor = Color.Transparent,
                         cursorColor = Color.Black
                     ),
                     trailingIcon = {
+                        // Cambia la lupa por una 'X' si hay texto escrito
                         if (text.isNotEmpty()) {
                             IconButton(onClick = {
                                 text = ""
@@ -89,12 +109,12 @@ fun SearchBarCustom(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // BOTÓN DE SCAN
+                // BOTÓN DE ESCÁNER DE CÓDIGOS DE BARRAS
                 Box(
                     modifier = Modifier
                         .size(55.dp)
                         .background(Color.White, RoundedCornerShape(12.dp))
-                        .clickable { onScanClick() }, // Acción
+                        .clickable { onScanClick() }, // Ejecuta el callback
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -106,31 +126,42 @@ fun SearchBarCustom(
                 }
             }
 
+            // --- DROPDOWN FLOTANTE DE RESULTADOS ---
+            // Solo se muestra si el buscador está activo y hay resultados (o está cargando)
             if (active && (results.isNotEmpty() || isLoading)) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(max = 250.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .heightIn(max = 250.dp), // Altura máxima para que no tape toda la pantalla
                     shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp),
                     shadowElevation = 8.dp,
                     color = Color.White
                 ) {
                     if (isLoading) {
+                        // Indicador de carga
                         Box(Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(modifier = Modifier.size(30.dp), color = Color(0xFFB9836B))
                         }
                     } else {
+                        // Lista de libros encontrados
                         LazyColumn {
                             items(results) { book ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
+                                            // 1. Ejecutamos la acción (navegar al libro)
                                             onBookClick(book.id)
+                                            // 2. Cerramos el dropdown
                                             active = false
+                                            // 3. Ocultamos el teclado del móvil
                                             focusManager.clearFocus()
                                         }
                                         .padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    // Miniatura de la portada
                                     Card(shape = RoundedCornerShape(4.dp), elevation = CardDefaults.cardElevation(2.dp)) {
                                         AsyncImage(
                                             model = ImageRequest.Builder(LocalContext.current)
@@ -143,11 +174,14 @@ fun SearchBarCustom(
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(12.dp))
+
+                                    // Datos del libro (Título y Autor)
                                     Column {
                                         Text(book.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text(book.authors.firstOrNull() ?: stringResource(R.string.book_unknown_author), fontSize = 12.sp, color = Color.Gray, maxLines = 1)
                                     }
                                 }
+                                // Separador entre elementos de la lista
                                 HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
                             }
                         }

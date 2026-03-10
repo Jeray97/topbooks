@@ -19,6 +19,13 @@ import com.example.topbooks.ui.theme.ColorTextPrimary
 import com.example.topbooks.ui.theme.ColorTitleCategoryDetail
 import com.example.topbooks.ui.theme.GuardianCity
 
+/**
+ * Componente visual estandarizado para la barra superior de navegación.
+ * * Utiliza [CenterAlignedTopAppBar] de Material 3 para asegurar que el título
+ * quede siempre perfectamente centrado.
+ *
+ * @param onBackClick Acción que se ejecuta al pulsar el botón (flecha) de volver atrás.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(
@@ -28,7 +35,7 @@ fun TopBar(
         title = {
             Text(
                 text = stringResource(R.string.app_name),
-                // Usamos fuente y color de texto
+                // Usamos la fuente personalizada y el color de texto corporativo
                 fontFamily = GuardianCity,
                 color = ColorTitleCategoryDetail,
                 fontSize = 22.sp,
@@ -38,14 +45,16 @@ fun TopBar(
         },
         navigationIcon = {
             IconButton(onClick = onBackClick) {
+                // TÉCNICA DE ACCESIBILIDAD: 'AutoMirrored' hace que la flecha apunte
+                // a la derecha si el sistema del usuario usa un idioma RTL (Right-to-Left, ej: Árabe)
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.desc_back_icon),
-                    tint = ColorTextPrimary // La flecha del color del texto
+                    tint = ColorTextPrimary
                 )
             }
         },
-        // Hacemos la barra transparente para que se vea el fondo general
+        // Configuramos el color de fondo para que coincida con el tema general de las pantallas
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
             containerColor = ColorHeaderBeige
         )
