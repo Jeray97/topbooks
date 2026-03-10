@@ -28,6 +28,17 @@ import com.example.topbooks.R
 import com.example.topbooks.ui.profile.SimpleBook
 import com.example.topbooks.ui.theme.*
 
+/**
+ * PANTALLA DE PROGRESO Y BIBLIOTECA (Stateful Composable).
+ * Centraliza el seguimiento de lectura del usuario, dividiendo el contenido en diarios,
+ * favoritos, libros pendientes y libros leídos.
+ *
+ * @param onNavigateToList Acción para abrir la vista completa de una categoría específica.
+ * @param onBookClick Acción para ver los detalles de un libro.
+ * @param onAddJournalClick Acción para crear una nueva entrada en el diario de lectura.
+ * @param onJournalClick Acción para visualizar un diario existente.
+ * @param viewModel Maneja la lógica de obtención de datos desde los distintos repositorios.
+ */
 @Composable
 fun ProgressScreen(
     onNavigateToList: (String) -> Unit,
@@ -36,10 +47,10 @@ fun ProgressScreen(
     onJournalClick: (String) -> Unit,
     viewModel: ProgressViewModel = viewModel()
 ) {
-    // 🟢 ESCUCHAMOS EL ESTADO
+    // Escuchamos el flujo de estado del ViewModel
     val state by viewModel.uiState.collectAsState()
 
-    // Para que se recargue siempre que entremos en la pestaña
+    // Recarga los datos de progreso cada vez que el componente entra en la composición (se visita la pestaña)
     LaunchedEffect(Unit) {
         viewModel.loadProgressData()
     }
@@ -51,6 +62,8 @@ fun ProgressScreen(
                 .padding(padding)
         ) {
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Título de la sección con tipografía corporativa
             Text(
                 text = stringResource(R.string.progress_title),
                 fontFamily = GuardianCity,
@@ -59,27 +72,32 @@ fun ProgressScreen(
                 color = ColorTituloTopBooks,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
+
             Spacer(modifier = Modifier.height(16.dp))
 
             if (state.isLoading) {
+                // Estado de carga centralizado
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = ColorArcMediumBrown)
                 }
             } else {
-                // Usamos LazyColumn como en tu diseño recuperado para un mejor rendimiento de scroll
+                // Lista vertical que contiene las diferentes secciones horizontales
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
+                    // Sección: Diarios de Lectura
                     item {
                         ProgressSection(
                             title = stringResource(R.string.progress_section_journals),
                             books = state.journals,
                             onSeeAllClick = { onNavigateToList("journals") },
                             onBookClick = onJournalClick,
-                            onAddClick = onAddJournalClick // Este sí lleva "+"
+                            onAddClick = onAddJournalClick // Esta sección permite añadir contenido nuevo
                         )
                     }
+
+                    // Sección: Favoritos
                     item {
                         ProgressSection(
                             title = stringResource(R.string.progress_section_favorites),
@@ -88,6 +106,8 @@ fun ProgressScreen(
                             onBookClick = onBookClick
                         )
                     }
+
+                    // Sección: Pendientes
                     item {
                         ProgressSection(
                             title = stringResource(R.string.progress_section_pending),
@@ -96,6 +116,8 @@ fun ProgressScreen(
                             onBookClick = onBookClick
                         )
                     }
+
+                    // Sección: Leídos
                     item {
                         ProgressSection(
                             title = stringResource(R.string.progress_section_read),
@@ -104,7 +126,8 @@ fun ProgressScreen(
                             onBookClick = onBookClick
                         )
                     }
-                    // Espacio extra al final para que no tape el bottom nav
+
+                    // Espacio de seguridad final para evitar solapamiento con la barra de navegación
                     item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
@@ -112,6 +135,14 @@ fun ProgressScreen(
     }
 }
 
+/**
+ * Componente genérico para representar una fila de libros bajo un título. (Stateless)
+ * * @param title Nombre de la sección.
+ * @param books Lista de libros a mostrar.
+ * @param onSeeAllClick Acción para ver la lista completa.
+ * @param onBookClick Acción al pulsar un libro.
+ * @param onAddClick Si se provee, muestra un botón con el icono "+" para añadir elementos.
+ */
 @Composable
 fun ProgressSection(
     title: String,
@@ -121,10 +152,11 @@ fun ProgressSection(
     onAddClick: (() -> Unit)? = null
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
+        // Cabecera de la sección
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp), // Padding en el header
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -137,14 +169,14 @@ fun ProgressSection(
                 modifier = Modifier.weight(1f)
             )
 
-            // Si le pasamos la función onAddClick, dibuja el icono "+"
+            // Botón opcional de creación
             if (onAddClick != null) {
                 IconButton(onClick = onAddClick, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.progress_desc_add), tint = ColorArcDarkBrown)
                 }
             }
 
-            // Flecha para ver la lista completa
+            // Botón de navegación a la lista completa
             IconButton(onClick = onSeeAllClick, modifier = Modifier.size(36.dp)) {
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(R.string.progress_desc_see_all), tint = ColorArcDarkBrown)
             }
@@ -152,6 +184,7 @@ fun ProgressSection(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Gestión de estado vacío para la sección
         if (books.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -161,10 +194,15 @@ fun ProgressSection(
                     .background(Color.White.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(stringResource(R.string.progress_empty_message), color = Color.Gray, fontSize = 12.sp, fontFamily = CenturyGotic)
+                Text(
+                    text = stringResource(R.string.progress_empty_message),
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    fontFamily = CenturyGotic
+                )
             }
         } else {
-            // Ponemos el padding aquí para que al hacer scroll horizontal los elementos no se corten bruscamente
+            // Carrusel horizontal de libros
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -177,10 +215,16 @@ fun ProgressSection(
     }
 }
 
+/**
+ * Representación visual compacta de un libro para la pantalla de progreso.
+ * Muestra la portada con bordes redondeados y el título centrado debajo.
+ */
 @Composable
 fun ProgressBookItem(book: SimpleBook, onClick: () -> Unit) {
     Column(
-        modifier = Modifier.width(90.dp).clickable { onClick() },
+        modifier = Modifier
+            .width(90.dp)
+            .clickable { onClick() },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         AsyncImage(
