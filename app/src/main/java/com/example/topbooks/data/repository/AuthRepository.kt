@@ -7,26 +7,35 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.util.Locale
 
-// 1. DEFINICIÓN DE LA INTERFAZ
+/**
+ * 1. DEFINICIÓN DE LA INTERFAZ
+ * Contrato que define todas las operaciones de autenticación y gestión de cuentas permitidas.
+ * * Aislar esto en una interfaz facilita el testing (Mocking) y la inyección de dependencias.
+ */
 interface AuthRepository {
+    /** Usuario actualmente logueado en la aplicación. */
     val currentUser: com.google.firebase.auth.FirebaseUser?
     suspend fun login(email: String, pass: String): Result<Boolean>
     suspend fun register(name: String, email: String, pass: String): Result<Boolean>
     fun logout()
     suspend fun loginWithGoogle(idToken: String): Result<Boolean>
 
-    // NUEVAS FUNCIONES DE SEGURIDAD
+    // --- NUEVAS FUNCIONES DE SEGURIDAD ---
     suspend fun sendPasswordResetEmail(email: String): Result<Boolean>
     suspend fun sendEmailVerification(): Result<Boolean>
     suspend fun reloadUser(): Result<Boolean>
     suspend fun deleteAccount(): Result<Boolean>
 
-    // FUNCIONES INTEGRADAS DESDE USER_REPOSITORY
+    // --- FUNCIONES INTEGRADAS DESDE USER_REPOSITORY ---
     fun isEmailVerified(): Boolean
     fun resendVerificationEmail(onComplete: (Result<Boolean>) -> Unit)
 }
 
-// 2. IMPLEMENTACIÓN DE LA INTERFAZ
+/**
+ * 2. IMPLEMENTACIÓN DE LA INTERFAZ
+ * * Clase encargada de ejecutar las operaciones contra los servidores de Google Firebase.
+ * Utiliza [FirebaseAuth] para las credenciales y [FirebaseFirestore] para guardar los datos del perfil.
+ */
 class AuthRepositoryImpl : AuthRepository {
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
@@ -34,6 +43,10 @@ class AuthRepositoryImpl : AuthRepository {
     override val currentUser: com.google.firebase.auth.FirebaseUser?
         get() = auth.currentUser
 
+    /**
+     * Inicia sesión con correo electrónico y contraseña.
+     * * El uso de [.await()] suspende la corrutina hasta que Firebase responda, evitando callbacks anidados.
+     */
     override suspend fun login(email: String, pass: String): Result<Boolean> {
         return try {
             auth.signInWithEmailAndPassword(email, pass).await()
@@ -43,12 +56,18 @@ class AuthRepositoryImpl : AuthRepository {
         }
     }
 
+    /**
+     * Registra a un nuevo usuario.
+     * * Realiza dos operaciones: Primero lo registra en el sistema de autenticación de Firebase,
+     * y si tiene éxito, crea un documento inicial [User] en la colección "users" de Firestore.
+     */
     override suspend fun register(name: String, email: String, pass: String): Result<Boolean> {
         return try {
             val authResult = auth.createUserWithEmailAndPassword(email, pass).await()
             val firebaseUser = authResult.user
 
             if (firebaseUser != null) {
+                // Creamos nuestro modelo de usuario con los datos iniciales
                 val newUser = User(
                     uid = firebaseUser.uid,
                     displayName = name,
@@ -58,6 +77,7 @@ class AuthRepositoryImpl : AuthRepository {
                     isTutorialCompleted = false
                 )
 
+                // Guardamos el modelo en la base de datos
                 firestore.collection("users").document(firebaseUser.uid)
                     .set(newUser)
                     .await()
@@ -71,6 +91,11 @@ class AuthRepositoryImpl : AuthRepository {
         }
     }
 
+    /**
+     * Inicia sesión o registra a un usuario mediante su cuenta de Google.
+     * * Comprueba si el usuario ya existe en Firestore. Si es su primera vez,
+     * extrae su nombre y foto de Google para crearle un perfil automáticamente.
+     */
     override suspend fun loginWithGoogle(idToken: String): Result<Boolean> {
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
@@ -81,6 +106,7 @@ class AuthRepositoryImpl : AuthRepository {
                 val userRef = firestore.collection("users").document(firebaseUser.uid)
                 val doc = userRef.get().await()
 
+                // Si no existe, es un registro nuevo vía Google
                 if (!doc.exists()) {
                     val rawName = firebaseUser.displayName ?: "Usuario Google"
                     val newUser = User(
@@ -102,10 +128,12 @@ class AuthRepositoryImpl : AuthRepository {
         }
     }
 
+    /** Cierra la sesión activa en el dispositivo. */
     override fun logout() {
         auth.signOut()
     }
 
+    /** Envía un correo automático al usuario para recuperar su contraseña. */
     override suspend fun sendPasswordResetEmail(email: String): Result<Boolean> {
         return try {
             auth.sendPasswordResetEmail(email).await()
@@ -115,6 +143,7 @@ class AuthRepositoryImpl : AuthRepository {
         }
     }
 
+    /** Envía un correo con un enlace para verificar la autenticidad del email. */
     override suspend fun sendEmailVerification(): Result<Boolean> {
         return try {
             auth.currentUser?.sendEmailVerification()?.await()
@@ -124,6 +153,9 @@ class AuthRepositoryImpl : AuthRepository {
         }
     }
 
+    /** * Fuerza a Firebase a recargar los datos del usuario actual (útil para comprobar
+     * si acaba de verificar su email en otra app).
+     */
     override suspend fun reloadUser(): Result<Boolean> {
         return try {
             auth.currentUser?.reload()?.await()
@@ -133,12 +165,13 @@ class AuthRepositoryImpl : AuthRepository {
         }
     }
 
-    //Implementación de estado de verificación
+    /** Comprueba si el correo electrónico ya ha sido verificado. */
     override fun isEmailVerified(): Boolean {
         return auth.currentUser?.isEmailVerified == true
     }
 
-    //Implementación de reenvío con callback
+    /** * Reenvía el email de verificación usando un callback clásico en lugar de suspend function.
+     */
     override fun resendVerificationEmail(onComplete: (Result<Boolean>) -> Unit) {
         val user = auth.currentUser
         if (user != null && !user.isEmailVerified) {
@@ -150,13 +183,18 @@ class AuthRepositoryImpl : AuthRepository {
         }
     }
 
+    /**
+     * Elimina por completo la cuenta del usuario de la aplicación.
+     * * Operación destructiva que borra primero su documento de perfil en Firestore
+     * y luego revoca sus credenciales en FirebaseAuth.
+     */
     override suspend fun deleteAccount(): Result<Boolean> {
         val user = auth.currentUser
         return try {
             user?.let {
-                // Primero eliminamos el documento del usuario en Firestore
+                // 1. Primero eliminamos el documento del usuario en Firestore
                 firestore.collection("users").document(it.uid).delete().await()
-                // Luego eliminamos el usuario de Autenticación
+                // 2. Luego eliminamos el usuario del sistema de Autenticación
                 it.delete().await()
                 Result.success(true)
             } ?: Result.failure(Exception("No hay usuario autenticado"))

@@ -17,12 +17,29 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import java.net.URL
 
+/**
+ * Repositorio central encargado de la gestión, búsqueda y filtrado de Libros.
+ * * Implementa una arquitectura híbrida: prioriza los datos guardados por la comunidad
+ * en Firebase Firestore y utiliza Google Books y Open Library como respaldo (Fallback).
+ */
 class BooksRepository {
 
     private val apiService = RetrofitClient.instance
     private val API_KEY = BuildConfig.API_KEY
-    private val db = FirebaseFirestore.getInstance() // 🔥 Conexión a tu Base de Datos
+    private val db = FirebaseFirestore.getInstance() //Conexión a tu Base de Datos
 
+    /**
+     * Obtiene una lista de libros basada en una consulta (query).
+     * * Fase 1: Busca en la base de datos de Firebase. Si la comunidad ya ha guardado suficientes libros, los devuelve.
+     * * Fase 2: Si no hay suficientes, hace una petición a Google Books aplicando filtros de calidad, actualidad y variedad.
+     *
+     * @param query Texto de búsqueda (puede incluir modificadores como "subject:").
+     * @param orderBy Criterio de ordenación.
+     * @param filterModern Si es 'true', filtra los libros para devolver solo publicaciones recientes (últimos 5-10 años).
+     * @param page Página actual para la paginación.
+     * @param limit Cantidad máxima de libros a devolver.
+     * @return Un [Result] que contiene la lista de libros si tiene éxito.
+     */
     suspend fun getBooks(
         query: String,
         orderBy: String = "relevance",
@@ -34,7 +51,7 @@ class BooksRepository {
             val currentYear = Calendar.getInstance().get(Calendar.YEAR)
 
             // ====================================================================
-            // 🔥 FASE 1: BUSCAMOS EN NUESTRA PROPIA BASE DE DATOS (FIREBASE)
+            // FASE 1: BUSCAMOS EN NUESTRA PROPIA BASE DE DATOS (FIREBASE)
             // ====================================================================
             var localBooks = fetchFromFirebase(query)
 
@@ -54,7 +71,7 @@ class BooksRepository {
 
 
             // ====================================================================
-            // 🔥 FASE 2: PLAN DE EMERGENCIA (GOOGLE BOOKS)
+            // FASE 2: PLAN DE EMERGENCIA (GOOGLE BOOKS)
             // Si la comunidad aún no ha guardado suficientes libros de esto, vamos a Google
             // ====================================================================
             val langCode = Locale.getDefault().language
@@ -62,7 +79,7 @@ class BooksRepository {
             var apiQuery = query
 
             if (filterModern) {
-                apiQuery = "$query ${currentYear} OR ${currentYear - 1} OR ${currentYear - 2}"
+                apiQuery = "$query $currentYear OR ${currentYear - 1} OR ${currentYear - 2}"
             }
 
             val response = apiService.searchBooksGoogle(
@@ -96,15 +113,15 @@ class BooksRepository {
                     books = recentBooks
                 }
 
-                // ORDENAMOS POR FAMA
+                // ORDENAMOS POR FAMA (Cantidad de reseñas)
                 books = books.sortedByDescending { it.ratingsCount }
 
-                // FILTRO ANTI-SAGAS REPETIDAS
+                // FILTRO ANTI-SAGAS REPETIDAS (Variedad)
                 if (filterModern || query.contains("subject:") || query.contains("Bestseller")) {
                     books = applyVarietyFilter(books)
                 }
 
-                // FALLBACK: Si tras limpiar todo quedan muy pocos, rellenamos
+                // FALLBACK: Si tras limpiar to-do quedan muy pocos, rellenamos con criterios más suaves
                 if (books.size < 3) {
                     var fallbackBooks = response.body()?.items?.map { it.toDomain() } ?: emptyList()
                     fallbackBooks = fallbackBooks.filter { it.imageUrl.isNotEmpty() && it.authors.isNotEmpty() && !it.isMature }
@@ -127,7 +144,10 @@ class BooksRepository {
         }
     }
 
-    // 🔥 NUEVA FUNCIÓN: Lee los libros guardados en Firebase y los convierte a objetos Book
+    /**
+     * Busca y filtra libros guardados localmente en la colección de Firestore.
+     * @param query Búsqueda de texto para cruzar con categorías, título o descripción.
+     */
     private suspend fun fetchFromFirebase(query: String): List<Book> {
         return try {
             val snapshot = db.collection("books").get().await()
@@ -172,7 +192,11 @@ class BooksRepository {
         }
     }
 
-    // --- EL CEREBRO DEL FILTRO DE VARIEDAD (Google Books) ---
+    /**
+     * El "Cerebro" del Filtro de Variedad.
+     * * Analiza los resultados de Google Books para evitar devolver demasiados libros del mismo autor
+     * o volúmenes consecutivos de la misma saga, priorizando la diversidad de lectura.
+     */
     private fun applyVarietyFilter(books: List<Book>): List<Book> {
         val filteredList = mutableListOf<Book>()
         val authorCounts = mutableMapOf<String, Int>()
@@ -180,6 +204,7 @@ class BooksRepository {
         for (book in books) {
             val author = book.authors.firstOrNull() ?: "Unknown"
 
+            // Limpiamos el título para extraer un "prefijo" base (útil para detectar sagas ocultas)
             val cleanTitle = book.title.lowercase().replace(Regex("[^a-z0-9áéíóúñ ]"), "")
             val words = cleanTitle.split(" ").filter { it.length > 2 }
             val prefix = words.take(2).joinToString(" ")
@@ -194,12 +219,14 @@ class BooksRepository {
                 prefix.isNotEmpty() && prefix == existingPrefix
             }
 
+            // Máximo 2 libros por autor y evitamos repetir la misma saga
             if (authorCount < 2 && !hasSameSaga) {
                 filteredList.add(book)
                 authorCounts[author] = authorCount + 1
             }
         }
 
+        // Si hemos sido demasiado estrictos y nos quedamos sin resultados, devolvemos lo original sin repetidos exactos
         if (filteredList.size < 4 && books.size >= 4) {
             return books.distinctBy { it.id }
         }
@@ -207,10 +234,15 @@ class BooksRepository {
         return filteredList
     }
 
+    /**
+     * Búsqueda híbrida y paralela.
+     * * Utiliza Corrutinas (async/await) para disparar búsquedas en Google Books y Open Library
+     * simultáneamente y luego fusiona los resultados limpios y únicos.
+     */
     suspend fun searchHybrid(query: String): Result<List<Book>> = coroutineScope {
         try {
 
-            // 1️⃣ BUSCAR PRIMERO EN FIREBASE
+            // 1️. BUSCAR PRIMERO EN FIREBASE
             val localBooks = fetchFromFirebase(query)
 
             if (localBooks.size >= 8) {
@@ -219,7 +251,7 @@ class BooksRepository {
 
             val lang = Locale.getDefault().language
 
-            // 2️⃣ BUSCAR EN GOOGLE Y OPENLIBRARY EN PARALELO (CON ESCUDOS)
+            // 2️. BUSCAR EN GOOGLE Y OPENLIBRARY EN PARALELO (CON ESCUDOS)
             val googleJob = async {
                 try {
                     apiService.searchBooksGoogle(
@@ -251,6 +283,7 @@ class BooksRepository {
 
             val sortedGoogle = googleBooks.sortedByDescending { it.ratingsCount }
 
+            // Combinar, limpiar (+18 y sin imagen) y quitar duplicados exactos
             val combined = (localBooks + sortedGoogle + openLibraryBooks)
                 .filter {
                     it.imageUrl.isNotEmpty() &&
@@ -267,9 +300,14 @@ class BooksRepository {
         }
     }
 
+    /**
+     * Obtiene el detalle de un libro en concreto.
+     * * Prioriza Firebase; si no existe o el ID tiene prefijo "OL", busca en Open Library,
+     * si no, en Google Books.
+     */
     suspend fun getBookDetail(id: String): Result<Book> {
         return try {
-            // 🔥 FASE 1: Buscar detalles en Firebase primero
+            // FASE 1: Buscar detalles en Firebase primero
             val snapshot = db.collection("books").document(id).get().await()
             if (snapshot.exists()) {
                 val title = snapshot.getString("title") ?: ""
@@ -331,8 +369,8 @@ class BooksRepository {
         }
     }
 
+    /** Guarda o actualiza un libro en Firebase para que la comunidad pueda acceder a él sin consumir cuota de API. */
     fun saveBookToFirebase(book: Book) {
-        // Creamos un mapa con los datos exactos que nuestra app necesita leer luego
         val bookData = hashMapOf(
             "id" to book.id,
             "title" to book.title,
@@ -375,6 +413,7 @@ class BooksRepository {
         jobs.awaitAll().flatten()
     }
 
+    /** Comprueba si el libro existe en Firestore; si no, lo guarda basándose en el modelo de dominio. */
     suspend fun ensureBookExists(book: Book) {
 
         try {
@@ -447,7 +486,7 @@ class BooksRepository {
             .filter { it.isNotBlank() }
             .distinct()
 
-        return if (normalized.isEmpty()) listOf("general") else normalized
+        return normalized.ifEmpty { listOf("general") }
     }
 
     suspend fun testSagasRawJson(testQuery: String = "Harry Potter") {
@@ -474,6 +513,11 @@ class BooksRepository {
         }
     }
 
+    // --- SISTEMA SOCIAL DE SAGAS ---
+
+    /**
+     * Permite a un usuario de la comunidad proponer una corrección o adición a los datos de la saga de un libro.
+     */
     suspend fun updateBookSeries(book: Book, newName: String, newIndex: Int, editorUid: String, editorName: String, editorAvatar: String): Result<Boolean> {
         return try {
             // Primero aseguramos que el libro exista en Firebase
@@ -498,12 +542,14 @@ class BooksRepository {
         }
     }
 
-    // 2. Sistema de Votación (Aprobar o Rechazar la edición)
+    /**
+     * Permite a la comunidad votar (positivo o negativo) sobre la edición de una saga.
+     * * Utiliza [FieldValue.increment] para evitar que los votos se sobrescriban si dos usuarios votan exactamente a la vez.
+     */
     suspend fun voteSeriesEdit(bookId: String, uid: String, isUpvote: Boolean): Result<Boolean> {
         return try {
             val bookRef = db.collection("books").document(bookId)
 
-            // Usamos FieldValue para actualizaciones atómicas (súper seguro)
             val voteField = if (isUpvote) "seriesUpvotes" else "seriesDownvotes"
 
             val updates = mapOf(
