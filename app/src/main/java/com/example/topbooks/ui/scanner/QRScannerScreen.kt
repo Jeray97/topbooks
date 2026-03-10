@@ -41,17 +41,26 @@ import com.example.topbooks.ui.theme.ColorArcDarkBrown
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
 import java.util.concurrent.Executors
 
+/**
+ * PANTALLA DE ESCÁNER DE CÓDIGOS DE BARRAS (Stateful Composable).
+ * Provee una interfaz de cámara para escanear el ISBN de libros físicos y buscar su información.
+ *
+ * @param onBackClick Acción para regresar a la pantalla anterior.
+ * @param onBookFound Acción ejecutada al confirmar la selección de un libro encontrado.
+ * @param viewModel Gestiona el estado de búsqueda del libro a partir del código escaneado.
+ */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun QRScannerScreen(
     onBackClick: () -> Unit,
-    onBookFound: (String) -> Unit, // Navegar al detalle del libro
+    onBookFound: (String) -> Unit,
     viewModel: ScannerViewModel = viewModel()
 ) {
+    // Gestión de permisos de cámara en tiempo de ejecución
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-    // Escuchamos el estado reactivo del escáner
     val state by viewModel.uiState.collectAsState()
 
+    // Solicitud automática de permisos al entrar en la pantalla
     LaunchedEffect(Unit) {
         if (!cameraPermissionState.status.isGranted) {
             cameraPermissionState.launchPermissionRequest()
@@ -60,13 +69,14 @@ fun QRScannerScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (cameraPermissionState.status.isGranted) {
+            // Capa de la cámara
             CameraPreview(
                 onBarcodeScanned = { barcode ->
                     viewModel.onIsbnDetected(barcode)
                 }
             )
 
-            // Cabecera con botón de cerrar
+            // Interfaz de control: Botón de cierre
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -82,7 +92,7 @@ fun QRScannerScreen(
                 }
             }
 
-            // Consola flotante (Logs)
+            // Consola de estado: Muestra mensajes informativos sobre el proceso de escaneo
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -99,7 +109,7 @@ fun QRScannerScreen(
                 )
             }
 
-            // Diálogo cuando encontramos un libro
+            // Diálogo de éxito: Se muestra cuando el ISBN coincide con un libro en la API
             state.foundBook?.let { book ->
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissBookInfo() },
@@ -139,7 +149,7 @@ fun QRScannerScreen(
                 )
             }
 
-            // Diálogo cuando falla la búsqueda
+            // Diálogo de error: Se muestra si el código no pertenece a ningún libro conocido
             state.notFoundIsbn?.let { isbn ->
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissError() },
@@ -156,7 +166,7 @@ fun QRScannerScreen(
                 )
             }
 
-            // Indicador de carga
+            // Overlay de carga durante la consulta a la API
             if (state.isLoading) {
                 Box(
                     modifier = Modifier
@@ -169,7 +179,7 @@ fun QRScannerScreen(
             }
 
         } else {
-            // Pantalla si no hay permisos de cámara
+            // Vista informativa en caso de que el permiso de cámara sea denegado
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -185,10 +195,13 @@ fun QRScannerScreen(
     }
 }
 
+/**
+ * COMPONENTE DE VISTA PREVIA DE CÁMARA.
+ * Integra CameraX mediante una AndroidView para mostrar el flujo de video y procesar los fotogramas.
+ */
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 @Composable
 fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
-    //val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
     AndroidView(
@@ -204,10 +217,12 @@ fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
             cameraProviderFuture.addListener({
                 val cameraProvider = cameraProviderFuture.get()
 
+                // Configuración del flujo de visualización
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 
+                // Configuración del analizador de imágenes para detección de códigos
                 val imageAnalyzer = ImageAnalysis.Builder()
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
@@ -220,6 +235,7 @@ fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
                 try {
+                    // Vinculación de la cámara al ciclo de vida del componente
                     cameraProvider.unbindAll()
                     cameraProvider.bindToLifecycle(
                         lifecycleOwner,
@@ -228,7 +244,6 @@ fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
                         imageAnalyzer
                     )
                 } catch (exc: Exception) {
-                    // Los logs de errores los mantenemos fijos para el desarrollador
                     Log.e("QRScanner", "Error al vincular cámara", exc)
                 }
             }, ContextCompat.getMainExecutor(ctx))
@@ -239,6 +254,10 @@ fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
     )
 }
 
+/**
+ * PROCESADOR DE FOTOGRAMAS.
+ * Convierte el proxy de imagen de la cámara en un formato compatible con ML Kit Barcode Scanning.
+ */
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 private fun processImageProxy(
     imageProxy: ImageProxy,
@@ -249,15 +268,17 @@ private fun processImageProxy(
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
         val scanner = BarcodeScanning.getClient()
 
+        // Procesamiento asíncrono del fotograma
         scanner.process(image)
             .addOnSuccessListener { barcodes ->
                 for (barcode in barcodes) {
                     barcode.rawValue?.let { value ->
-                        onSuccess(value)
+                        onSuccess(value) // Código detectado exitosamente
                     }
                 }
             }
             .addOnCompleteListener {
+                // Es crítico cerrar el proxy para liberar la cámara para el siguiente fotograma
                 imageProxy.close()
             }
     } else {
