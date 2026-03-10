@@ -1,19 +1,36 @@
 package com.example.topbooks.utils
 
 /**
- * Una clase sellada (sealed class) que nos ayuda a gestionar los estados de la UI.
- * T: Es el tipo de dato que esperamos recibir cuando to-do va bien (ej: un Usuario, un Boolean, etc).
+ * REPRESENTADOR DE ESTADO DE RECURSOS (Generic State Wrapper).
+ * * Esta clase sellada se utiliza para encapsular la comunicación de datos entre
+ * las capas de la aplicación (Repository -> ViewModel -> UI).
+ * Provee una forma estructurada de manejar operaciones asíncronas.
+ *
+ * @param T El tipo de dato esperado en caso de éxito.
  */
 sealed class Resource<out T> {
-    // Cuando la operación fue exitosa y traemos datos
+
+    /**
+     * Representa un estado de éxito donde se han obtenido los datos correctamente.
+     * @property data El contenido del recurso de tipo [T].
+     */
     data class Success<out T>(val data: T) : Resource<T>()
 
-    // Cuando ocurrió un fallo
+    /**
+     * Representa un fallo en la operación o una excepción de red/base de datos.
+     * @property exception El error capturado durante la ejecución.
+     */
     data class Error(val exception: Throwable) : Resource<Nothing>()
 
-    // Cuando estamos esperando respuesta (para mostrar el spinner de carga)
+    /**
+     * Indica que el recurso se está cargando o procesando actualmente.
+     * Se utiliza para activar indicadores de progreso en la UI.
+     */
     object Loading : Resource<Nothing>()
 
-    // Estado inicial (cuando no ha pasado nada aún)
+    /**
+     * Estado inicial o de espera.
+     * Indica que la operación aún no se ha disparado.
+     */
     object Idle : Resource<Nothing>()
 }
