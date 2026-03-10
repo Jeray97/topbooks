@@ -34,8 +34,16 @@ import com.example.topbooks.ui.tutorial.TutorialScreen
 import com.example.topbooks.ui.reviews.ReviewsScreen
 import com.example.topbooks.ui.profile.ProfileScreen
 import com.example.topbooks.ui.profile.UserListScreen
-import com.example.topbooks.ui.reviews.SingleCommentScreen // 🔥 AÑADIDO
+import com.example.topbooks.ui.reviews.SingleCommentScreen
 
+/**
+ * Orquestador principal de la navegación de la aplicación.
+ * Define todas las rutas, transiciones y la lógica de destino inicial basada en el estado de autenticación.
+ *
+ * @param settingsManager Gestor de preferencias locales (Modo oscuro, idioma, etc.).
+ * @param navController Controlador de navegación de Compose.
+ * @param authViewModel ViewModel global que gestiona el estado de la sesión del usuario.
+ */
 @Composable
 fun AppNavigation(
     settingsManager: SettingsManager,
@@ -44,6 +52,7 @@ fun AppNavigation(
 ) {
     val authState by authViewModel.uiState.collectAsState()
 
+    // Estado de guarda: Evita renderizar rutas antes de conocer el perfil del usuario
     if (authState.isLoadingProfile) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = ColorArcMediumBrown)
@@ -51,6 +60,7 @@ fun AppNavigation(
         return
     }
 
+    // Lógica de destino inicial: Login -> Tutorial (si es nuevo) -> Main
     val startDestination = when {
         authState.currentUser == null -> "login"
         !authState.isTutorialCompleted -> "tutorial"
@@ -58,6 +68,8 @@ fun AppNavigation(
     }
 
     NavHost(navController = navController, startDestination = startDestination) {
+
+        // --- FLUJO DE AUTENTICACIÓN ---
 
         composable("login") {
             LoginScreen(
@@ -81,6 +93,8 @@ fun AppNavigation(
             )
         }
 
+        // --- CONFIGURACIÓN INICIAL (ONBOARDING) ---
+
         composable("tutorial") {
             TutorialScreen(onFinished = {
                 authViewModel.checkUserProfile()
@@ -90,28 +104,32 @@ fun AppNavigation(
             })
         }
 
+        // --- CONTENIDO PRINCIPAL ---
+
         composable("main") {
             MainScreen(
                 onNavigateToConfig = { navController.navigate("config") },
-                onNavigateToCategory = { categoryName: String, query: String ->
+                onNavigateToCategory = { categoryName, query ->
                     navController.navigate("category_detail/$categoryName/$query")
                 },
-                onNavigateToBookDetail = { bookId: String ->
+                onNavigateToBookDetail = { bookId ->
                     if (bookId.isNotEmpty()) navController.navigate("book_detail/$bookId")
                 },
                 onNavigateToScanner = { navController.navigate("scanner") },
                 onNavigateToAllCategories = { navController.navigate("all_categories") },
                 onNavigateToRecommended = { navController.navigate("recommended_screen") },
                 onNavigateToFriendsActivity = { navController.navigate("social_activity") },
-                onNavigateToFriendProfile = { userId: String -> navController.navigate("profile/$userId") },
-                onNavigateToList = { type: String, userId: String ->
+                onNavigateToFriendProfile = { userId -> navController.navigate("profile/$userId") },
+                onNavigateToList = { type, userId ->
                     navController.navigate("user_list/$type/$userId")
                 },
-                onNavigateToJournal = { bookId: String ->
+                onNavigateToJournal = { bookId ->
                     navController.navigate("reading_journal/$bookId")
                 }
             )
         }
+
+        // --- SECCIÓN DE PERFIL Y LISTAS ---
 
         composable(
             route = "profile/{userId}",
@@ -121,8 +139,8 @@ fun AppNavigation(
             ProfileScreen(
                 userId = userId,
                 onNavigateToSettings = { navController.navigate("config") },
-                onNavigateToDetail = { id: String -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
-                onNavigateToList = { type: String, id: String -> navController.navigate("user_list/$type/$id") },
+                onNavigateToDetail = { id -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
+                onNavigateToList = { type, id -> navController.navigate("user_list/$type/$id") },
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -140,20 +158,21 @@ fun AppNavigation(
                 type = type,
                 userId = userId,
                 onBackClick = { navController.popBackStack() },
-                onBookClick = { id: String -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
-                // 🔥 AÑADIDO: Dirigimos al hilo individual al pulsar un comentario
-                onCommentClick = { _: String, cid: String ->
+                onBookClick = { id -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
+                // Navegación hacia hilos de conversación desde listados
+                onCommentClick = { _, cid ->
                     if (cid.isNotEmpty()) navController.navigate("single_comment/$cid")
                 }
             )
         }
 
+        // --- ACTIVIDAD SOCIAL Y RESEÑAS ---
+
         composable("social_activity") {
             SocialActivityScreen(
                 onBackClick = { navController.popBackStack() },
-                onBookClick = { id: String -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
-                // 🔥 AÑADIDO: Dirigimos al hilo individual también desde el feed social
-                onCommentClick = { _: String, cid: String ->
+                onBookClick = { id -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
+                onCommentClick = { _, cid ->
                     if (cid.isNotEmpty()) navController.navigate("single_comment/$cid")
                 }
             )
@@ -162,14 +181,13 @@ fun AppNavigation(
         composable(
             route = "reviews_thread/{bookId}",
             arguments = listOf(navArgument("bookId") { type = NavType.StringType })
-        ) { backStackEntry ->
+        ) {
             ReviewsScreen(
                 onBackClick = { navController.popBackStack() },
-                onBookClick = { id: String -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") }
+                onBookClick = { id -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") }
             )
         }
 
-        //NUEVA RUTA PARA EL HILO INDIVIDUAL
         composable(
             route = "single_comment/{commentId}",
             arguments = listOf(navArgument("commentId") { type = NavType.StringType })
@@ -181,6 +199,8 @@ fun AppNavigation(
             )
         }
 
+        // --- DETALLE DE LIBRO Y DIARIO ---
+
         composable(
             route = "book_detail/{bookId}",
             arguments = listOf(navArgument("bookId") { type = NavType.StringType })
@@ -189,7 +209,7 @@ fun AppNavigation(
             BookDetailScreen(
                 bookId = bookId,
                 onBackClick = { navController.popBackStack() },
-                onNavigateToJournal = { id: String, _: String, _: String, _: String, _: String ->
+                onNavigateToJournal = { id, _, _, _, _ ->
                     navController.navigate("reading_journal/$id")
                 }
             )
@@ -205,6 +225,8 @@ fun AppNavigation(
             )
         }
 
+        // --- CONFIGURACIÓN Y UTILIDADES ---
+
         composable("config") {
             ConfigScreen(
                 viewModel = viewModel(factory = ConfigViewModel.Factory(settingsManager)),
@@ -219,19 +241,21 @@ fun AppNavigation(
         composable("scanner") {
             QRScannerScreen(
                 onBackClick = { navController.popBackStack() },
-                onBookFound = { id: String ->
+                onBookFound = { id ->
                     navController.navigate("book_detail/$id") { popUpTo("scanner") { inclusive = true } }
                 }
             )
         }
 
+        // --- EXPLORACIÓN POR CATEGORÍAS Y RECOMENDADOS ---
+
         composable("all_categories") {
             CategoriesScreen(
                 onBackClick = { navController.popBackStack() },
-                onCategoryClick = { name: String, query: String ->
+                onCategoryClick = { name, query ->
                     navController.navigate("category_detail/$name/$query")
                 },
-                onBookClick = { id: String -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
+                onBookClick = { id -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
                 onScanClick = { navController.navigate("scanner") }
             )
         }
@@ -247,7 +271,7 @@ fun AppNavigation(
                 categoryName = backStackEntry.arguments?.getString("categoryName") ?: "",
                 query = backStackEntry.arguments?.getString("query") ?: "",
                 onBackClick = { navController.popBackStack() },
-                onBookClick = { id: String -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
+                onBookClick = { id -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
                 onScanClick = { navController.navigate("scanner") }
             )
         }
@@ -255,8 +279,8 @@ fun AppNavigation(
         composable("recommended_screen") {
             RecommendedScreen(
                 onBackClick = { navController.popBackStack() },
-                onBookClick = { id: String -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
-                onSectionClick = { type: String, genre: String, color: Int ->
+                onBookClick = { id -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
+                onSectionClick = { type, genre, color ->
                     navController.navigate("recommended_section/$type/$genre/$color")
                 }
             )
@@ -275,7 +299,7 @@ fun AppNavigation(
                 genre = backStackEntry.arguments?.getString("genre") ?: "",
                 colorArgb = backStackEntry.arguments?.getInt("color") ?: 0,
                 onBackClick = { navController.popBackStack() },
-                onBookClick = { id: String -> navController.navigate("book_detail/$id") }
+                onBookClick = { id -> navController.navigate("book_detail/$id") }
             )
         }
     }
