@@ -17,15 +17,28 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel encargado de gestionar la lógica de la pantalla de Configuración ([ConfigScreen]).
+ * * Conecta las interacciones del usuario con las preferencias locales ([SettingsManager])
+ * y la gestión avanzada de la cuenta en la nube ([AuthRepository]).
+ */
 class ConfigViewModel(
     private val settingsManager: SettingsManager,
     private val authRepository: AuthRepository = AuthRepositoryImpl()
 ) : ViewModel() {
 
+    // --- ESTADOS LOCALES ---
+
     private val _isEmailVerified = MutableStateFlow(true)
     val isEmailVerified: StateFlow<Boolean> = _isEmailVerified.asStateFlow()
+
     private val _isDeletingAccount = MutableStateFlow(false)
     val isDeletingAccount: StateFlow<Boolean> = _isDeletingAccount.asStateFlow()
+
+    // --- ESTADOS DE PREFERENCIAS (DATASTORE) ---
+    // TÉCNICA DE RENDIMIENTO: Al usar 'SharingStarted.WhileSubscribed(5000)', el ViewModel
+    // dejará de observar la base de datos local 5 segundos después de que el usuario salga
+    // de la pantalla de configuración, ahorrando batería y recursos del sistema.
 
     val darkModeEnabled: StateFlow<Boolean> = settingsManager.darkModeFlow
         .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = false)
@@ -40,6 +53,7 @@ class ConfigViewModel(
         refreshVerificationStatus()
     }
 
+    /** Obliga a Firebase a actualizar los datos del usuario actual para ver si ya verificó su correo. */
     fun refreshVerificationStatus() {
         viewModelScope.launch {
             authRepository.reloadUser()
@@ -47,10 +61,12 @@ class ConfigViewModel(
         }
     }
 
+    // --- FUNCIONES DE TOGGLE (INTERRUPTORES) ---
     fun toggleDarkMode(enabled: Boolean) = viewModelScope.launch { settingsManager.saveDarkMode(enabled) }
     fun toggleNotifications(enabled: Boolean) = viewModelScope.launch { settingsManager.saveNotifications(enabled) }
     fun togglePublicJournalDefault(enabled: Boolean) = viewModelScope.launch { settingsManager.savePublicJournalDefault(enabled) }
 
+    /** Reenvía el correo de verificación de identidad a la bandeja de entrada del usuario. */
     fun resendVerificationEmail(onResult: (String) -> Unit) {
         authRepository.resendVerificationEmail { result ->
             if (result.isSuccess) onResult("Correo de verificación reenviado.")
@@ -58,6 +74,7 @@ class ConfigViewModel(
         }
     }
 
+    /** Solicita a Firebase que envíe un correo electrónico con un enlace para cambiar la contraseña. */
     fun sendPasswordReset(onResult: (String) -> Unit) {
         val email = FirebaseAuth.getInstance().currentUser?.email
         if (email.isNullOrEmpty()) {
@@ -73,17 +90,28 @@ class ConfigViewModel(
         }
     }
 
+    /** Cierra la sesión activa en este dispositivo. */
     fun signOut() {
         authRepository.logout()
     }
 
-    // 🔥 DETECTA SI EL USUARIO ES DE GOOGLE
+    /**
+     * Comprueba los proveedores de inicio de sesión vinculados a la cuenta actual.
+     * @return 'true' si el usuario se registró usando el botón de Google.
+     */
     fun isGoogleUser(): Boolean {
         val user = FirebaseAuth.getInstance().currentUser
         return user?.providerData?.any { it.providerId == "google.com" } == true
     }
 
-    // 🔥 REAUTENTICA CON CONTRASEÑA Y LUEGO BORRA LA CUENTA
+    /**
+     * Maneja el proceso crítico y destructivo de eliminar una cuenta de forma definitiva.
+     * * REGLA DE SEGURIDAD DE FIREBASE: Para evitar que alguien coja el móvil desbloqueado de otro y borre
+     * su cuenta, Firebase exige re-autenticar al usuario inmediatamente antes de borrar.
+     *
+     * @param password La contraseña actual introducida por el usuario para confirmar su identidad.
+     * @param onResult Callback que devuelve un booleano (éxito/fallo) y el ID de recurso (String) del mensaje resultante.
+     */
     fun reauthenticateAndDelete(password: String, onResult: (Boolean, Int) -> Unit) {
         val user = FirebaseAuth.getInstance().currentUser
         if (user == null) {
@@ -91,23 +119,25 @@ class ConfigViewModel(
             return
         }
 
-        _isDeletingAccount.value = true
+        _isDeletingAccount.value = true // Activa el spinner de carga en el botón rojo
 
         if (isGoogleUser()) {
-            // Usuarios de Google no tienen contraseña, se intenta borrar directo
+            // Los usuarios de Google no tienen contraseña tradicional. Intentamos borrar directamente.
             viewModelScope.launch {
                 authRepository.deleteAccount().onSuccess {
                     _isDeletingAccount.value = false
                     onResult(true, R.string.conf_delete_success)
                 }.onFailure { error ->
                     _isDeletingAccount.value = false
+
+                    // Si Firebase exige inicio de sesión reciente para la cuenta de Google, se lo indicamos
                     val isRecentLoginRequired = error is FirebaseAuthRecentLoginRequiredException || error.message?.contains("recent", ignoreCase = true) == true
                     if (isRecentLoginRequired) onResult(false, R.string.conf_delete_recent_login_required)
                     else onResult(false, R.string.conf_delete_error)
                 }
             }
         } else {
-            // Usuarios normales: Reautenticar con contraseña primero
+            // Usuarios de Correo/Contraseña: Necesitamos crear una credencial con la contraseña dada y reautenticar.
             val email = user.email
             if (email.isNullOrEmpty()) {
                 _isDeletingAccount.value = false
@@ -118,7 +148,7 @@ class ConfigViewModel(
             val credential = EmailAuthProvider.getCredential(email, password)
             user.reauthenticate(credential).addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    // Contraseña correcta, procedemos a borrar
+                    // Si la contraseña era correcta, procedemos a borrar la cuenta definitivamente
                     viewModelScope.launch {
                         authRepository.deleteAccount().onSuccess {
                             _isDeletingAccount.value = false
@@ -129,7 +159,7 @@ class ConfigViewModel(
                         }
                     }
                 } else {
-                    // Contraseña incorrecta
+                    // Contraseña incorrecta, abortamos operación
                     _isDeletingAccount.value = false
                     onResult(false, R.string.conf_delete_wrong_password)
                 }
@@ -137,6 +167,10 @@ class ConfigViewModel(
         }
     }
 
+    /**
+     * Clase factoría requerida por el sistema de Android para poder inyectar parámetros
+     * (como el [SettingsManager]) en el constructor del ViewModel durante su creación.
+     */
     class Factory(private val settingsManager: SettingsManager) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ConfigViewModel::class.java)) {
