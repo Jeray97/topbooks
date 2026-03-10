@@ -24,7 +24,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,6 +35,14 @@ import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.Resource
 
+/**
+ * PANTALLA DE RECOMENDADOS (Stateful Composable).
+ * Gestiona la carga de datos y la observación de estados para la vista de recomendaciones.
+ * * @param onBackClick Acción para regresar a la pantalla anterior.
+ * @param onBookClick Acción al seleccionar un libro específico.
+ * @param onSectionClick Acción al pulsar en la cabecera de una sección para ver más resultados.
+ * @param viewModel ViewModel que provee los flujos de datos para populares, gustos y amigos.
+ */
 @Composable
 fun RecommendedScreen(
     onBackClick: () -> Unit,
@@ -43,30 +50,37 @@ fun RecommendedScreen(
     onSectionClick: (String, String, Int) -> Unit,
     viewModel: RecommendedViewModel = viewModel()
 ) {
+    // Observamos los estados reactivos del ViewModel
     val popularState by viewModel.popularBooks.collectAsState()
     val tastesState by viewModel.tastesBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
 
+    // Internacionalización: Obtenemos los términos de búsqueda según el idioma actual
     val genreUsed = stringResource(R.string.recommended_default_genre)
     val popularQuery = stringResource(R.string.query_popular_bestsellers)
 
-    // 🔥 Disparamos la carga inicial con los idiomas correctos
+    // Disparamos la carga inicial al entrar en la pantalla con los parámetros traducidos
     LaunchedEffect(Unit) {
         viewModel.loadData(popularQuery, genreUsed)
     }
 
+    // Delegamos la renderización al componente visual (Stateless)
     RecommendedContent(
         popularState = popularState,
         tastesState = tastesState,
         friendsState = friendsState,
         genreForTastes = genreUsed,
-        popularQuery = popularQuery, // Pasamos el parámetro
+        popularQuery = popularQuery,
         onBackClick = onBackClick,
         onBookClick = onBookClick,
         onSectionClick = onSectionClick
     )
 }
 
+/**
+ * INTERFAZ VISUAL DE RECOMENDADOS (Stateless Composable).
+ * Define la estructura y el layout de la pantalla sin manejar estados de negocio.
+ */
 @Composable
 fun RecommendedContent(
     popularState: Resource<List<Book>>,
@@ -80,13 +94,14 @@ fun RecommendedContent(
 ) {
     Scaffold(
         containerColor = ColorBackGroundGeneral,
-        topBar = { TopBar(onBackClick = onBackClick) }
+        topBar = { TopBar(onBackClick = onBackClick) } // Barra superior estándar
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
+                // Habilitamos scroll vertical para navegar por las distintas secciones
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
@@ -100,21 +115,21 @@ fun RecommendedContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 1. POPULARES
+            // --- 1. SECCIÓN: LIBROS POPULARES ---
             BrownCardSection(
                 title = stringResource(R.string.recommended_section_popular),
                 resource = popularState,
                 onBookClick = onBookClick,
                 backgroundColor = ColorBackGroundCategorySection,
                 onArrowClick = {
-                    // 🔥 Enviamos la query ya traducida
+                    // Notificamos el clic enviando la query ya traducida
                     onSectionClick("popular", popularQuery, ColorBackGroundCategorySection.toArgb())
                 }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 2. GUSTOS
+            // --- 2. SECCIÓN: SEGÚN TUS GUSTOS ---
             BrownCardSection(
                 title = stringResource(R.string.recommended_section_tastes, genreForTastes),
                 resource = tastesState,
@@ -127,7 +142,7 @@ fun RecommendedContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 3. AMIGOS
+            // --- 3. SECCIÓN: FAVORITOS DE AMIGOS ---
             BrownCardSection(
                 title = stringResource(R.string.recommended_section_friends),
                 resource = friendsState,
@@ -139,11 +154,22 @@ fun RecommendedContent(
                 }
             )
 
+            // Espaciado final para evitar que el contenido quede oculto tras barras de navegación
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
+/**
+ * COMPONENTE DE SECCIÓN ESTILIZADO.
+ * Contenedor genérico para listas de libros con gestión automática de estados (Resource).
+ * * @param title Título de la tarjeta.
+ * @param resource Estado de los datos (Loading, Success, Error).
+ * @param onBookClick Callback al pulsar un libro.
+ * @param isEmptyMessage Texto a mostrar si la lista está vacía.
+ * @param backgroundColor Color de fondo de la tarjeta.
+ * @param onArrowClick Acción al pulsar la cabecera.
+ */
 @Composable
 fun BrownCardSection(
     title: String,
@@ -160,6 +186,7 @@ fun BrownCardSection(
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(vertical = 16.dp)) {
+            // Cabecera interactiva con título y flecha
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -184,8 +211,10 @@ fun BrownCardSection(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
+            // --- GESTIÓN DINÁMICA DE CONTENIDO SEGÚN ESTADO ---
             when (resource) {
                 is Resource.Loading -> {
+                    // Skeleton loading horizontal para feedback visual inmediato
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp)
@@ -203,6 +232,7 @@ fun BrownCardSection(
                 }
                 is Resource.Success -> {
                     if (resource.data.isEmpty()) {
+                        // Mensaje informativo si no hay datos
                         Text(
                             text = isEmptyMessage,
                             color = Color.White.copy(alpha = 0.7f),
@@ -210,6 +240,7 @@ fun BrownCardSection(
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     } else {
+                        // Lista de libros renderizados con WhiteBookItem
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(horizontal = 16.dp)
@@ -221,6 +252,7 @@ fun BrownCardSection(
                     }
                 }
                 is Resource.Error -> {
+                    // Feedback visual en caso de error de red o servidor
                     Text(
                         text = stringResource(R.string.recommended_error_loading),
                         color = Color.White,
@@ -234,6 +266,11 @@ fun BrownCardSection(
     }
 }
 
+/**
+ * ELEMENTO DE LIBRO ESPECIALIZADO PARA RECOMENDADOS.
+ * Tarjeta blanca minimalista para resaltar las portadas de los libros.
+ * Incluye lógica para mostrar el título si la imagen no está disponible.
+ */
 @Composable
 fun WhiteBookItem(book: Book, onClick: () -> Unit) {
     Card(
@@ -245,6 +282,7 @@ fun WhiteBookItem(book: Book, onClick: () -> Unit) {
         onClick = onClick
     ) {
         if (book.imageUrl.isNotEmpty()) {
+            // Carga de imagen con Coil y placeholder de error
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(book.imageUrl)
@@ -256,6 +294,7 @@ fun WhiteBookItem(book: Book, onClick: () -> Unit) {
                 modifier = Modifier.fillMaxSize()
             )
         } else {
+            // Fallback visual: Si no hay imagen, centramos el título del libro
             Box(
                 modifier = Modifier.fillMaxSize().padding(8.dp),
                 contentAlignment = Alignment.Center

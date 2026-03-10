@@ -33,24 +33,34 @@ import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.CategoryProvider
 import com.example.topbooks.utils.Resource
 
+/**
+ * PANTALLA DE INICIO (HOME).
+ * Es el centro de navegación de la aplicación donde se presentan:
+ * 1. Un buscador con escáner de barras.
+ * 2. Un carrusel de categorías rápidas.
+ * 3. Una sección de recomendaciones personalizadas basadas en IA/Algoritmo.
+ * 4. Un feed de lo que están leyendo o marcando como favorito los amigos.
+ */
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
-    onCategoryClick: (String, String) -> Unit,
+    onCategoryClick: (String, String) -> Unit, // (Nombre UI, Query API)
     onBookClick: (String) -> Unit,
     onScanClick: () -> Unit,
     onSeeAllCategoriesClick: () -> Unit,
     onRecommendedClick: () -> Unit,
     onFriendsActivityClick: () -> Unit
 ) {
+    // Observamos los flujos de datos del ViewModel
     val recommendedState by viewModel.recommendedBooks.collectAsState()
     val friendsState by viewModel.friendsBooks.collectAsState()
 
-    // 🔥 OBTENEMOS EL TEXTO EN EL IDIOMA ACTUAL
+    // Internacionalización: Obtenemos los términos de búsqueda dinámicamente según el idioma del dispositivo
     val categoryQuery = stringResource(R.string.query_best_fiction)
     val fantasyData = CategoryProvider.getCategoryResources("FANTASY")
     val recommendedQuery = if (fantasyData.nameRes != null) stringResource(fantasyData.nameRes) else "Fantasía"
 
+    // Disparamos la carga de datos al entrar en la pantalla
     LaunchedEffect(Unit) {
         viewModel.loadData(categoryQuery, recommendedQuery)
     }
@@ -64,8 +74,10 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .background(ColorBackGroundGeneral)
                 .padding(16.dp)
+                // Permitimos scroll vertical para dispositivos con pantallas pequeñas
                 .verticalScroll(rememberScrollState())
         ) {
+            // Cabecera con tipografía corporativa
             Text(
                 text = stringResource(id = R.string.welcome_title),
                 fontFamily = GuardianCity,
@@ -75,6 +87,7 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
+            // Componente de búsqueda que flota sobre el contenido
             SearchBarCustom(
                 onBookClick = onBookClick,
                 onScanClick = onScanClick
@@ -82,7 +95,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 1. SECCIÓN CATEGORÍAS
+            // --- 1. SECCIÓN CATEGORÍAS ---
             SectionContainer(
                 title = stringResource(id = R.string.section_categories),
                 backgroundColor = ColorBackGroundCategorySection,
@@ -94,7 +107,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. SECCIÓN RECOMENDADOS
+            // --- 2. SECCIÓN RECOMENDADOS ---
             SectionContainer(
                 title = stringResource(id = R.string.section_recommended),
                 backgroundColor = ColorBackGroundRecommendedSection,
@@ -105,7 +118,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. SECCIÓN FAVORITOS DE TUS AMIGOS
+            // --- 3. SECCIÓN FAVORITOS DE AMIGOS ---
             SectionContainer(
                 title = stringResource(id = R.string.section_friends_favorites),
                 backgroundColor = ColorBackGroundFavoritesSection,
@@ -114,7 +127,7 @@ fun HomeScreen(
                 when (val state = friendsState) {
                     is Resource.Success -> {
                         if (state.data.isEmpty()) {
-                            EmptyFriendsMessage()
+                            EmptyFriendsMessage() // Estado vacío (Placeholder con icono social)
                         } else {
                             val books = state.data.map { it.book }
                             BookListRowContent(books = books, onBookClick = onBookClick)
@@ -132,26 +145,26 @@ fun HomeScreen(
                 }
             }
 
+            // Espaciado extra para que el contenido no quede debajo del BottomNav
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
+/**
+ * Componente Placeholder que se muestra cuando el usuario aún no tiene amigos o estos no tienen actividad.
+ */
 @Composable
 fun EmptyFriendsMessage() {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Image(
             painter = painterResource(id = R.drawable.social),
             contentDescription = null,
-            modifier = Modifier
-                .size(60.dp)
-                .padding(bottom = 8.dp),
+            modifier = Modifier.size(60.dp).padding(bottom = 8.dp),
             colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.5f))
         )
         Text(
@@ -170,6 +183,9 @@ fun EmptyFriendsMessage() {
     }
 }
 
+/**
+ * Renderiza una fila horizontal de libros. (Stateless)
+ */
 @Composable
 fun BookListRowContent(books: List<Book>, onBookClick: (String) -> Unit) {
     LazyRow(
@@ -182,6 +198,9 @@ fun BookListRowContent(books: List<Book>, onBookClick: (String) -> Unit) {
     }
 }
 
+/**
+ * Gestiona el estado de carga y error para las filas de libros.
+ */
 @Composable
 fun BookListRow(
     resource: Resource<List<Book>>,
@@ -201,6 +220,13 @@ fun BookListRow(
     }
 }
 
+/**
+ * Contenedor estilizado con tarjeta redondeada que agrupa una sección de la Home.
+ * @param title Título de la sección.
+ * @param backgroundColor Color de fondo de la tarjeta.
+ * @param onArrowClick Si se provee, muestra una flecha de navegación a la derecha.
+ * @param content El contenido Composable que irá dentro de la sección.
+ */
 @Composable
 fun SectionContainer(
     title: String,
@@ -242,6 +268,10 @@ fun SectionContainer(
     }
 }
 
+/**
+ * Fila horizontal que muestra los accesos directos a las categorías principales.
+ * Utiliza Triples para agrupar (NombreRes, IconoRes, QueryRes).
+ */
 @Composable
 fun CategoryRow(
     onCategoryClick: (String, String) -> Unit
@@ -274,6 +304,7 @@ fun CategoryRow(
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
+                // Etiqueta flotante blanca debajo del icono
                 Surface(color = Color.White, shape = RoundedCornerShape(12.dp)) {
                     Text(
                         text = categoryName,
@@ -287,12 +318,15 @@ fun CategoryRow(
     }
 }
 
+/**
+ * Skeleton loading visual para dar feedback inmediato al usuario mientras se descargan los libros.
+ */
 @Composable
 fun BookPlaceholderRow() {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         items(5) {
             Box(
-                modifier = Modifier.size(90.dp).height(130.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.5f))
+                modifier = Modifier.size(90.dp, 130.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.5f))
             )
         }
     }
