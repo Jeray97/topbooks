@@ -47,6 +47,22 @@ import com.example.topbooks.ui.reviews.ReviewsScreen
 import com.google.firebase.auth.FirebaseAuth
 import java.util.UUID
 
+/**
+ * PANTALLA PRINCIPAL DE LA APLICACIÓN (Main Container).
+ * Actúa como el host principal que contiene la barra de navegación inferior y el
+ * motor de navegación interno para las pestañas principales.
+ *
+ * @param onNavigateToConfig Navegación a la pantalla de configuración.
+ * @param onNavigateToCategory Navegación al detalle de una categoría (Nombre, Query).
+ * @param onNavigateToBookDetail Navegación al detalle técnico de un libro.
+ * @param onNavigateToScanner Navegación al escáner de códigos de barras.
+ * @param onNavigateToAllCategories Navegación al catálogo completo de categorías.
+ * @param onNavigateToRecommended Navegación a la sección de recomendaciones extendidas.
+ * @param onNavigateToFriendsActivity Navegación al muro de actividad social.
+ * @param onNavigateToFriendProfile Navegación al perfil público de un amigo.
+ * @param onNavigateToList Navegación a listas de usuario filtradas (Leídos, favoritos, etc).
+ * @param onNavigateToJournal Navegación al diario de lectura de un libro.
+ */
 @Composable
 fun MainScreen(
     onNavigateToConfig: () -> Unit,
@@ -60,10 +76,12 @@ fun MainScreen(
     onNavigateToList: (String, String) -> Unit,
     onNavigateToJournal: (String) -> Unit
 ) {
+    // NavController específico para las pestañas de la barra inferior
     val bottomNavController = rememberNavController()
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Control del tour interactivo mediante preferencias compartidas
     val context = LocalContext.current
     val sharedPrefs = context.getSharedPreferences("topbooks_tour_prefs", Context.MODE_PRIVATE)
     var showInteractiveTour by remember { mutableStateOf(!sharedPrefs.getBoolean("has_seen_spotlight_tour", false)) }
@@ -116,6 +134,7 @@ fun MainScreen(
                             selected = isSelected,
                             onClick = {
                                 bottomNavController.navigate(item.route) {
+                                    // Evitamos acumular pantallas en el backstack al cambiar de pestaña
                                     popUpTo(bottomNavController.graph.findStartDestination().id) {
                                         saveState = true
                                     }
@@ -131,6 +150,7 @@ fun MainScreen(
                 }
             }
         ) { innerPadding ->
+            // Grafo de navegación interno de la pantalla principal
             NavHost(
                 navController = bottomNavController,
                 startDestination = BottomNavItem.Home.route,
@@ -156,6 +176,7 @@ fun MainScreen(
                         onBookClick = onNavigateToBookDetail,
                         onJournalClick = onNavigateToJournal,
                         onAddJournalClick = {
+                            // Generamos un ID temporal para diarios de libros no registrados en la API
                             val customBookId = "custom_${UUID.randomUUID()}"
                             onNavigateToJournal(customBookId)
                         }
@@ -188,10 +209,10 @@ fun MainScreen(
             }
         }
 
+        // Capa superior para el tour de bienvenida
         if (showInteractiveTour) {
             SpotlightTourOverlay(
                 onFinish = {
-                    // 🔥 ADVERTENCIA CORREGIDA: Usando la función KTX `edit` de AndroidX
                     sharedPrefs.edit { putBoolean("has_seen_spotlight_tour", true) }
                     showInteractiveTour = false
                 }
@@ -200,12 +221,15 @@ fun MainScreen(
     }
 }
 
-// --- COMPONENTES DEL FOCO DE LUZ ---
+/**
+ * COMPONENTE DE TOUR INTERACTIVO (Spotlight).
+ * Utiliza un Canvas para dibujar una máscara oscura sobre la pantalla con un recorte circular
+ * animado que resalta los elementos clave de la interfaz.
+ */
 @Composable
 fun SpotlightTourOverlay(onFinish: () -> Unit) {
     var currentStep by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
-
     var boxSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
 
     Box(
@@ -216,7 +240,7 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = {}
+                onClick = {} // Bloqueamos clics accidentales en el fondo
             )
     ) {
         if (boxSize.width == 0 || boxSize.height == 0) return@Box
@@ -224,20 +248,17 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
         val screenWidth = boxSize.width.toFloat()
         val screenHeight = boxSize.height.toFloat()
 
-        //CONTROLES INDEPENDIENTES DE POSICIÓN
+        // Parametrización de posiciones calculadas matemáticamente según el layout
         val moverArriba = with(density) { 0.dp.toPx() }
-        // Anclamos el buscador al centro perfecto
-        val ajusteBuscadorX = with(density) { 0.dp.toPx() }
-        // Empujamos los botones 2 píxeles a la izquierda
         val ajusteBotonesX = with(density) { 2.dp.toPx() }
-
         val bottomNavY = screenHeight - with(density) { 40.dp.toPx() } - moverArriba
         val searchBarY = with(density) { 105.dp.toPx() } - moverArriba
 
         val sectionWidth = screenWidth / 5f
 
+        // Determinamos las coordenadas del foco según el paso actual
         val targetOffset = when (currentStep) {
-            1 -> Offset((screenWidth / 2f) - ajusteBuscadorX, searchBarY)
+            1 -> Offset(screenWidth / 2f, searchBarY)
             2 -> Offset((sectionWidth * 0.5f) - ajusteBotonesX, bottomNavY)
             3 -> Offset((sectionWidth * 1.5f) - ajusteBotonesX, bottomNavY)
             4 -> Offset((sectionWidth * 2.5f) - ajusteBotonesX, bottomNavY)
@@ -246,6 +267,7 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
             else -> Offset(screenWidth / 2f, screenHeight / 2f)
         }
 
+        // Tamaño del círculo de luz
         val targetRadius = when (currentStep) {
             0 -> 0f
             1 -> with(density) { 160.dp.toPx() }
@@ -253,14 +275,14 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
             else -> 0f
         }
 
+        // Animaciones suaves de transición entre pasos del tour
         val animX by animateFloatAsState(targetValue = targetOffset.x, animationSpec = tween(400), label = "animX")
         val animY by animateFloatAsState(targetValue = targetOffset.y, animationSpec = tween(400), label = "animY")
         val animRadius by animateFloatAsState(targetValue = targetRadius, animationSpec = tween(400), label = "animRadius")
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             val path = Path().apply {
-                fillType = PathFillType.EvenOdd
-
+                fillType = PathFillType.EvenOdd // Técnica para restar el círculo del rectángulo oscuro
                 addRect(Rect(0f, 0f, size.width, size.height))
                 if (animRadius > 0f) {
                     addOval(Rect(center = Offset(animX, animY), radius = animRadius))
@@ -269,6 +291,7 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
             drawPath(path = path, color = Color.Black.copy(alpha = 0.85f))
         }
 
+        // Configuración visual de la burbuja informativa
         val bubblePadding = when (currentStep) {
             0 -> PaddingValues(32.dp)
             1 -> PaddingValues(top = 220.dp, start = 24.dp, end = 24.dp)
@@ -315,7 +338,6 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
                         Spacer(Modifier.height(16.dp))
                     }
 
-                    //Usamos stringResource con los IDs extraídos de getStepData
                     Text(
                         text = stringResource(id = stepData.titleRes),
                         fontFamily = GuardianCity,
@@ -356,13 +378,18 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
     }
 }
 
-//Ahora StepData almacena los IDs (Int) de los recursos de texto
+/**
+ * Modelo de datos para cada paso del tour de usuario.
+ */
 data class StepData(
     @param:StringRes val titleRes: Int,
     @param:StringRes val descRes: Int,
     val highlightIcon: androidx.compose.ui.graphics.vector.ImageVector? = null
 )
 
+/**
+ * Retorna los recursos de texto e iconos para un paso específico del tutorial.
+ */
 fun getStepData(step: Int): StepData = when (step) {
     0 -> StepData(R.string.tour_step0_title, R.string.tour_step0_desc)
     1 -> StepData(R.string.tour_step1_title, R.string.tour_step1_desc, Icons.Default.QrCodeScanner)
@@ -371,5 +398,5 @@ fun getStepData(step: Int): StepData = when (step) {
     4 -> StepData(R.string.tour_step4_title, R.string.tour_step4_desc)
     5 -> StepData(R.string.tour_step5_title, R.string.tour_step5_desc)
     6 -> StepData(R.string.tour_step6_title, R.string.tour_step6_desc)
-    else -> StepData(R.string.tour_step0_title, R.string.tour_step0_desc) // Fallback seguro
+    else -> StepData(R.string.tour_step0_title, R.string.tour_step0_desc)
 }
