@@ -17,7 +17,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// 1. DEFINIMOS EL ESTADO DE LA UI
+/**
+ * 1. DEFINIMOS EL ESTADO DE LA UI
+ * * Esta clase encapsula to-do lo que la pantalla de Login/Registro necesita saber para pintarse.
+ *
+ * @property currentUser El usuario actualmente logueado en Firebase (null si no hay sesión).
+ * @property isTutorialCompleted Define si el usuario ya eligió sus géneros favoritos. Determina si navega a Home o al Onboarding.
+ * @property isAuthenticating Si es true, muestra un indicador de carga durante el login/registro.
+ * @property isLoadingProfile Si es true, muestra carga mientras cruzamos datos con Firestore.
+ * @property errorMessage ID del recurso de texto (R.string) que contiene el error a mostrar al usuario.
+ */
 data class AuthUiState(
     val currentUser: FirebaseUser? = null,
     val isTutorialCompleted: Boolean = true,
@@ -26,18 +35,27 @@ data class AuthUiState(
     val errorMessage: Int? = null
 )
 
+/**
+ * ViewModel encargado de la lógica de autenticación.
+ * * Actúa como puente entre la Interfaz de Usuario (Compose) y los datos ([AuthRepository]).
+ */
 class AuthViewModel(
     private val repository: AuthRepository = AuthRepositoryImpl()
 ) : ViewModel() {
 
-    // 2. INICIALIZAMOS EL STATEFLOW
+    // 2. INICIALIZAMOS EL STATEFLOW (Recomendación oficial de arquitectura de Android)
     private val _uiState = MutableStateFlow(AuthUiState(currentUser = repository.currentUser))
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     init {
+        // Al arrancar la app, si ya hay un usuario guardado, verificamos si completó el tutorial
         checkUserProfile()
     }
 
+    /**
+     * Verifica en la base de datos de Firestore si el usuario actual ha completado el tutorial inicial.
+     * También aprovecha este momento para actualizar el Token de notificaciones del dispositivo.
+     */
     fun checkUserProfile(onComplete: (Boolean) -> Unit = {}) {
         val user = _uiState.value.currentUser
         if (user == null) {
@@ -49,7 +67,7 @@ class AuthViewModel(
         Log.d("AUTH_DEBUG", "3. checkUserProfile: Cargando perfil para UID: ${user.uid}")
         _uiState.update { it.copy(isLoadingProfile = true) }
 
-        // Lanzamos la actualización del token
+        // Lanzamos la actualización del token de Firebase Cloud Messaging para asegurar que reciba notificaciones
         updateFcmToken(user.uid)
 
         FirebaseFirestore.getInstance()
@@ -72,6 +90,10 @@ class AuthViewModel(
             }
     }
 
+    /**
+     * Inicia sesión con correo y contraseña tradicionales.
+     * * Usa [viewModelScope.launch] para no bloquear la interfaz mientras espera a internet.
+     */
     fun login(email: String, pass: String, onSuccess: () -> Unit) {
         Log.d("AUTH_DEBUG", "Iniciando login tradicional...")
         viewModelScope.launch {
@@ -91,6 +113,10 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Registra una cuenta nueva.
+     * * Tras crearla, envía automáticamente un correo de verificación.
+     */
     fun register(name: String, email: String, pass: String, onSuccess: () -> Unit) {
         Log.d("AUTH_DEBUG", "Iniciando registro de nuevo usuario...")
         viewModelScope.launch {
@@ -123,6 +149,7 @@ class AuthViewModel(
         }
     }
 
+    /** Inicia sesión utilizando una cuenta de Google (Botón de Google). */
     fun loginWithGoogle(token: String, onSuccess: () -> Unit) {
         Log.d("AUTH_DEBUG", "1. loginWithGoogle: Iniciando con token de Google...")
         viewModelScope.launch {
@@ -145,7 +172,7 @@ class AuthViewModel(
         }
     }
 
-    // 🟢 NUEVA FUNCIÓN: Recuperar contraseña
+    /** Envía un correo automático para que el usuario pueda recuperar su contraseña olvidada. */
     fun resetPassword(email: String, onResult: (Boolean, String) -> Unit) {
         if (email.isBlank()) {
             onResult(false, "Por favor, introduce tu correo electrónico.")
@@ -160,7 +187,7 @@ class AuthViewModel(
         }
     }
 
-    // 🟢 NUEVA FUNCIÓN: Comprobar si el email está verificado (Para usar antes de comentar)
+    /** Comprueba de forma silenciosa si el usuario ha verificado su correo mediante el link enviado. */
     fun isEmailVerified(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             repository.reloadUser().onSuccess {
@@ -172,6 +199,11 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * TÉCNICA CLAVE DE NOTIFICACIONES PUSH:
+     * * Recupera el identificador único del móvil (FCM Token) y lo guarda en el documento del usuario.
+     * * Esto permite a Firebase saber exactamente a qué teléfono enviar los avisos sociales.
+     */
     private fun updateFcmToken(uid: String) {
         Log.d("FCM_DEBUG", "Solicitando token a Firebase Messaging...")
         Firebase.messaging.token.addOnCompleteListener { task ->
@@ -186,7 +218,7 @@ class AuthViewModel(
             val data = mapOf("fcmToken" to token)
 
             FirebaseFirestore.getInstance().collection("users").document(uid)
-                .set(data, SetOptions.merge())
+                .set(data, SetOptions.merge())// Usamos merge para no borrar el resto del perfil
                 .addOnSuccessListener {
                     Log.d("FCM_DEBUG", "¡Token sincronizado en Firestore correctamente!")
                 }
@@ -196,7 +228,11 @@ class AuthViewModel(
         }
     }
 
-    // TRADUCTOR DE ERRORES DE FIREBASE
+    /**
+     * TRADUCTOR DE ERRORES DE FIREBASE
+     * * Convierte las excepciones frías y en inglés de Firebase en códigos de recursos (Int)
+     * que apuntan a cadenas (Strings) traducidas, amigables y claras para el usuario final.
+     */
     private fun translateAuthError(e: Throwable): Int {
         if (e !is com.google.firebase.auth.FirebaseAuthException) {
             return R.string.error_network_generic
@@ -215,6 +251,7 @@ class AuthViewModel(
         }
     }
 
+    /** Cierra la sesión activa en el teléfono y limpia la información de la UI. */
     fun signOut() {
         Log.d("AUTH_DEBUG", "Cerrando sesión del usuario...")
         repository.logout()
@@ -223,6 +260,7 @@ class AuthViewModel(
         }
     }
 
+    /** Limpia los mensajes de error de la pantalla. */
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }

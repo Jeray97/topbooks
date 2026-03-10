@@ -37,6 +37,15 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 
+/**
+ * PANTALLA PRINCIPAL DE LOGIN (Stateful Composable)
+ * * Gestiona la conexión con el [AuthViewModel], observa los estados y maneja eventos
+ * complejos del sistema como los Toasts de error y el lanzador de Google Sign-In.
+ *
+ * @param viewModel ViewModel de autenticación que provee la lógica de negocio.
+ * @param onLoginSuccess Callback que se ejecuta cuando el usuario inicia sesión correctamente para navegar a la Home.
+ * @param onNavigateToRegister Callback para navegar a la pantalla de crear una cuenta nueva.
+ */
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel = viewModel(),
@@ -44,8 +53,11 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit
 ) {
     val context = LocalContext.current
+
+    // Observamos el estado emitido por el ViewModel
     val uiState by viewModel.uiState.collectAsState()
 
+    // 1. GESTIÓN DE ERRORES: Si hay un error, mostramos un Toast y lo limpiamos
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
             Toast.makeText(context, context.getString(it), Toast.LENGTH_LONG).show()
@@ -53,6 +65,8 @@ fun LoginScreen(
         }
     }
 
+    // 2. CONFIGURACIÓN DE GOOGLE SIGN-IN
+    // Preparamos el cliente pidiendo el Email y usando el Web Client ID de tu proyecto Firebase
     val googleSignInClient = remember {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(context.getString(R.string.default_web_client_id))
@@ -61,6 +75,7 @@ fun LoginScreen(
         GoogleSignIn.getClient(context, gso)
     }
 
+    // Lanzador (Launcher) que abre la ventana emergente de Google para elegir cuenta
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -77,6 +92,7 @@ fun LoginScreen(
         }
     }
 
+    // 3. RENDERIZAMOS LA INTERFAZ PURA
     LoginContent(
         isLoading = uiState.isAuthenticating,
         onLoginClick = { email, pass -> viewModel.login(email, pass, onLoginSuccess) },
@@ -86,6 +102,11 @@ fun LoginScreen(
     )
 }
 
+/**
+ * INTERFAZ VISUAL DEL LOGIN (Stateless Composable)
+ * * Contiene únicamente los elementos de UI (Cajas de texto, botones, fondos).
+ * No contiene lógica de negocio directa, sino que delega las acciones mediante callbacks.
+ */
 @Composable
 fun LoginContent(
     isLoading: Boolean,
@@ -95,18 +116,20 @@ fun LoginContent(
     viewModel: AuthViewModel
 ) {
     val context = LocalContext.current
+
+    // Estados locales para controlar lo que el usuario escribe
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
-    // Control para la visibilidad de la contraseña
-    var passwordVisible by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) } // Ojo/Toggle de la contraseña
 
     val scrollState = rememberScrollState()
 
+    // Estado para el cuadro de diálogo de recuperar contraseña
     var showResetDialog by remember { mutableStateOf(false) }
 
+    // --- DIÁLOGO DE RECUPERAR CONTRASEÑA ---
     if (showResetDialog) {
-        var resetEmail by remember { mutableStateOf(email) }
+        var resetEmail by remember { mutableStateOf(email) } // Pre-rellena con el email que ya escribió
         var isSending by remember { mutableStateOf(false) }
 
         AlertDialog(
@@ -151,7 +174,10 @@ fun LoginContent(
         )
     }
 
+    // --- ESTRUCTURA PRINCIPAL DE LA PANTALLA ---
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+
+        // 1. Imagen de fondo que ocupa toda la pantalla
         Image(
             painter = painterResource(id = R.drawable.login_bg),
             contentDescription = null,
@@ -159,6 +185,7 @@ fun LoginContent(
             contentScale = ContentScale.Crop
         )
 
+        // 2. Columna con los elementos superpuestos (Scrollable para pantallas pequeñas)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -166,6 +193,8 @@ fun LoginContent(
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
+            // --- HEADER (Bienvenida y Logo Textual) ---
             Text(
                 text = stringResource(R.string.login_welcome_prefix),
                 style = MaterialTheme.typography.headlineLarge.copy(
@@ -195,6 +224,7 @@ fun LoginContent(
 
             Spacer(modifier = Modifier.weight(0.3f))
 
+            // --- FORMULARIO (Email y Password) ---
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -215,6 +245,7 @@ fun LoginContent(
                 onValueChange = { password = it },
                 label = { Text(stringResource(R.string.login_field_password)) },
                 modifier = Modifier.fillMaxWidth(),
+                // Alterna entre mostrar puntitos (VisualTransformation) o el texto plano
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                 singleLine = true,
@@ -230,18 +261,22 @@ fun LoginContent(
                 )
             )
 
+            // --- BOTÓN RECUPERAR CONTRASEÑA ---
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
                 Text(
                     text = stringResource(R.string.login_forgot_password),
                     color = Color.DarkGray,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(top = 8.dp).clickable { showResetDialog = true }
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .clickable { showResetDialog = true }
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // --- BOTONES DE ACCIÓN (Login normal y Google) ---
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(40.dp),
@@ -278,6 +313,7 @@ fun LoginContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // --- FOOTER (Ir a Registro) ---
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.login_no_account), color = Color.Black)
                 Text(
