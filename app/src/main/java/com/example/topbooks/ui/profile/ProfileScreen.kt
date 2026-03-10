@@ -1,6 +1,5 @@
 package com.example.topbooks.ui.profile
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
@@ -40,8 +38,19 @@ import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.AvatarHelper
 import com.example.topbooks.utils.CategoryProvider
-import java.util.Locale
 
+/**
+ * PANTALLA DE PERFIL (Stateful Composable).
+ * Esta pantalla es polimórfica: se adapta para mostrar el perfil del usuario actual (con opciones de edición)
+ * o el perfil de un tercero (con opciones de red social como añadir amigo).
+ *
+ * @param userId ID del usuario a visualizar. Si es null, se asume el perfil del usuario autenticado.
+ * @param onNavigateToSettings Navega a la configuración de la app.
+ * @param onNavigateToDetail Navega al detalle de un libro específico.
+ * @param onNavigateToList Navega a listas filtradas (reseñas, diarios, etc.).
+ * @param onBackClick Acción para regresar.
+ * @param viewModel Lógica de negocio y gestión de estado del perfil.
+ */
 @Composable
 fun ProfileScreen(
     userId: String? = null,
@@ -54,22 +63,22 @@ fun ProfileScreen(
     val state by viewModel.uiState.collectAsState()
     val user = state.user
 
+    // Disparar la carga del perfil cada vez que el userId cambie
     LaunchedEffect(userId) {
         viewModel.loadProfile(userId)
     }
 
+    // Estados para el control de diálogos de edición
     var showAvatarDialog by remember { mutableStateOf(false) }
     var showEditProfileDialog by remember { mutableStateOf(false) }
-    val context = LocalContext.current
 
-    // Diálogos visuales
+
+    // --- DIÁLOGOS DE EDICIÓN (Solo activos si es MI perfil) ---
     if (showAvatarDialog && state.isMe) {
         AvatarSelectionDialog(
             currentAvatar = user.photoURL,
             onDismiss = { showAvatarDialog = false },
-            onSelect = {
-                viewModel.updateAvatar(it)
-            }
+            onSelect = { viewModel.updateAvatar(it) }
         )
     }
 
@@ -78,9 +87,7 @@ fun ProfileScreen(
             currentName = user.displayName,
             currentBio = user.bio,
             onDismiss = { showEditProfileDialog = false },
-            onSave = { n, b ->
-                viewModel.updateProfileData(n, b)
-            }
+            onSave = { n, b -> viewModel.updateProfileData(n, b) }
         )
     }
 
@@ -89,6 +96,7 @@ fun ProfileScreen(
         topBar = {
             Box(contentAlignment = Alignment.CenterEnd) {
                 TopBar(onBackClick = onBackClick)
+                // Mostrar botón de ajustes solo en el perfil propio
                 if (state.isMe) {
                     IconButton(onClick = onNavigateToSettings, modifier = Modifier.padding(end = 8.dp)) {
                         Icon(Icons.Default.Settings, null, tint = ColorArcDarkBrown, modifier = Modifier.size(28.dp))
@@ -98,6 +106,7 @@ fun ProfileScreen(
         }
     ) { padding ->
         if (state.isLoading) {
+            // Pantalla de carga centralizada
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = ColorArcMediumBrown)
             }
@@ -110,18 +119,20 @@ fun ProfileScreen(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // AVATAR
+                // --- 1. SECCIÓN: AVATAR ---
                 Box(
                     modifier = Modifier
                         .size(120.dp)
                         .clip(CircleShape)
                         .background(Color.White)
                         .border(2.dp, ColorArcMediumBrown, CircleShape)
+                        // El clic para editar solo funciona si es Mi Perfil
                         .clickable(enabled = state.isMe) { showAvatarDialog = true },
                     contentAlignment = Alignment.Center
                 ) {
                     ProfileImage(user.photoURL)
                     if (state.isMe) {
+                        // Icono de edición flotante
                         Icon(
                             Icons.Default.Edit, null, tint = ColorArcMediumBrown,
                             modifier = Modifier
@@ -135,7 +146,7 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // NOMBRE
+                // --- 2. SECCIÓN: NOMBRE Y BIO ---
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable(enabled = state.isMe) { showEditProfileDialog = true }
@@ -155,14 +166,13 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // BIO
                 Text(
                     text = user.bio.ifEmpty { stringResource(R.string.profile_no_bio_yet) },
                     fontFamily = GuardianCity, fontSize = 14.sp, color = Color.Gray, fontStyle = FontStyle.Italic, textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp).clickable(enabled = state.isMe) { showEditProfileDialog = true }
                 )
 
-                // BOTÓN AÑADIR/ELIMINAR AMIGO
+                // --- 3. SECCIÓN: RED SOCIAL (Solo visible en perfiles ajenos) ---
                 if (!state.isMe) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(
@@ -190,12 +200,12 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // SECCIÓN GÉNEROS
+                // --- 4. SECCIÓN: GÉNEROS FAVORITOS ---
                 ProfileGenresSection(user.favoriteGenres)
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // GRID DASHBOARD (Mis Diarios, Mis reseñas, etc.)
+                // --- 5. GRID DE ACCESOS DIRECTOS (DASHBOARD) ---
                 ProfileDashboardGrid(state, user.uid, onNavigateToList)
 
                 Spacer(modifier = Modifier.height(80.dp))
@@ -204,15 +214,32 @@ fun ProfileScreen(
     }
 }
 
+/**
+ * Componente que renderiza la imagen del perfil.
+ * Diferencia automáticamente entre una URL de red (Google) o un avatar local (Capibara).
+ */
 @Composable
 fun ProfileImage(photoUrl: String) {
     if (photoUrl.startsWith("http")) {
-        AsyncImage(model = photoUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        AsyncImage(
+            model = photoUrl,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
     } else {
-        Image(painter = painterResource(AvatarHelper.getDrawableId(photoUrl)), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        Image(
+            painter = painterResource(AvatarHelper.getDrawableId(photoUrl)),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
     }
 }
 
+/**
+ * Sección horizontal que muestra los géneros favoritos del usuario utilizando iconos temáticos.
+ */
 @Composable
 fun ProfileGenresSection(genres: List<String>) {
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.5f)), shape = RoundedCornerShape(16.dp)) {
@@ -230,6 +257,9 @@ fun ProfileGenresSection(genres: List<String>) {
     }
 }
 
+/**
+ * Representa un ícono de género individual dentro del perfil.
+ */
 @Composable
 fun ProfileGenreItem(genreCode: String) {
     val categoryData = CategoryProvider.getCategoryResources(genreCode)
@@ -264,6 +294,9 @@ fun ProfileGenreItem(genreCode: String) {
     }
 }
 
+/**
+ * Rejilla de botones del dashboard (Diarios, Marcadores, Reseñas, Comentarios).
+ */
 @Composable
 fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList: (String, String) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -298,6 +331,9 @@ fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList
     }
 }
 
+/**
+ * Componente individual para los botones del Dashboard.
+ */
 @Composable
 fun DashboardItem(title: String, onClick: () -> Unit, content: @Composable () -> Unit) {
     Surface(
@@ -313,6 +349,9 @@ fun DashboardItem(title: String, onClick: () -> Unit, content: @Composable () ->
     }
 }
 
+/**
+ * Diálogo interactivo para seleccionar un nuevo avatar de la colección local.
+ */
 @Composable
 fun AvatarSelectionDialog(currentAvatar: String, onDismiss: () -> Unit, onSelect: (String) -> Unit) {
     AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.profile_choose_avatar)) },
@@ -332,6 +371,9 @@ fun AvatarSelectionDialog(currentAvatar: String, onDismiss: () -> Unit, onSelect
     )
 }
 
+/**
+ * Diálogo de edición para actualizar el nombre público y la biografía del lector.
+ */
 @Composable
 fun EditProfileDialog(currentName: String, currentBio: String, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
     var n by remember { mutableStateOf(currentName) }

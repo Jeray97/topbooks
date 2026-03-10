@@ -37,6 +37,18 @@ import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
 import com.google.firebase.auth.FirebaseAuth
 
+/**
+ * PANTALLA DE LISTADOS MULTI-TIPO (Stateful Composable).
+ * Esta pantalla se adapta dinámicamente para mostrar diferentes colecciones de datos del usuario.
+ * * @param type Determina qué lista cargar ("friends", "reviews", "read", "pending", "journals", "bookmarks", "comments", "favorites").
+ * @param userId ID del usuario propietario de la lista.
+ * @param onBackClick Acción para regresar.
+ * @param onBookClick Acción al pulsar sobre un libro.
+ * @param onUserClick Acción al pulsar sobre un usuario (amigo).
+ * @param onJournalClick Acción al pulsar sobre un diario de lectura.
+ * @param onCommentClick Acción al pulsar sobre un comentario (navega al hilo).
+ * @param viewModel Gestiona la carga de datos según el tipo y la eliminación de elementos.
+ */
 @Composable
 fun UserListScreen(
     type: String,
@@ -50,13 +62,15 @@ fun UserListScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val auth = FirebaseAuth.getInstance()
+    // Determinamos si el usuario que ve la lista es el dueño (para permitir borrar/editar)
     val isMe = auth.currentUser?.uid == userId
 
+    // Recargamos los datos cada vez que cambie el tipo de lista o el usuario
     LaunchedEffect(type, userId) {
         viewModel.loadList(type, userId)
     }
 
-    // 🔥 ACTUALIZADO: Añadido el título para "pending"
+    // Configuración dinámica del título según el tipo
     val title = when(type) {
         "friends" -> stringResource(R.string.userlist_title_friends)
         "reviews" -> stringResource(R.string.userlist_title_reviews)
@@ -85,11 +99,14 @@ fun UserListScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (state.isLoading) {
-                Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = ColorArcMediumBrown) }
+                Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    CircularProgressIndicator(color = ColorArcMediumBrown)
+                }
             } else {
+                // LISTA OPTIMIZADA (LazyColumn)
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-                    // 🔥 ACTUALIZADO: Añadido "pending" dibujando BookItem
+                    // INYECCIÓN DINÁMICA DE COMPONENTES SEGÚN TIPO
                     when(type) {
                         "friends" -> items(state.friends) { FriendItem(it, onUserClick) }
                         "read" -> items(state.readBooks) { BookItem(it, onBookClick) }
@@ -122,7 +139,7 @@ fun UserListScreen(
                         }
                     }
 
-                    // 🔥 ACTUALIZADO: Añadido "pending" a la comprobación de vacío
+                    // Lógica para mostrar mensaje de "Lista vacía"
                     val isEmpty = when(type) {
                         "friends" -> state.friends.isEmpty()
                         "read" -> state.readBooks.isEmpty()
@@ -148,6 +165,10 @@ fun UserListScreen(
     }
 }
 
+/**
+ * Representa una entrada de Diario de Lectura en la lista.
+ * Incluye diálogo de confirmación para borrado.
+ */
 @Composable
 fun JournalListItem(
     journal: Journal,
@@ -214,6 +235,10 @@ fun JournalListItem(
     }
 }
 
+/**
+ * Representa una cita o marcador guardado.
+ * Permite edición rápida si el usuario es el propietario.
+ */
 @Composable
 fun BookmarkListItem(bookmark: BookmarkUI, onBookClick: (String) -> Unit, viewModel: UserListViewModel, isMe: Boolean) {
     var showEditDialog by remember { mutableStateOf(false) }
@@ -274,6 +299,9 @@ fun BookmarkListItem(bookmark: BookmarkUI, onBookClick: (String) -> Unit, viewMo
     }
 }
 
+/**
+ * Diálogo interactivo para actualizar los datos de un marcador (página, capítulo, cita).
+ */
 @Composable
 fun EditBookmarkDialog(bookmark: BookmarkUI, onDismiss: () -> Unit, onSave: (BookmarkUI) -> Unit, onDelete: () -> Unit) {
     var p by remember { mutableStateOf(bookmark.page) }
@@ -307,6 +335,9 @@ fun EditBookmarkDialog(bookmark: BookmarkUI, onDismiss: () -> Unit, onSave: (Boo
     )
 }
 
+/**
+ * Selector animado para alternar la privacidad de un elemento.
+ */
 @Composable
 fun DialogPrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
     val pubCol by animateColorAsState(if (isPublic) ColorArcMediumBrown else Color.Transparent)
@@ -325,6 +356,7 @@ fun DialogPrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
     }
 }
 
+/** Representa a un usuario (amigo) en la lista. */
 @Composable
 fun FriendItem(user: SimpleUser, onClick: (String) -> Unit) {
     Card(
@@ -341,6 +373,7 @@ fun FriendItem(user: SimpleUser, onClick: (String) -> Unit) {
     }
 }
 
+/** Representa un libro en formato miniatura para listados rápidos. */
 @Composable
 fun BookItem(book: SimpleBook, onClick: (String) -> Unit) {
     Card(
@@ -362,6 +395,7 @@ fun BookItem(book: SimpleBook, onClick: (String) -> Unit) {
     }
 }
 
+/** Representa una reseña con su puntuación de estrellas. */
 @Composable
 fun ReviewListItem(
     review: Review,
@@ -429,6 +463,7 @@ fun ReviewListItem(
     }
 }
 
+/** Representa un comentario en el feed de comunidad. */
 @Composable
 fun CommentListItem(
     comment: Comment,
