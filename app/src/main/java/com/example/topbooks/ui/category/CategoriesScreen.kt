@@ -33,12 +33,29 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.sqrt
 
-// --- CONSTANTES ---
+// --- CONSTANTES DE DISEÑO ---
+/** Altura fija asignada a cada fila de categorías. */
 private val ROW_HEIGHT = 130.dp
+/** Distancia inicial desde la que empiezan a dibujarse las curvas de fondo. */
 private val START_OFFSET = 145.dp
 
+/**
+ * Modelo de datos visual para representar una categoría en la pantalla.
+ * @property name Nombre traducido a mostrar al usuario (ej. "Ciencia Ficción").
+ * @property iconRes ID del recurso de la imagen (icono) de la categoría.
+ * @property query Texto de búsqueda exacto que se enviará a las APIs (ej. "subject:science fiction").
+ */
 data class CategoryUi(val name: String, val iconRes: Int, val query: String)
 
+/**
+ * PANTALLA PRINCIPAL DE CATEGORÍAS (Stateful/Layout Composable)
+ * * Muestra un grid curvo interactivo generado dinámicamente a partir del [CategoryProvider].
+ *
+ * @param onBackClick Acción al pulsar el botón de volver en la TopBar.
+ * @param onCategoryClick Acción que se dispara al tocar un género. Envía el título y la query de búsqueda.
+ * @param onBookClick Acción delegada desde la barra de búsqueda para abrir un libro concreto.
+ * @param onScanClick Acción delegada desde la barra de búsqueda para abrir el escáner de códigos de barras.
+ */
 @Composable
 fun CategoriesScreen(
     onBackClick: () -> Unit,
@@ -46,14 +63,17 @@ fun CategoriesScreen(
     onBookClick: (String) -> Unit,
     onScanClick: () -> Unit
 ) {
-    // 🔥 GENERAMOS LA LISTA DINÁMICAMENTE DESDE EL PROVIDER
+    // GENERAMOS LA LISTA DINÁMICAMENTE DESDE EL PROVIDER
     val categories = CategoryProvider.allCategories.map { code ->
         val catData = CategoryProvider.getCategoryResources(code)
         val catName = if (catData.nameRes != null) stringResource(id = catData.nameRes) else CategoryProvider.formatFallbackName(code)
+
+        // Formateamos la query para que sea compatible con Google Books y Open Library ("subject:...")
         val querySubject = code.lowercase(Locale.ROOT).replace("_", " ")
         CategoryUi(name = catName, iconRes = catData.iconRes, query = "subject:$querySubject")
     }
 
+    // Dividimos la lista en grupos de 4 para dibujar las filas del grid
     val rows = categories.chunked(4)
 
     val configuration = LocalConfiguration.current
@@ -76,7 +96,7 @@ fun CategoriesScreen(
                 .padding(paddingValues)
         ) {
 
-            // 1. EL FONDO (Alineado con el área segura)
+            // 1. EL FONDO (Dibujado mediante Canvas para crear las ondas/curvas)
             CategoriesBackground(
                 categoryCount = categories.size,
                 columnCount = 4,
@@ -84,6 +104,7 @@ fun CategoriesScreen(
                 startOffset = START_OFFSET
             )
 
+            // 2. CONTENIDO PRINCIPAL
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -104,7 +125,7 @@ fun CategoriesScreen(
                         .padding(top = 8.dp, bottom = 4.dp)
                 )
 
-                // --- GRID ---
+                // --- GRID CURVO DINÁMICO ---
                 rows.forEach { rowItems ->
                     Row(
                         modifier = Modifier
@@ -115,7 +136,8 @@ fun CategoriesScreen(
                     ) {
                         rowItems.forEachIndexed { colIndex, item ->
 
-                            // Calculamos el desplazamiento
+                            // Calculamos el desplazamiento vertical matemático para que el icono
+                            // se sitúe exactamente sobre la línea curva dibujada en el fondo.
                             val curveOffset = calculateOffset(
                                 colIndex = colIndex,
                                 totalCols = 4,
@@ -124,7 +146,7 @@ fun CategoriesScreen(
                                 density = density
                             )
 
-                            // Aplicamos el desplazamiento
+                            // Aplicamos el desplazamiento calculado
                             Box(modifier = Modifier.offset(y = curveOffset)) {
                                 CategoryItem(
                                     category = item,
@@ -133,7 +155,7 @@ fun CategoriesScreen(
                             }
                         }
 
-                        // Rellenar huecos
+                        // Rellenar huecos vacíos si la última fila tiene menos de 4 categorías
                         repeat(4 - rowItems.size) {
                             Spacer(modifier = Modifier.width(65.dp))
                         }
@@ -146,7 +168,19 @@ fun CategoriesScreen(
 }
 
 /**
- * Función auxiliar con corrección de tipos (Double -> Float)
+ * Calcula el desplazamiento vertical (Offset Y) necesario para que un elemento
+ * parezca estar apoyado sobre una curva elíptica convexa.
+ * * * FUNCIONAMIENTO MATEMÁTICO:
+ * Utiliza la ecuación estándar de la elipse: $ \frac{x^2}{a^2} + \frac{y^2}{b^2} = 1 $
+ * Despejando 'y', calcula la altura exacta en la que se encuentra la elipse en un punto 'x' dado (la columna).
+ * La diferencia entre el punto más alto (centro) y esta altura 'y' es el 'drop' (caída) que debemos aplicar.
+ *
+ * @param colIndex Índice de la columna actual (0, 1, 2 o 3).
+ * @param totalCols Número total de columnas en la fila.
+ * @param widthDp Ancho de la pantalla en dp.
+ * @param heightDp Alto de la pantalla en dp.
+ * @param density Densidad de píxeles del dispositivo actual.
+ * @return El desplazamiento vertical en unidades [Dp].
  */
 fun calculateOffset(
     colIndex: Int,
@@ -159,23 +193,24 @@ fun calculateOffset(
         val widthPx = widthDp.toPx()
         val heightPx = heightDp.toPx()
 
-        // Geometría del fondo
+        // Geometría del fondo: Creamos una elipse imaginaria gigante
         val ovalWidth = widthPx * 3.0f
         val ovalHeight = heightPx * 2.0f
 
         val radiusX = ovalWidth / 2
         val radiusY = ovalHeight / 2
 
-        // Cálculo de posición X
+        // Cálculo de posición X del centro del icono
         val colWidth = widthPx / totalCols
         val xPos = (colIndex + 0.5f) * colWidth
         val distFromCenter = abs(xPos - (widthPx / 2))
 
-        // Ecuación de la elipse
+        // Ecuación de la elipse (despejando la variable)
         val term = 1.0 - (distFromCenter * distFromCenter) / (radiusX * radiusX)
 
         val heightAtX = if (term > 0) (radiusY * sqrt(term)).toFloat() else 0f
 
+        // Caída desde el punto más alto de la curva
         val drop = radiusY - heightAtX
         val baseMarginPx = 25.dp.toPx()
 
@@ -183,6 +218,10 @@ fun calculateOffset(
     }
 }
 
+/**
+ * Componente visual que representa una única categoría dentro de la cuadrícula.
+ * * Muestra un círculo blanco con el icono de la categoría y una "píldora" inferior con el nombre.
+ */
 @Composable
 fun CategoryItem(
     category: CategoryUi,
@@ -192,6 +231,7 @@ fun CategoryItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable { onClick() }
     ) {
+        // Icono circular
         Box(
             modifier = Modifier
                 .size(65.dp)
@@ -209,6 +249,7 @@ fun CategoryItem(
 
         Spacer(modifier = Modifier.height(6.dp))
 
+        // Píldora con el nombre
         Surface(
             color = Color.White,
             shape = RoundedCornerShape(50),
