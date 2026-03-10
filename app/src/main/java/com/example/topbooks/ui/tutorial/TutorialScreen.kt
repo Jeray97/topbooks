@@ -34,12 +34,19 @@ import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.CategoryProvider
 import kotlinx.coroutines.launch
 
+/**
+ * PANTALLA DE TUTORIAL Y ONBOARDING (Stateful Composable).
+ * Gestiona el proceso de bienvenida y personalización inicial del usuario.
+ * * @param viewModel Maneja la lógica de selección de géneros, libros y persistencia del onboarding.
+ * @param onFinished Callback ejecutado cuando el usuario completa el tutorial y entra a la App.
+ */
 @Composable
 fun TutorialScreen(
     viewModel: TutorialViewModel = viewModel(),
     onFinished: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    // Inicializamos el estado del Pager con 3 páginas fijas
     val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
 
@@ -50,7 +57,7 @@ fun TutorialScreen(
                 .padding(padding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Barra de progreso superior
+            // Barra de progreso dinámica en la parte superior
             LinearProgressIndicator(
                 progress = { (pagerState.currentPage + 1) / 3f },
                 modifier = Modifier.fillMaxWidth().height(6.dp),
@@ -58,17 +65,16 @@ fun TutorialScreen(
                 trackColor = Color.LightGray.copy(alpha = 0.3f)
             )
 
-            // Contenido Paginado
+            // Contenedor paginado principal
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.weight(1f),
-                userScrollEnabled = false // Bloqueamos swipe manual para forzar botones
+                userScrollEnabled = false // Forzamos el uso de botones para validar selecciones
             ) { page ->
                 when (page) {
                     0 -> WelcomePage()
                     1 -> GenresPage(
                         selected = uiState.selectedGenres,
-                        // 🔥 Usamos los géneros del provider si no están en el ViewModel
                         available = CategoryProvider.allCategories,
                         onGenreClick = { viewModel.toggleGenre(it) }
                     )
@@ -81,7 +87,7 @@ fun TutorialScreen(
                 }
             }
 
-            // Barra de navegación inferior
+            // Barra de navegación inferior: Controles de flujo
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -89,7 +95,7 @@ fun TutorialScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Botón Atrás (Invisible en la primera página)
+                // Control del botón 'Atrás'
                 if (pagerState.currentPage > 0) {
                     TextButton(onClick = {
                         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
@@ -100,7 +106,7 @@ fun TutorialScreen(
                     Spacer(modifier = Modifier.width(60.dp))
                 }
 
-                // Botón Siguiente / Comenzar
+                // Botón de acción principal: 'Siguiente' o 'Comenzar'
                 Button(
                     onClick = {
                         if (pagerState.currentPage < 2) {
@@ -111,7 +117,7 @@ fun TutorialScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
                     shape = RoundedCornerShape(12.dp),
-                    // Deshabilitar si está en pág. 2 y no eligió géneros o si está guardando
+                    // Validación: Impedir avanzar en la pág de géneros si no hay ninguno elegido
                     enabled = (pagerState.currentPage != 1 || uiState.selectedGenres.isNotEmpty()) && !uiState.isSaving
                 ) {
                     if (uiState.isSaving) {
@@ -125,6 +131,7 @@ fun TutorialScreen(
     }
 }
 
+/** Primera página: Introducción y bienvenida. */
 @Composable
 fun WelcomePage() {
     Column(
@@ -161,6 +168,7 @@ fun WelcomePage() {
     }
 }
 
+/** Segunda página: Selección de géneros literarios favoritos. */
 @Composable
 fun GenresPage(selected: Set<String>, available: List<String>, onGenreClick: (String) -> Unit) {
     Column(
@@ -170,16 +178,14 @@ fun GenresPage(selected: Set<String>, available: List<String>, onGenreClick: (St
         Text(stringResource(R.string.tutorial_genres_title), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontFamily = GuardianCity)
         Text(stringResource(R.string.tutorial_genres_subtitle), fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 16.dp))
 
-        // Grid ajustado
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.weight(1f) // Ocupa el espacio disponible central
+            modifier = Modifier.weight(1f)
         ) {
             items(available) { genre ->
                 val isSel = selected.contains(genre)
-                // 🔥 OBTENEMOS DATOS DEL PROVIDER
                 val catData = CategoryProvider.getCategoryResources(genre)
                 val displayName = if (catData.nameRes != null) stringResource(id = catData.nameRes) else CategoryProvider.formatFallbackName(genre)
 
@@ -205,6 +211,7 @@ fun GenresPage(selected: Set<String>, available: List<String>, onGenreClick: (St
     }
 }
 
+/** Tercera página: Sugerencias de libros iniciales basadas en los géneros elegidos. */
 @Composable
 fun BooksPage(
     books: List<com.example.topbooks.data.model.Book>,
@@ -248,6 +255,7 @@ fun BooksPage(
                                 contentScale = ContentScale.Crop
                             )
                             if (isSel) {
+                                // Indicador de selección (Checkmark)
                                 Icon(
                                     Icons.Default.Check, null,
                                     Modifier
