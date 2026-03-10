@@ -23,15 +23,22 @@ import com.example.topbooks.data.preferences.SettingsManager
 import com.example.topbooks.ui.AppNavigation
 import com.example.topbooks.ui.theme.TopBooksTheme
 
+/**
+ * ACTIVIDAD PRINCIPAL (Entry Point).
+ * Gestiona el ciclo de vida de la aplicación, los permisos de sistema y
+ * la recepción de eventos externos mediante Intents.
+ */
 class MainActivity : ComponentActivity() {
 
+    // Almacena una ruta de navegación pendiente de ser procesada por el NavController
     private var pendingRoute by mutableStateOf<String?>(null)
 
+    // Registrador para la solicitud de permisos de notificaciones
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            Toast.makeText(this, "¡Genial! Te avisaremos de las novedades.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Notificaciones activadas.", Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(this, "Notificaciones desactivadas.", Toast.LENGTH_SHORT).show()
         }
@@ -40,6 +47,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Verificación inicial de permisos y procesamiento de datos de entrada
         askNotificationPermission()
         processIntent(intent)
 
@@ -53,6 +61,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
 
+                    // Navegación reactiva ante rutas pendientes (Deep Linking)
                     LaunchedEffect(pendingRoute) {
                         pendingRoute?.let { route ->
                             navController.navigate(route)
@@ -69,6 +78,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Solicita permiso de notificaciones para dispositivos con Android 13 o superior.
+     */
     private fun askNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
@@ -79,12 +91,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Maneja nuevos intents recibidos mientras la actividad está en segundo plano.
+     */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         processIntent(intent)
     }
 
+    /**
+     * Analiza el contenido del Intent para determinar si el usuario debe ser redirigido
+     * a una sección específica debido a una notificación.
+     */
     private fun processIntent(intent: Intent) {
         val type = intent.getStringExtra("type")
 
@@ -96,7 +115,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
             "NEW_REPLY" -> {
-                //LAS NOTIFICACIONES ABREN EL HILO INDIVIDUAL
                 val commentId = intent.getStringExtra("commentId")
                 val bookId = intent.getStringExtra("bookId")
 
@@ -108,7 +126,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Limpiamos los extras
+        // Limpieza de metadatos del Intent para evitar procesamientos duplicados
         intent.removeExtra("type")
         intent.removeExtra("followerId")
         intent.removeExtra("bookId")
