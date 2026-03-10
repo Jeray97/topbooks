@@ -20,6 +20,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Star
@@ -51,6 +54,16 @@ import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.AvatarHelper
 import kotlinx.coroutines.launch
 
+/**
+ * PANTALLA PRINCIPAL DE DETALLES DEL LIBRO (Stateful Composable)
+ * * Es la vista más completa de la aplicación. Gestiona la información del libro,
+ * las interacciones del usuario (Favoritos, Listas) y los modales emergentes.
+ *
+ * @param bookId ID del libro que debe cargar el ViewModel.
+ * @param onBackClick Acción al pulsar la flecha hacia atrás en la TopBar.
+ * @param onNavigateToJournal Acción que dirige a la pantalla del Diario de Lectura, pasando los datos básicos del libro por ruta.
+ * @param viewModel ViewModel asociado que proporciona el estado y la lógica.
+ */
 @Composable
 fun BookDetailScreen(
     bookId: String,
@@ -59,26 +72,32 @@ fun BookDetailScreen(
     viewModel: BookDetailViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
-    val listState = rememberLazyListState()
+    val listState = rememberLazyListState() // Para controlar el scroll de la página
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var isFabExpanded by remember { mutableStateOf(false) }
+    // --- CONTROL DE VISIBILIDAD DE MENÚS Y MODALES ---
+    var isFabExpanded by remember { mutableStateOf(false) } // Expansión del botón flotante (FAB)
     var showReviewDialog by remember { mutableStateOf(false) }
     var showCommentDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showBookmarkDialog by remember { mutableStateOf(false) }
 
-    // 🔥 NUEVOS ESTADOS PARA EL SISTEMA DE SAGAS COMUNITARIO
+    // NUEVOS ESTADOS PARA EL SISTEMA DE SAGAS COMUNITARIO
     var showEditSeriesDialog by remember { mutableStateOf(false) }
     var showSeriesInfoDialog by remember { mutableStateOf(false) }
 
-    // Cargamos el libro al iniciar la pantalla
+    // Cargamos el libro al iniciar la pantalla asegurando que solo ocurra cuando cambia el ID
     LaunchedEffect(bookId) { viewModel.loadBook(bookId) }
 
-    // --- FORMULARIOS ---
+    // --- RENDERIZADO DE FORMULARIOS (Dialogs) ---
+    // Solo se muestran si la variable booleana es 'true' y ya tenemos datos del libro.
+
     if (showReviewDialog && state.book != null) {
-        PremiumReviewDialog(onDismiss = { showReviewDialog = false }, onSubmit = { r, t -> viewModel.saveReview(state.book!!, r, t) { showReviewDialog = false } })
+        PremiumReviewDialog(
+            onDismiss = { showReviewDialog = false },
+            onSubmit = { r, t -> viewModel.saveReview(state.book!!, r, t) { showReviewDialog = false } }
+        )
     }
 
     if (showCommentDialog && state.book != null) {
@@ -108,7 +127,7 @@ fun BookDetailScreen(
         )
     }
 
-    // 🔥 FORMULARIO: Editar Saga
+    // FORMULARIO: Editar Saga
     if (showEditSeriesDialog && state.book != null) {
         var editName by remember { mutableStateOf(state.book!!.seriesName) }
         var editIndex by remember { mutableStateOf(if (state.book!!.seriesIndex > 0) state.book!!.seriesIndex.toString() else "") }
@@ -148,6 +167,7 @@ fun BookDetailScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = editIndex,
+                            // Filtro rápido: solo permite números en este campo
                             onValueChange = { editIndex = it.filter { char -> char.isDigit() } },
                             label = { Text("Número del libro") },
                             singleLine = true,
@@ -182,7 +202,7 @@ fun BookDetailScreen(
         )
     }
 
-    // 🔥 FORMULARIO: Información de la Saga (Antitrolls)
+    // FORMULARIO: Información de la Saga (Antitrolls y Sistema de Votos)
     if (showSeriesInfoDialog && state.book != null) {
         val book = state.book!!
         AlertDialog(
@@ -196,6 +216,7 @@ fun BookDetailScreen(
                         color = Color.DarkGray
                     )
 
+                    // Solo muestra los detalles del editor si alguien ya lo ha editado manualmente
                     if (!book.seriesEditorName.isNullOrEmpty()) {
                         Spacer(modifier = Modifier.height(16.dp))
                         HorizontalDivider(color = Color.LightGray)
@@ -215,7 +236,7 @@ fun BookDetailScreen(
                                 contentScale = ContentScale.Crop
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(book.seriesEditorName!!, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
+                            Text(book.seriesEditorName, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -253,12 +274,16 @@ fun BookDetailScreen(
         )
     }
 
+    // --- ESTRUCTURA VISUAL PRINCIPAL (Scaffold) ---
     Scaffold(
         containerColor = ColorBackGroundGeneral,
         topBar = { TopBar(onBackClick = onBackClick) },
+
+        // --- FLOATING ACTION BUTTON (MENÚ EXPANDIBLE) ---
         floatingActionButton = {
             if (state.book != null) {
                 Column(horizontalAlignment = Alignment.End) {
+                    // Animamos la aparición de las opciones secundarias desde abajo (expandVertically)
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                         SmallFabItem(Icons.Default.Book, stringResource(R.string.bookdetail_fab_journal)) {
                             isFabExpanded = false
@@ -272,6 +297,7 @@ fun BookDetailScreen(
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                         SmallFabItem(Icons.Default.Edit, stringResource(R.string.bookdetail_fab_review)) {
                             isFabExpanded = false
+                            // Verificación extra de seguridad para evitar spam: el email debe estar verificado
                             viewModel.checkEmailVerification { isVerified ->
                                 if (isVerified) showReviewDialog = true
                                 else Toast.makeText(context, context.getString(R.string.bookdetail_toast_verify_review), Toast.LENGTH_LONG).show()
@@ -281,7 +307,7 @@ fun BookDetailScreen(
                     Spacer(Modifier.height(8.dp))
 
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                        SmallFabItem(Icons.Default.Send, stringResource(R.string.bookdetail_fab_comment)) {
+                        SmallFabItem(Icons.AutoMirrored.Filled.Send, stringResource(R.string.bookdetail_fab_comment)) {
                             isFabExpanded = false
                             viewModel.checkEmailVerification { isVerified ->
                                 if (isVerified) showCommentDialog = true
@@ -293,6 +319,8 @@ fun BookDetailScreen(
 
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Search, stringResource(R.string.bookdetail_fab_see_reviews)) { isFabExpanded = false; coroutineScope.launch { listState.animateScrollToItem(2) } } }
                     Spacer(Modifier.height(16.dp))
+
+                    // Rotación animada del icono "+" principal al desplegarse
                     val rotation by animateFloatAsState(if (isFabExpanded) 45f else 0f)
                     FloatingActionButton(onClick = { isFabExpanded = !isFabExpanded }, containerColor = ColorArcMediumBrown, contentColor = Color.White, shape = CircleShape) { Icon(Icons.Default.Add, null, modifier = Modifier.rotate(rotation)) }
                 }
@@ -300,10 +328,13 @@ fun BookDetailScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (state.isLoading) { CircularProgressIndicator(Modifier.align(Alignment.Center), ColorArcMediumBrown) }
-            else if (state.book != null) {
+            if (state.isLoading) {
+                CircularProgressIndicator(Modifier.align(Alignment.Center), ColorArcMediumBrown)
+            } else if (state.book != null) {
                 val book = state.book!!
                 LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 100.dp), modifier = Modifier.fillMaxSize()) {
+
+                    // 1. Cabecera (Portada, Título, Autor, Botones de Estado)
                     item {
                         BookHeaderSection(
                             book = book,
@@ -317,23 +348,37 @@ fun BookDetailScreen(
                                 if (state.savedInList == it) showDeleteDialog = true
                                 else viewModel.addToList(book, it)
                             },
-                            // 🔥 PASAMOS LAS LAMBDAS AL HEADER
+                            // PASAMOS LAS LAMBDAS AL HEADER PARA EDITAR SAGAS
                             onEditSagaClick = { showEditSeriesDialog = true },
                             onInfoSagaClick = { showSeriesInfoDialog = true }
                         )
                     }
+
+                    // 2. Sinopsis
                     item { SynopsisSection(book.description) }
+
+                    // 3. Título de Sección de Reseñas
                     item { Text(stringResource(R.string.bookdetail_reviews_title), fontFamily = CenturyGotic, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks, modifier = Modifier.padding(24.dp, 16.dp)) }
-                    if (state.reviews.isEmpty()) item { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text(stringResource(R.string.bookdetail_reviews_empty), color = Color.Gray) } }
-                    else items(state.reviews) { ReviewItem(it) }
+
+                    // 4. Lista de Reseñas
+                    if (state.reviews.isEmpty()) {
+                        item { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text(stringResource(R.string.bookdetail_reviews_empty), color = Color.Gray) } }
+                    } else {
+                        items(state.reviews) { ReviewItem(it) }
+                    }
                 }
             }
         }
     }
 }
 
-// --- COMPONENTES ORIGINALES ---
+// =========================================================================================
+// --- COMPONENTES ORIGINALES (STATELESS) ---
+// =========================================================================================
 
+/**
+ * Sección superior de la pantalla. Muestra la portada, título, y la botonera de interacción.
+ */
 @Composable
 fun BookHeaderSection(
     book: Book,
@@ -346,7 +391,9 @@ fun BookHeaderSection(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
         Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(10.dp), modifier = Modifier.width(170.dp).height(260.dp)) {
-            AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(book.imageUrl).crossfade(true).error(com.example.topbooks.R.drawable.icon_codigodebarras).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            // Utiliza Coil (AsyncImage) para cargar imágenes de internet optimizadas
+            AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(book.imageUrl).crossfade(true).error(
+                R.drawable.icon_codigodebarras).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(book.title, fontSize = 24.sp, fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorTituloTopBooks, textAlign = TextAlign.Center, lineHeight = 28.sp, modifier = Modifier.padding(horizontal = 24.dp))
@@ -354,7 +401,7 @@ fun BookHeaderSection(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 🔥 NUEVA ETIQUETA: SAGA VS LIBRO ÚNICO (Con soporte para clics de la comunidad)
+        // NUEVA ETIQUETA: SAGA VS LIBRO ÚNICO (Con soporte para clics de la comunidad)
         val seriesText = if (book.isSaga) stringResource(R.string.bookdetail_badge_saga) + " [${book.seriesName} #${book.seriesIndex}]" else stringResource(R.string.bookdetail_badge_standalone)
 
         Row(
@@ -392,6 +439,7 @@ fun BookHeaderSection(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // --- BOTONERA DE ESTADO (Favorito, Pendiente, Leído) ---
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             // FAVORITOS INDEPENDIENTE
             StatusButton(label = stringResource(R.string.bookdetail_status_favorites), isActive = isFavorite, activeIcon = Icons.Default.Favorite, inactiveIcon = Icons.Default.FavoriteBorder, onClick = onFavoriteClick)
@@ -403,6 +451,7 @@ fun BookHeaderSection(
     }
 }
 
+/** Componente de botón circular utilizado para marcar libros como Favoritos, Leídos o Pendientes. */
 @Composable
 fun StatusButton(label: String, isActive: Boolean, activeIcon: ImageVector, inactiveIcon: ImageVector, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onClick() }.padding(8.dp)) {
@@ -414,6 +463,7 @@ fun StatusButton(label: String, isActive: Boolean, activeIcon: ImageVector, inac
     }
 }
 
+/** Componente individual para las opciones desplegables del Floating Action Button. */
 @Composable
 fun SmallFabItem(icon: ImageVector, label: String, onClick: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
@@ -433,6 +483,7 @@ fun SynopsisSection(description: String) {
     }
 }
 
+/** Muestra una reseña escrita por la comunidad, incluyendo el avatar del usuario y las estrellas. */
 @Composable
 fun ReviewItem(review: Review) {
     Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp), shape = RoundedCornerShape(12.dp)) {
@@ -449,6 +500,7 @@ fun ReviewItem(review: Review) {
     }
 }
 
+/** Cuadro de diálogo interactivo donde el usuario elige entre 1 y 5 estrellas y escribe su reseña. */
 @Composable
 fun PremiumReviewDialog(onDismiss: () -> Unit, onSubmit: (Int, String) -> Unit) {
     var rating by remember { mutableIntStateOf(0) }; var reviewText by remember { mutableStateOf("") }
@@ -468,6 +520,7 @@ fun PremiumReviewDialog(onDismiss: () -> Unit, onSubmit: (Int, String) -> Unit) 
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.bookdetail_action_cancel), color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
 }
 
+/** Cuadro de diálogo para crear un Marcador (Cita textual + Capítulo y Página). */
 @Composable
 fun PremiumAddBookmarkDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, Boolean) -> Unit) {
     var p by remember { mutableStateOf("") }; var q by remember { mutableStateOf("") }; var c by remember { mutableStateOf("") }; var pub by remember { mutableStateOf(true) }
@@ -494,6 +547,7 @@ fun PremiumDeleteDialog(listName: String, onDismiss: () -> Unit, onConfirm: () -
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.bookdetail_action_keep), color = Color.Gray) } }, containerColor = Color.White, shape = RoundedCornerShape(24.dp))
 }
 
+/** Componente animado que funciona como interruptor (Público / Privado) para un diario o marcador. */
 @Composable
 fun PrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
     val pubCol by animateColorAsState(if (isPublic) ColorArcMediumBrown else Color.Transparent)
@@ -512,6 +566,7 @@ fun PrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
     }
 }
 
+/** Cuadro de diálogo para iniciar un hilo de comentarios en la comunidad (asociado a un capítulo). */
 @Composable
 fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Unit) {
     var commentText by remember { mutableStateOf("") }
@@ -522,7 +577,7 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Default.Chat,
+                    imageVector = Icons.AutoMirrored.Filled.Chat,
                     contentDescription = null,
                     tint = ColorArcMediumBrown,
                     modifier = Modifier.size(24.dp)
@@ -554,7 +609,7 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
                     onValueChange = { chapterText = it },
                     label = { Text(stringResource(R.string.bookdetail_comment_chapter_optional)) },
                     leadingIcon = {
-                        Icon(Icons.Default.MenuBook, contentDescription = null, tint = ColorArcMediumBrown)
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = ColorArcMediumBrown)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,

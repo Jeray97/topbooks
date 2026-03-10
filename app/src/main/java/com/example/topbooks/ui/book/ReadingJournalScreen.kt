@@ -1,7 +1,5 @@
 package com.example.topbooks.ui.book
 
-import android.util.Log
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,11 +37,25 @@ import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.CategoryProvider
 import java.util.UUID
 
+// --- PALETA DE COLORES ESPECÍFICA DEL DIARIO ---
 val JournalDark = ColorTitleCategoryDetail
 val JournalMedium = ColorBackGroundRecommendedSection
 val JournalLight = Color.White.copy(alpha = 0.6f)
 val JournalGridColor = ColorBackGroundRecommendedSection.copy(alpha = 0.3f)
 
+/**
+ * PANTALLA DEL DIARIO DE LECTURA (Stateful Composable)
+ * * Proporciona una interfaz rica y estética (tipo cuaderno) para que el usuario documente
+ * sus impresiones, calificaciones y frases favoritas de un libro.
+ *
+ * @param bookId ID del libro. Si es "new" o está vacío, se asume que es una entrada libre.
+ * @param initialTitle Título pre-cargado si se navega desde los detalles de un libro.
+ * @param initialAuthor Autor pre-cargado.
+ * @param initialImage Portada pre-cargada.
+ * @param initialPages Cantidad de páginas pre-cargada.
+ * @param onBackClick Acción al pulsar el botón de volver en la [TopBar].
+ * @param viewModel ViewModel encargado de cargar y guardar los datos en Firebase.
+ */
 @Composable
 fun ReadingJournalScreen(
     bookId: String,
@@ -54,12 +66,14 @@ fun ReadingJournalScreen(
     onBackClick: () -> Unit,
     viewModel: ReadingJournalViewModel = viewModel()
 ) {
+    // --- ESTADOS PROVENIENTES DEL VIEWMODEL ---
     val uiState by viewModel.uiState.collectAsState()
     val isSaving = uiState.isSaving
     val saveSuccess = uiState.saveSuccess
     val existingJournal = uiState.existingJournal
     val isLoadingJournal = uiState.isLoadingJournal
 
+    // --- ESTADOS LOCALES (Campos del formulario) ---
     var currentBookId by remember {
         mutableStateOf(if (bookId == "new" || bookId.isEmpty()) UUID.randomUUID().toString() else bookId)
     }
@@ -72,32 +86,38 @@ fun ReadingJournalScreen(
     var endDate by remember { mutableStateOf("") }
     var isPublic by remember { mutableStateOf(false) }
 
+    // Calificaciones (Tropes / Rating)
     var mainRating by remember { mutableIntStateOf(0) }
     var rRomance by remember { mutableIntStateOf(0) }
     var rHappy by remember { mutableIntStateOf(0) }
     var rSad by remember { mutableIntStateOf(0) }
     var rSpicy by remember { mutableIntStateOf(0) }
 
+    // Campos de texto y metadatos
     var genre by remember { mutableStateOf("") }
     var format by remember { mutableStateOf("") }
     var characters by remember { mutableStateOf("") }
     var nicknames by remember { mutableStateOf("") }
     var moments by remember { mutableStateOf("") }
 
+    // Control de modales
     var showSearchDialog by remember { mutableStateOf(false) }
     var showSaveDialog by remember { mutableStateOf(false) }
     var expandedGenre by remember { mutableStateOf(false) }
 
-    // 🔥 ESTADO DEL NUEVO DIÁLOGO DE BORRADO
+    // ESTADO DEL NUEVO DIÁLOGO DE BORRADO
     var showDeleteJournalDialog by remember { mutableStateOf(false) }
 
+    // Preparamos las opciones del desplegable de géneros
     val genreOptions = CategoryProvider.allCategories.map { code ->
         val data = CategoryProvider.getCategoryResources(code)
         if (data.nameRes != null) stringResource(id = data.nameRes) else CategoryProvider.formatFallbackName(code)
     } + listOf(stringResource(R.string.journal_genre_other))
 
+    // Disparamos la carga del diario si ya existe uno para este libro
     LaunchedEffect(bookId) { viewModel.loadJournal(bookId) }
 
+    // Sobrescribimos los campos de la UI si encontramos datos guardados en la BD
     LaunchedEffect(existingJournal) {
         existingJournal?.let { journal ->
             currentBookId = journal.bookId
@@ -121,6 +141,7 @@ fun ReadingJournalScreen(
         }
     }
 
+    // Navegamos hacia atrás solo cuando Firebase confirma el guardado
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
             viewModel.resetSuccessState()
@@ -128,6 +149,7 @@ fun ReadingJournalScreen(
         }
     }
 
+    // --- MODAL: BÚSQUEDA LIBRE DE LIBRO ---
     if (showSearchDialog) {
         SearchBookDialog(onDismiss = { showSearchDialog = false }, onBookSelected = { b ->
             currentBookId = b.id
@@ -137,6 +159,7 @@ fun ReadingJournalScreen(
         })
     }
 
+    // --- MODAL: CONFIRMACIÓN DE GUARDADO Y PRIVACIDAD ---
     if (showSaveDialog) {
         AlertDialog(
             onDismissRequest = { showSaveDialog = false },
@@ -164,6 +187,7 @@ fun ReadingJournalScreen(
                             currentBookId
                         }
 
+                        // Construimos el modelo con todos los datos recogidos
                         val journal = Journal(
                             bookId = finalId,
                             bookTitle = title,
@@ -199,7 +223,7 @@ fun ReadingJournalScreen(
         )
     }
 
-    // 🔥 NUEVO DIÁLOGO DE CONFIRMACIÓN PARA BORRAR USANDO STRINGS.XML
+    // NUEVO DIÁLOGO DE CONFIRMACIÓN PARA BORRAR USANDO STRINGS.XML
     if (showDeleteJournalDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteJournalDialog = false },
@@ -222,11 +246,14 @@ fun ReadingJournalScreen(
         )
     }
 
+    // --- INTERFAZ PRINCIPAL DEL DIARIO ---
     Scaffold(
         containerColor = ColorBackGroundGeneral,
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+
+            // TÉCNICA VISUAL DE ALTO NIVEL: Dibujamos una cuadrícula de fondo imitando una libreta matemática
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val step = 16.dp.toPx()
                 for (x in 0..size.width.toInt() step step.toInt()) drawLine(JournalGridColor, start = androidx.compose.ui.geometry.Offset(x.toFloat(), 0f), end = androidx.compose.ui.geometry.Offset(x.toFloat(), size.height))
@@ -243,7 +270,7 @@ fun ReadingJournalScreen(
                 ) {
                     item {
                         Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
-                            // --- COLUMNA IZQUIERDA ---
+                            // --- COLUMNA IZQUIERDA (Portada y Valoraciones Gráficas) ---
                             Column(Modifier.weight(0.35f), Arrangement.spacedBy(10.dp)) {
                                 Box(
                                     modifier = Modifier.fillMaxWidth().aspectRatio(0.65f).border(2.dp, Color.Black, RoundedCornerShape(4.dp)).background(Color.White).clickable { showSearchDialog = true },
@@ -268,6 +295,7 @@ fun ReadingJournalScreen(
                                     }
                                 }
 
+                                // Selector de Género Literario (Dropdown)
                                 Box {
                                     Box(
                                         modifier = Modifier
@@ -325,7 +353,7 @@ fun ReadingJournalScreen(
                                 }
                             }
 
-                            // --- COLUMNA DERECHA ---
+                            // --- COLUMNA DERECHA (Metadatos y Textos) ---
                             Column(Modifier.weight(0.65f), Arrangement.spacedBy(10.dp)) {
                                 Box(Modifier.fillMaxWidth().background(JournalMedium, RoundedCornerShape(2.dp)).padding(vertical = 8.dp), Alignment.Center) {
                                     Text(stringResource(R.string.journal_header_finished), fontFamily = GuardianCity, fontSize = 20.sp, color = Color.White, fontWeight = FontWeight.Bold)
@@ -367,7 +395,7 @@ fun ReadingJournalScreen(
                         )
                     }
 
-                    // 🔥 ACTUALIZADO: LOS DOS BOTONES JUNTOS
+                    // ACTUALIZADO: LOS DOS BOTONES JUNTOS (Eliminar y Guardar)
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -404,6 +432,18 @@ fun ReadingJournalScreen(
     }
 }
 
+// =========================================================================================
+// --- MICROCOMPONENTES DE LA INTERFAZ (STATELESS) ---
+// =========================================================================================
+
+/**
+ * Componente visual que muestra 5 iconos clickeables para calificar tropos literarios específicos.
+ * @param label Título de la métrica (ej. "🌶️ SPICY").
+ * @param rating Puntuación actual (0 a 5).
+ * @param icon Icono a mostrar repetido.
+ * @param activeColor Color que toma el icono cuando está activado.
+ * @param onRatingChange Callback que emite el nuevo valor seleccionado por el usuario.
+ */
 @Composable
 fun SmallClassificationItem(label: String, rating: Int, icon: ImageVector, activeColor: Color, onRatingChange: (Int) -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -416,11 +456,13 @@ fun SmallClassificationItem(label: String, rating: Int, icon: ImageVector, activ
     }
 }
 
+/** Contenedor estandarizado con fondo semitransparente y bordes sutiles que envuelve a la mayoría de inputs del diario. */
 @Composable
 fun JournalBox(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Box(modifier = modifier.background(JournalLight, RoundedCornerShape(4.dp)).border(1.dp, JournalMedium, RoundedCornerShape(4.dp)).padding(horizontal = 8.dp, vertical = 6.dp)) { content() }
 }
 
+/** Campo de texto minimalista sin bordes de Android, ideado para usarse junto a [JournalBox]. */
 @Composable
 fun JournalInlineField(label: String, value: String, onValueChange: (String) -> Unit) {
     JournalBox(Modifier.fillMaxWidth()) {
@@ -432,12 +474,14 @@ fun JournalInlineField(label: String, value: String, onValueChange: (String) -> 
     }
 }
 
+/** Agrupa contenido bajo un título unificado dentro de un [JournalBox]. */
 @Composable
 fun JournalSectionCard(t: String, c: @Composable () -> Unit) = Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
     Text(t, modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = JournalDark, fontSize = 10.sp, fontFamily = CenturyGotic)
     JournalBox(Modifier.fillMaxWidth()) { Column(Modifier.fillMaxWidth()) { c() } }
 }
 
+/** Tarjeta que contiene las 3 opciones de formato (Físico, Digital, Audio). */
 @Composable
 fun FormatoLecturaCard(selected: String, onSelect: (String) -> Unit) {
     JournalBox(Modifier.fillMaxWidth()) {
@@ -453,6 +497,7 @@ fun FormatoLecturaCard(selected: String, onSelect: (String) -> Unit) {
     }
 }
 
+/** Opción individual seleccionable de formato con su icono respectivo. */
 @Composable
 fun FormatOption(label: String, icon: ImageVector, isSelected: Boolean, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onClick() }.padding(2.dp)) {
@@ -461,6 +506,12 @@ fun FormatOption(label: String, icon: ImageVector, isSelected: Boolean, onClick:
     }
 }
 
+/**
+ * Campo de texto que dibuja de forma dinámica líneas horizontales en su fondo.
+ * * TÉCNICA VISUAL AVANZADA: Usa [Canvas] y un bucle 'while' sobre la altura total del componente
+ * para pintar renglones que coinciden exactamente con la propiedad 'lineHeight' del texto,
+ * consiguiendo un efecto de papel de carta hiper-realista.
+ */
 @Composable
 fun JournalLinedTextField(label: String, value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier, minLines: Int = 5) {
     Column(modifier = modifier) {
@@ -468,6 +519,7 @@ fun JournalLinedTextField(label: String, value: String, onValueChange: (String) 
             Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = JournalDark, fontFamily = CenturyGotic)
         }
         Box(modifier = Modifier.fillMaxWidth().background(JournalLight, RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp)).border(1.dp, JournalMedium, RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp))) {
+            // Fondo dibujado con líneas
             Canvas(modifier = Modifier.matchParentSize()) {
                 val lineHeight = 20.dp.toPx()
                 var y = lineHeight
@@ -481,11 +533,17 @@ fun JournalLinedTextField(label: String, value: String, onValueChange: (String) 
     }
 }
 
+/**
+ * Diálogo modal que implementa un buscador de libros independiente.
+ * * ARQUITECTURA: Al instanciar `viewModel = viewModel()` internamente, este modal tiene su propio
+ * [SearchViewModel] aislado. Al cerrarse el modal, la memoria del buscador se libera sin afectar al diario principal.
+ */
 @Composable
 fun SearchBookDialog(onDismiss: () -> Unit, onBookSelected: (Book) -> Unit, searchViewModel: SearchViewModel = viewModel()) {
     var localQuery by remember { mutableStateOf("") }
     val searchResults by searchViewModel.searchResults.collectAsState()
     val isLoading by searchViewModel.isLoading.collectAsState()
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(12.dp), color = ColorBackGroundGeneral, modifier = Modifier.fillMaxWidth().height(450.dp)) {
             Column(Modifier.padding(16.dp)) {
@@ -499,8 +557,10 @@ fun SearchBookDialog(onDismiss: () -> Unit, onBookSelected: (Book) -> Unit, sear
                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = JournalDark, focusedLabelColor = JournalDark, cursorColor = JournalDark)
                 )
                 Spacer(Modifier.height(12.dp))
-                if (isLoading) { Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = JournalDark) } }
-                else {
+
+                if (isLoading) {
+                    Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = JournalDark) }
+                } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(searchResults) { book ->
                             Card(modifier = Modifier.fillMaxWidth().clickable { onBookSelected(book) }, colors = CardDefaults.cardColors(containerColor = Color.White)) {
