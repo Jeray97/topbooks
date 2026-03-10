@@ -12,12 +12,25 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * Representa el estado de la interfaz de usuario para la vista de un comentario individual.
+ *
+ * @property comment El objeto de comentario cargado, enriquecido con datos de usuario y libro.
+ * @property isLoading Indica si se está realizando la carga inicial del hilo de conversación.
+ * @property isSendingReply Indica si hay una operación de envío de respuesta en curso.
+ */
 data class SingleCommentState(
     val comment: Comment? = null,
     val isLoading: Boolean = false,
     val isSendingReply: Boolean = false
 )
 
+/**
+ * ViewModel encargado de la lógica de visualización y respuesta para un hilo de conversación único.
+ *
+ * Utiliza flujos reactivos para mantener la interfaz actualizada en tiempo real ante cambios
+ * en el servidor de base de datos.
+ */
 class SingleCommentViewModel(
     private val feedRepo: SocialFeedRepository = SocialFeedRepositoryImpl(),
     private val userRepo: UserRepository = UserRepositoryImpl(),
@@ -28,15 +41,24 @@ class SingleCommentViewModel(
     private val _uiState = MutableStateFlow(SingleCommentState())
     val uiState: StateFlow<SingleCommentState> = _uiState.asStateFlow()
 
+    /**
+     * Inicia la observación del comentario por ID mediante un flujo en tiempo real.
+     * * Cada vez que el comentario o sus respuestas cambien en la base de datos,
+     * se recogen los datos, se enriquecen con información del autor y del libro,
+     * y se actualiza el estado de la UI de forma automática.
+     *
+     * @param commentId Identificador único del comentario en el repositorio.
+     */
     fun loadComment(commentId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // 🔥 AHORA USAMOS OBSERVE Y COLLECT PARA TIEMPO REAL
+            // Uso de observador en tiempo real para actualizaciones constantes
             feedRepo.observeCommentById(commentId).collect { result ->
                 if (result.isSuccess) {
-                    var c = result.getOrNull()!!
-                    // Enriquecemos el comentario principal
+                    val c = result.getOrNull()!!
+
+                    // Proceso de hidratación de datos: Autor y Libro
                     val user = userRepo.getUserProfile(c.userId).getOrNull()
                     val book = booksRepo.getBookDetail(c.bookId).getOrNull()
 
@@ -56,6 +78,10 @@ class SingleCommentViewModel(
         }
     }
 
+    /**
+     * Verifica si el usuario actual ha confirmado su dirección de correo electrónico.
+     * * @param onResult Callback que retorna el estado de verificación.
+     */
     fun checkEmailVerification(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             authRepo.reloadUser()
@@ -63,8 +89,16 @@ class SingleCommentViewModel(
         }
     }
 
+    /**
+     * Procesa y envía una respuesta al comentario actualmente cargado.
+     * * Implementa validación de texto, gestión de estados de carga y disparo
+     * de notificaciones FCM al autor del comentario original.
+     *
+     * @param text El contenido de la respuesta.
+     * @param onSuccess Callback ejecutado tras la confirmación exitosa del envío.
+     */
     fun sendReply(text: String, onSuccess: () -> Unit) {
-        // VALIDACIÓN: Prevenir envío de texto vacío o solo espacios
+        // Validacion de entrada: Evita cadenas vacías o solo con espacios
         val cleanText = text.trim()
         if (cleanText.isEmpty()) return
 
@@ -74,23 +108,29 @@ class SingleCommentViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isSendingReply = true) }
             try {
+                // Recuperación de perfil del emisor para la respuesta
                 val me = userRepo.getUserProfile(myUid).getOrNull()
                 val myName = me?.displayName ?: "Usuario"
                 val myPhoto = me?.photoURL ?: "capibara_1"
 
-                // Usamos el cleanText validado
-                val newReply = Reply(userId = myUid, userName = myName, userPhotoUrl = myPhoto, text = cleanText)
+                val newReply = Reply(
+                    userId = myUid,
+                    userName = myName,
+                    userPhotoUrl = myPhoto,
+                    text = cleanText
+                )
 
+                // Obtención del token de notificación del destinatario
                 val targetUser = userRepo.getUserProfile(comment.userId).getOrNull()
                 val targetToken = targetUser?.fcmToken
 
-                // Guardamos en Firebase
+                // Persistencia en repositorio social
                 feedRepo.addReply(comment.commentId, newReply, targetToken, comment.bookId)
 
-                // Eliminada la recarga manual (loadComment) porque Flow ya lo actualiza automáticamente
+                // Notificamos exito a la vista
                 onSuccess()
             } catch (e: Exception) {
-                Log.e("SingleCommentVM", "Error al enviar respuesta: ${e.message}")
+                Log.e("SingleCommentViewModel", "Error al enviar respuesta: ${e.message}")
             } finally {
                 _uiState.update { it.copy(isSendingReply = false) }
             }
