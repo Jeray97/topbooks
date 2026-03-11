@@ -7,6 +7,8 @@ import com.example.topbooks.R
 import com.example.topbooks.data.preferences.SettingsManager
 import com.example.topbooks.data.repository.AuthRepository
 import com.example.topbooks.data.repository.AuthRepositoryImpl
+import com.example.topbooks.data.repository.UserRepository
+import com.example.topbooks.data.repository.UserRepositoryImpl
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
@@ -15,16 +17,16 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel encargado de gestionar la lógica de la pantalla de Configuración ([ConfigScreen]).
- * * Conecta las interacciones del usuario con las preferencias locales ([SettingsManager])
- * y la gestión avanzada de la cuenta en la nube ([AuthRepository]).
+ * ViewModel encargado de gestionar la lógica de la pantalla de Configuración.
  */
 class ConfigViewModel(
     private val settingsManager: SettingsManager,
-    private val authRepository: AuthRepository = AuthRepositoryImpl()
+    private val authRepository: AuthRepository = AuthRepositoryImpl(),
+    private val userRepository: UserRepository = UserRepositoryImpl() // Añadido para gestionar los géneros
 ) : ViewModel() {
 
     // --- ESTADOS LOCALES ---
@@ -35,10 +37,14 @@ class ConfigViewModel(
     private val _isDeletingAccount = MutableStateFlow(false)
     val isDeletingAccount: StateFlow<Boolean> = _isDeletingAccount.asStateFlow()
 
+    // Estado para los géneros favoritos actuales del usuario
+    private val _favoriteGenres = MutableStateFlow<List<String>>(emptyList())
+    val favoriteGenres: StateFlow<List<String>> = _favoriteGenres.asStateFlow()
+
+    private val _isUpdatingGenres = MutableStateFlow(false)
+    val isUpdatingGenres: StateFlow<Boolean> = _isUpdatingGenres.asStateFlow()
+
     // --- ESTADOS DE PREFERENCIAS (DATASTORE) ---
-    // TÉCNICA DE RENDIMIENTO: Al usar 'SharingStarted.WhileSubscribed(5000)', el ViewModel
-    // dejará de observar la base de datos local 5 segundos después de que el usuario salga
-    // de la pantalla de configuración, ahorrando batería y recursos del sistema.
 
     val darkModeEnabled: StateFlow<Boolean> = settingsManager.darkModeFlow
         .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = false)
@@ -49,11 +55,15 @@ class ConfigViewModel(
     val publicJournalDefaultEnabled: StateFlow<Boolean> = settingsManager.publicJournalDefaultFlow
         .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = false)
 
+    // Nuevo flujo para el idioma (Asume que añadirás 'languageFlow' a tu SettingsManager)
+    val currentLanguage: StateFlow<String> = settingsManager.languageFlow
+        .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = "es")
+
     init {
         refreshVerificationStatus()
+        loadFavoriteGenres()
     }
 
-    /** Obliga a Firebase a actualizar los datos del usuario actual para ver si ya verificó su correo. */
     fun refreshVerificationStatus() {
         viewModelScope.launch {
             authRepository.reloadUser()
@@ -61,12 +71,50 @@ class ConfigViewModel(
         }
     }
 
-    // --- FUNCIONES DE TOGGLE (INTERRUPTORES) ---
+    /**
+     * Carga los géneros favoritos actuales del perfil del usuario en Firebase.
+     */
+    private fun loadFavoriteGenres() {
+        val uid = userRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            val user = userRepository.getUserProfile(uid).getOrNull()
+            if (user != null) {
+                _favoriteGenres.value = user.favoriteGenres
+            }
+        }
+    }
+
+    // --- FUNCIONES DE ACTUALIZACIÓN ---
+
     fun toggleDarkMode(enabled: Boolean) = viewModelScope.launch { settingsManager.saveDarkMode(enabled) }
     fun toggleNotifications(enabled: Boolean) = viewModelScope.launch { settingsManager.saveNotifications(enabled) }
     fun togglePublicJournalDefault(enabled: Boolean) = viewModelScope.launch { settingsManager.savePublicJournalDefault(enabled) }
 
-    /** Reenvía el correo de verificación de identidad a la bandeja de entrada del usuario. */
+    /** Guarda el idioma seleccionado en las preferencias locales. */
+    fun updateLanguage(langCode: String) = viewModelScope.launch { settingsManager.saveLanguage(langCode) }
+
+    /**
+     * Actualiza la lista de géneros favoritos en Firebase.
+     * Requiere que añadas la función 'updateFavoriteGenres(uid, genres)' en tu UserRepository.
+     */
+    fun saveFavoriteGenres(newGenres: List<String>, onResult: (String) -> Unit) {
+        val uid = userRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            _isUpdatingGenres.value = true
+
+            // Asume que UserRepository tiene esta función implementada con Firestore
+            userRepository.updateFavoriteGenres(uid, newGenres).onSuccess {
+                _favoriteGenres.value = newGenres
+                onResult("Categorías actualizadas correctamente.")
+            }.onFailure {
+                onResult("Error al actualizar las categorías.")
+            }
+            _isUpdatingGenres.value = false
+        }
+    }
+
+    // --- RESTO DE FUNCIONES EXISTENTES ---
+
     fun resendVerificationEmail(onResult: (String) -> Unit) {
         authRepository.resendVerificationEmail { result ->
             if (result.isSuccess) onResult("Correo de verificación reenviado.")
@@ -74,7 +122,6 @@ class ConfigViewModel(
         }
     }
 
-    /** Solicita a Firebase que envíe un correo electrónico con un enlace para cambiar la contraseña. */
     fun sendPasswordReset(onResult: (String) -> Unit) {
         val email = FirebaseAuth.getInstance().currentUser?.email
         if (email.isNullOrEmpty()) {
@@ -90,28 +137,15 @@ class ConfigViewModel(
         }
     }
 
-    /** Cierra la sesión activa en este dispositivo. */
     fun signOut() {
         authRepository.logout()
     }
 
-    /**
-     * Comprueba los proveedores de inicio de sesión vinculados a la cuenta actual.
-     * @return 'true' si el usuario se registró usando el botón de Google.
-     */
     fun isGoogleUser(): Boolean {
         val user = FirebaseAuth.getInstance().currentUser
         return user?.providerData?.any { it.providerId == "google.com" } == true
     }
 
-    /**
-     * Maneja el proceso crítico y destructivo de eliminar una cuenta de forma definitiva.
-     * * REGLA DE SEGURIDAD DE FIREBASE: Para evitar que alguien coja el móvil desbloqueado de otro y borre
-     * su cuenta, Firebase exige re-autenticar al usuario inmediatamente antes de borrar.
-     *
-     * @param password La contraseña actual introducida por el usuario para confirmar su identidad.
-     * @param onResult Callback que devuelve un booleano (éxito/fallo) y el ID de recurso (String) del mensaje resultante.
-     */
     fun reauthenticateAndDelete(password: String, onResult: (Boolean, Int) -> Unit) {
         val user = FirebaseAuth.getInstance().currentUser
         if (user == null) {
@@ -119,25 +153,21 @@ class ConfigViewModel(
             return
         }
 
-        _isDeletingAccount.value = true // Activa el spinner de carga en el botón rojo
+        _isDeletingAccount.value = true
 
         if (isGoogleUser()) {
-            // Los usuarios de Google no tienen contraseña tradicional. Intentamos borrar directamente.
             viewModelScope.launch {
                 authRepository.deleteAccount().onSuccess {
                     _isDeletingAccount.value = false
                     onResult(true, R.string.conf_delete_success)
                 }.onFailure { error ->
                     _isDeletingAccount.value = false
-
-                    // Si Firebase exige inicio de sesión reciente para la cuenta de Google, se lo indicamos
                     val isRecentLoginRequired = error is FirebaseAuthRecentLoginRequiredException || error.message?.contains("recent", ignoreCase = true) == true
                     if (isRecentLoginRequired) onResult(false, R.string.conf_delete_recent_login_required)
                     else onResult(false, R.string.conf_delete_error)
                 }
             }
         } else {
-            // Usuarios de Correo/Contraseña: Necesitamos crear una credencial con la contraseña dada y reautenticar.
             val email = user.email
             if (email.isNullOrEmpty()) {
                 _isDeletingAccount.value = false
@@ -148,7 +178,6 @@ class ConfigViewModel(
             val credential = EmailAuthProvider.getCredential(email, password)
             user.reauthenticate(credential).addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    // Si la contraseña era correcta, procedemos a borrar la cuenta definitivamente
                     viewModelScope.launch {
                         authRepository.deleteAccount().onSuccess {
                             _isDeletingAccount.value = false
@@ -159,7 +188,6 @@ class ConfigViewModel(
                         }
                     }
                 } else {
-                    // Contraseña incorrecta, abortamos operación
                     _isDeletingAccount.value = false
                     onResult(false, R.string.conf_delete_wrong_password)
                 }
@@ -168,14 +196,13 @@ class ConfigViewModel(
     }
 
     /**
-     * Clase factoría requerida por el sistema de Android para poder inyectar parámetros
-     * (como el [SettingsManager]) en el constructor del ViewModel durante su creación.
+     * Factory actualizada para incluir el UserRepository.
      */
     class Factory(private val settingsManager: SettingsManager) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ConfigViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return ConfigViewModel(settingsManager, AuthRepositoryImpl()) as T
+                return ConfigViewModel(settingsManager, AuthRepositoryImpl(), UserRepositoryImpl()) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

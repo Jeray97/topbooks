@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import androidx.datastore.preferences.core.stringPreferencesKey
 
 /**
  * Extensión de Context para inicializar DataStore como un Singleton.
@@ -37,6 +38,7 @@ class SettingsManager(context: Context) {
         private val DARK_MODE_KEY = booleanPreferencesKey("dark_mode_enabled")
         private val NOTIFICATIONS_KEY = booleanPreferencesKey("notifications_enabled")
         private val PUBLIC_JOURNAL_DEFAULT_KEY = booleanPreferencesKey("public_journal_default")
+        private val LANGUAGE_KEY = stringPreferencesKey("language_preference")
     }
 
     // --- LECTURA DE PREFERENCIAS (FLOWS REACTIVOS) ---
@@ -78,6 +80,18 @@ class SettingsManager(context: Context) {
             preferences[PUBLIC_JOURNAL_DEFAULT_KEY] ?: false
         }
 
+    /**
+     * Flujo continuo que emite el idioma seleccionado por el usuario.
+     * Por defecto, devuelve "es" (Español).
+     */
+    val languageFlow: Flow<String> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[LANGUAGE_KEY] ?: "es"
+        }
+
     // --- ESCRITURA DE PREFERENCIAS ---
 
     /**
@@ -108,6 +122,16 @@ class SettingsManager(context: Context) {
     suspend fun savePublicJournalDefault(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PUBLIC_JOURNAL_DEFAULT_KEY] = enabled
+        }
+    }
+
+    /**
+     * Guarda el código de idioma seleccionado.
+     * @param languageCode "es" para Español, "en" para Inglés, etc.
+     */
+    suspend fun saveLanguage(languageCode: String) {
+        dataStore.edit { preferences ->
+            preferences[LANGUAGE_KEY] = languageCode
         }
     }
 }

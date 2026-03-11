@@ -5,9 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.repository.BooksRepository
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
+import com.example.topbooks.data.repository.UserRepository
+import com.example.topbooks.data.repository.UserRepositoryImpl
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -16,33 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-/**
- * Interfaz para la persistencia de los datos del tutorial.
- * Aísla la lógica de Firebase del ViewModel para facilitar el testing.
- */
-interface TutorialUpdater {
-    fun completeTutorial(genres: List<String>, books: List<String>, onComplete: (Boolean) -> Unit)
-}
-
-/**
- * Implementación de la persistencia del tutorial usando Firebase Firestore.
- */
-class TutorialUpdaterImpl : TutorialUpdater {
-    override fun completeTutorial(genres: List<String>, books: List<String>, onComplete: (Boolean) -> Unit) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return onComplete(false)
-        val updates = mapOf(
-            "isTutorialCompleted" to true,
-            "favoriteGenres" to genres,
-            "favoriteBooks" to books
-        )
-        // Fusionamos los datos en el documento del usuario sin sobreescribir otros campos
-        FirebaseFirestore.getInstance().collection("users").document(uid)
-            .set(updates, SetOptions.merge())
-            .addOnSuccessListener { onComplete(true) }
-            .addOnFailureListener { onComplete(false) }
-    }
-}
 
 /**
  * Representa el estado reactivo del flujo de Onboarding.
@@ -66,7 +38,7 @@ data class OnboardingState(
  */
 class TutorialViewModel(
     private val booksRepository: BooksRepository = BooksRepository(),
-    private val tutorialUpdater: TutorialUpdater = TutorialUpdaterImpl()
+    private val userRepository: UserRepository = UserRepositoryImpl() // Reemplazamos el updater local por el Repositorio central
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingState())
@@ -121,18 +93,31 @@ class TutorialViewModel(
 
     /**
      * Finaliza el proceso de Onboarding.
-     * Guarda las preferencias en Firestore y marca el tutorial como completado en el perfil.
+     * Delega en UserRepository la persistencia de las preferencias en Firestore.
      */
     fun finishOnboarding(onSuccess: () -> Unit) {
-        _uiState.update { it.copy(isSaving = true) }
-
         val state = _uiState.value
-        tutorialUpdater.completeTutorial(
-            state.selectedGenres.toList(),
-            state.selectedBookIds.toList()
-        ) { success ->
-            _uiState.update { it.copy(isSaving = false) }
-            if (success) onSuccess()
+        val uid = userRepository.getCurrentUserId()
+
+        if (uid == null) {
+            Log.e("TutorialVM", "Error: Usuario no autenticado al finalizar tutorial")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
+
+            userRepository.completeTutorial(
+                userId = uid,
+                genres = state.selectedGenres.toList(),
+                books = state.selectedBookIds.toList()
+            ).onSuccess {
+                _uiState.update { it.copy(isSaving = false) }
+                onSuccess()
+            }.onFailure { error ->
+                Log.e("TutorialVM", "Fallo al guardar tutorial: ${error.message}")
+                _uiState.update { it.copy(isSaving = false) }
+            }
         }
     }
 }

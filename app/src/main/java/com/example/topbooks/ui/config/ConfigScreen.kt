@@ -1,16 +1,23 @@
 package com.example.topbooks.ui.config
 
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
@@ -34,19 +41,14 @@ import com.example.topbooks.R
 import com.example.topbooks.data.preferences.SettingsManager
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.ColorArcDarkBrown
+import com.example.topbooks.ui.theme.ColorArcMediumBrown
+import com.example.topbooks.utils.CategoryProvider
 
 val ColorPremiumDivider = Color(0xFFEEEEEE)
 val ColorPremiumTextSecondary = Color(0xFF757575)
 
 /**
  * PANTALLA DE CONFIGURACIÓN / AJUSTES (Stateful Composable)
- * * Permite al usuario gestionar sus preferencias locales (modo oscuro, notificaciones),
- * estado de la cuenta (verificación de email, cambio de contraseña, cerrar sesión)
- * y opciones de privacidad.
- *
- * @param onBackClick Acción para volver a la pantalla anterior.
- * @param onSignOut Acción a ejecutar cuando el usuario cierra sesión o elimina su cuenta (navega al Login).
- * @param viewModel ViewModel inyectado que gestiona la lógica y se conecta con [SettingsManager] y repositorios.
  */
 @Composable
 fun ConfigScreen(
@@ -56,18 +58,22 @@ fun ConfigScreen(
 ) {
     val context = LocalContext.current
 
-    // --- OBSERVACIÓN REACTIVA DE ESTADOS ---
-    // Usamos collectAsStateWithLifecycle() para que la UI solo escuche cambios cuando la pantalla es visible,
-    // ahorrando batería y recursos del sistema frente al collectAsState() clásico.
     val isEmailVerified by viewModel.isEmailVerified.collectAsStateWithLifecycle()
     val darkModeEnabled by viewModel.darkModeEnabled.collectAsStateWithLifecycle()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
     val publicJournalDefaultEnabled by viewModel.publicJournalDefaultEnabled.collectAsStateWithLifecycle()
+    val currentLanguage by viewModel.currentLanguage.collectAsStateWithLifecycle()
+    val favoriteGenres by viewModel.favoriteGenres.collectAsStateWithLifecycle()
+    val isUpdatingGenres by viewModel.isUpdatingGenres.collectAsStateWithLifecycle()
 
     val isDeleting by viewModel.isDeletingAccount.collectAsStateWithLifecycle(initialValue = false)
-    var showDeleteDialog by remember { mutableStateOf(false) }
 
-    // Al entrar a la pantalla, comprobamos silenciosamente si el usuario ha verificado su email
+    // Estados para los diálogos emergentes
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    var showGenresDialog by remember { mutableStateOf(false) }
+
+    // Verificamos el estado del email silenciosamente al entrar
     LaunchedEffect(Unit) {
         viewModel.refreshVerificationStatus()
     }
@@ -80,10 +86,8 @@ fun ConfigScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState()) // Permite desplazar el menú si la pantalla es pequeña
+                .verticalScroll(rememberScrollState())
         ) {
-
-            // --- TÍTULO PRINCIPAL ---
             Text(
                 text = stringResource(R.string.conf_title),
                 style = MaterialTheme.typography.headlineMedium,
@@ -92,8 +96,6 @@ fun ConfigScreen(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp)
             )
 
-            // --- AVISO DE VERIFICACIÓN DE EMAIL ---
-            // Solo se muestra si Firebase indica que el correo aún no está verificado
             if (!isEmailVerified) {
                 VerificationWarningCard(
                     onResendClick = {
@@ -104,8 +106,25 @@ fun ConfigScreen(
                 )
             }
 
+            // --- SECCIÓN: PREFERENCIAS LECTORAS ---
+            ConfigSection(title = "Preferencias Lectoras") {
+                ConfigActionItem(
+                    icon = Icons.Default.AutoAwesome,
+                    title = "Categorías Favoritas",
+                    description = "Edita los géneros que te interesan",
+                    onClick = { showGenresDialog = true }
+                )
+            }
+
             // --- SECCIÓN: APARIENCIA Y USO ---
             ConfigSection(title = stringResource(R.string.conf_use_and_appearance)) {
+                ConfigActionItem(
+                    icon = Icons.Default.Language,
+                    title = "Idioma de la App",
+                    description = if (currentLanguage == "es") "Español" else "English",
+                    onClick = { showLanguageDialog = true }
+                )
+                HorizontalDivider(color = ColorPremiumDivider, modifier = Modifier.padding(horizontal = 16.dp))
                 ConfigSwitchItem(
                     icon = Icons.Default.Palette,
                     title = stringResource(R.string.conf_dark_mode),
@@ -153,7 +172,7 @@ fun ConfigScreen(
                     description = stringResource(R.string.conf_logout_desc),
                     onClick = {
                         viewModel.signOut()
-                        onSignOut() // Navegamos al login
+                        onSignOut()
                     }
                 )
             }
@@ -170,7 +189,6 @@ fun ConfigScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Etiqueta de versión de la app
             Text(
                 text = stringResource(R.string.conf_topbooks_version),
                 style = MaterialTheme.typography.bodySmall.copy(letterSpacing = 1.sp),
@@ -181,7 +199,7 @@ fun ConfigScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- ZONA PELIGROSA: ELIMINAR CUENTA ---
+            // --- ZONA PELIGROSA ---
             Text(
                 text = stringResource(R.string.conf_danger_zone),
                 style = MaterialTheme.typography.titleSmall,
@@ -210,8 +228,36 @@ fun ConfigScreen(
             }
         }
 
-        // --- DIÁLOGO DE ELIMINACIÓN DE CUENTA CON REAUTENTICACIÓN ---
-        // Firebase exige re-autenticar al usuario para operaciones destructivas por seguridad.
+        // =========================================================================
+        // --- DIÁLOGOS FLOTANTES ---
+        // =========================================================================
+
+        if (showLanguageDialog) {
+            LanguageSelectionDialog(
+                currentLang = currentLanguage,
+                onDismiss = { showLanguageDialog = false },
+                onLanguageSelected = { newLang ->
+                    viewModel.updateLanguage(newLang)
+                    showLanguageDialog = false
+                    Toast.makeText(context, "Idioma actualizado. Reinicia la app para aplicar cambios.", Toast.LENGTH_LONG).show()
+                }
+            )
+        }
+
+        if (showGenresDialog) {
+            EditGenresDialog(
+                currentGenres = favoriteGenres,
+                isUpdating = isUpdatingGenres,
+                onDismiss = { showGenresDialog = false },
+                onSave = { updatedGenres ->
+                    viewModel.saveFavoriteGenres(updatedGenres) { message ->
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        showGenresDialog = false
+                    }
+                }
+            )
+        }
+
         if (showDeleteDialog) {
             var passwordConfirm by remember { mutableStateOf("") }
             val isGoogleUser = remember { viewModel.isGoogleUser() }
@@ -224,8 +270,6 @@ fun ConfigScreen(
                         Text(stringResource(R.string.conf_delete_account_dialog_body))
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Lógica condicional: Si es usuario de Google no le pedimos contraseña,
-                        // pero si es usuario de correo tradicional, le exigimos la contraseña actual.
                         if (isGoogleUser) {
                             Text(stringResource(R.string.conf_delete_google_desc), color = Color.Gray, fontSize = 13.sp)
                         } else {
@@ -254,12 +298,11 @@ fun ConfigScreen(
                                 showDeleteDialog = false
                                 Toast.makeText(context, context.getString(messageResId), Toast.LENGTH_LONG).show()
                                 if (success) {
-                                    onSignOut() // Solo cerramos la sesión en el dispositivo si el borrado en la nube triunfó
+                                    onSignOut()
                                 }
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        // Bloqueo de seguridad: El botón solo funciona si se ha escrito la contraseña o es usuario de Google
                         enabled = (!isGoogleUser && passwordConfirm.isNotEmpty() && !isDeleting) || (isGoogleUser && !isDeleting)
                     ) {
                         if (isDeleting) {
@@ -270,10 +313,7 @@ fun ConfigScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(
-                        onClick = { showDeleteDialog = false },
-                        enabled = !isDeleting
-                    ) {
+                    TextButton(onClick = { showDeleteDialog = false }, enabled = !isDeleting) {
                         Text(stringResource(R.string.conf_delete_account_dialog_no), color = ColorPremiumTextSecondary)
                     }
                 }
@@ -283,8 +323,116 @@ fun ConfigScreen(
 }
 
 // =========================================================================================
-// --- COMPONENTES SECUNDARIOS (STATELESS) ---
+// --- COMPONENTES SECUNDARIOS (STATELESS Y DIÁLOGOS) ---
 // =========================================================================================
+
+/**
+ * Diálogo para la selección del idioma.
+ */
+@Composable
+fun LanguageSelectionDialog(currentLang: String, onDismiss: () -> Unit, onLanguageSelected: (String) -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Idioma / Language", fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onLanguageSelected("es") }.padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = currentLang == "es", onClick = { onLanguageSelected("es") }, colors = RadioButtonDefaults.colors(selectedColor = ColorArcMediumBrown))
+                    Text("Español", modifier = Modifier.padding(start = 8.dp), fontSize = 16.sp)
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onLanguageSelected("en") }.padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = currentLang == "en", onClick = { onLanguageSelected("en") }, colors = RadioButtonDefaults.colors(selectedColor = ColorArcMediumBrown))
+                    Text("English", modifier = Modifier.padding(start = 8.dp), fontSize = 16.sp)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = ColorPremiumTextSecondary) }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+/**
+ * Diálogo interactivo para modificar los géneros literarios favoritos.
+ * Reutiliza la lógica de CategoryProvider utilizada en el tutorial inicial.
+ */
+@Composable
+fun EditGenresDialog(
+    currentGenres: List<String>,
+    isUpdating: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (List<String>) -> Unit
+) {
+    var selectedGenres by remember { mutableStateOf(currentGenres.toSet()) }
+    val allGenres = CategoryProvider.allCategories
+
+    AlertDialog(
+        onDismissRequest = { if (!isUpdating) onDismiss() },
+        title = { Text("Categorías Favoritas", fontWeight = FontWeight.Bold) },
+        text = {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.heightIn(max = 400.dp)
+            ) {
+                items(allGenres) { genre ->
+                    val isSel = selectedGenres.contains(genre)
+                    val catData = CategoryProvider.getCategoryResources(genre)
+                    val displayName = if (catData.nameRes != null) stringResource(id = catData.nameRes) else CategoryProvider.formatFallbackName(genre)
+
+                    Surface(
+                        onClick = {
+                            selectedGenres = if (isSel) selectedGenres - genre else selectedGenres + genre
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isSel) ColorArcMediumBrown else Color.White,
+                        modifier = Modifier.height(40.dp),
+                        shadowElevation = if(isSel) 4.dp else 1.dp,
+                        border = if(!isSel) androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(0.4f)) else null
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = displayName,
+                                color = if (isSel) Color.White else ColorArcDarkBrown,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(selectedGenres.toList()) },
+                enabled = selectedGenres.isNotEmpty() && !isUpdating,
+                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)
+            ) {
+                if (isUpdating) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Text("Guardar")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isUpdating) {
+                Text("Cancelar", color = ColorPremiumTextSecondary)
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(24.dp)
+    )
+}
 
 /**
  * Tarjeta de advertencia visual que insta al usuario a verificar su correo electrónico.
@@ -313,7 +461,7 @@ fun VerificationWarningCard(onResendClick: () -> Unit) {
 }
 
 /**
- * Contenedor visual estandarizado para agrupar ajustes bajo un mismo título temático (ej: Privacidad).
+ * Contenedor visual estandarizado para agrupar ajustes bajo un mismo título temático.
  */
 @Composable
 fun ConfigSection(title: String, content: @Composable ColumnScope.() -> Unit) {
@@ -326,8 +474,7 @@ fun ConfigSection(title: String, content: @Composable ColumnScope.() -> Unit) {
 }
 
 /**
- * Fila interactiva para acciones directas (ej: "Cambiar contraseña", "Cerrar sesión").
- * Muestra una flecha hacia la derecha (Chevron) indicando interactividad.
+ * Fila interactiva para acciones directas.
  */
 @Composable
 fun ConfigActionItem(icon: ImageVector, title: String, description: String, titleColor: Color = ColorArcDarkBrown, iconColor: Color = ColorArcDarkBrown, onClick: () -> Unit) {
@@ -344,7 +491,6 @@ fun ConfigActionItem(icon: ImageVector, title: String, description: String, titl
 
 /**
  * Fila interactiva para ajustes de tipo encendido/apagado (Booleanos).
- * Incorpora un interruptor (Switch) en la parte derecha sincronizado con el estado local de DataStore.
  */
 @Composable
 fun ConfigSwitchItem(icon: ImageVector, title: String, description: String, isChecked: Boolean, onCheckedChange: (Boolean) -> Unit) {

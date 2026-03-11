@@ -38,6 +38,12 @@ interface UserRepository {
 
     /** Descarga los géneros literarios que el usuario marcó como favoritos durante el tutorial. */
     suspend fun getFavoriteGenres(uid: String): List<String>
+
+    /** Actualiza la lista de géneros favoritos del usuario en la base de datos. */
+    suspend fun updateFavoriteGenres(uid: String, genres: List<String>): Result<Boolean>
+
+    /** Finaliza el tutorial guardando los géneros y libros iniciales en el perfil. */
+    suspend fun completeTutorial(userId: String, genres: List<String>, books: List<String>): Result<Boolean>
 }
 
 /**
@@ -163,5 +169,33 @@ class UserRepositoryImpl : UserRepository {
 
         // Realizamos un casteo seguro a List<String>
         return snapshot.get("favoriteGenres") as? List<String> ?: emptyList()
+    }
+
+    /**
+     * Sobreescribe el array de géneros favoritos en el documento del usuario.
+     */
+    override suspend fun updateFavoriteGenres(uid: String, genres: List<String>): Result<Boolean> {
+        return try {
+            db.collection("users").document(uid).update("favoriteGenres", genres).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun completeTutorial(userId: String, genres: List<String>, books: List<String>): Result<Boolean> {
+        return try {
+            val updates = mapOf(
+                "isTutorialCompleted" to true,
+                "favoriteGenres" to genres,
+                "favoriteBooks" to books
+            )
+            db.collection("users").document(userId)
+                .set(updates, com.google.firebase.firestore.SetOptions.merge())
+                .await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }
