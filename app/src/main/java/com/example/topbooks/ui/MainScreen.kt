@@ -84,7 +84,17 @@ fun MainScreen(
     // Control del tour interactivo mediante preferencias compartidas
     val context = LocalContext.current
     val sharedPrefs = context.getSharedPreferences("topbooks_tour_prefs", Context.MODE_PRIVATE)
-    var showInteractiveTour by remember { mutableStateOf(!sharedPrefs.getBoolean("has_seen_spotlight_tour", false)) }
+    val hasSeenTour = sharedPrefs.getBoolean("has_seen_spotlight_tour", false)
+
+    android.util.Log.d("TOUR_DEBUG", "MainScreen creado - hasSeenTour=$hasSeenTour")
+
+    var showInteractiveTour by remember {
+        mutableStateOf(!hasSeenTour)
+    }
+
+    LaunchedEffect(showInteractiveTour) {
+        android.util.Log.d("TOUR_DEBUG", "Tour visible: $showInteractiveTour")
+    }
 
     val items = listOf(
         BottomNavItem.Home,
@@ -213,6 +223,8 @@ fun MainScreen(
         if (showInteractiveTour) {
             SpotlightTourOverlay(
                 onFinish = {
+                    android.util.Log.d("TOUR_DEBUG", "Tour terminado -> guardando flag")
+
                     sharedPrefs.edit { putBoolean("has_seen_spotlight_tour", true) }
                     showInteractiveTour = false
                 }

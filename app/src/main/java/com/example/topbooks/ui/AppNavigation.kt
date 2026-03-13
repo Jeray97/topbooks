@@ -94,14 +94,19 @@ fun AppNavigation(
         }
 
         // --- CONFIGURACIÓN INICIAL (ONBOARDING) ---
-
         composable("tutorial") {
-            TutorialScreen(onFinished = {
-                authViewModel.checkUserProfile()
-                navController.navigate("main") {
-                    popUpTo("tutorial") { inclusive = true }
+            TutorialScreen(
+                onFinished = {
+
+                    android.util.Log.d("TOUR_DEBUG", "AppNavigation: onFinished recibido")
+
+                    authViewModel.markTutorialCompleted()
+
+                    navController.navigate("main") {
+                        popUpTo("tutorial") { inclusive = true }
+                    }
                 }
-            })
+            )
         }
 
         // --- CONTENIDO PRINCIPAL ---

@@ -92,7 +92,7 @@ class AuthViewModel(
 
     /**
      * Inicia sesión con correo y contraseña tradicionales.
-     * * Usa [viewModelScope.launch] para no bloquear la interfaz mientras espera a internet.
+     * * Usa [viewModelScope.launch para no bloquear la interfaz mientras espera a internet.
      */
     fun login(email: String, pass: String, onSuccess: () -> Unit) {
         Log.d("AUTH_DEBUG", "Iniciando login tradicional...")
@@ -263,5 +263,13 @@ class AuthViewModel(
     /** Limpia los mensajes de error de la pantalla. */
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    /**
+     * Marca el tutorial como completado localmente para actualizar el estado de navegación
+     * inmediatamente sin esperar a Firestore.
+     */
+    fun markTutorialCompleted() {
+        _uiState.update { it.copy(isTutorialCompleted = true) }
     }
 }

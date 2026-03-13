@@ -44,6 +44,15 @@ android {
             )
         }
     }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/LICENSE-notice.md"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -103,19 +112,22 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
-    // --- TESTING (PRUEBAS) ---
+    // --- TESTING (PRUEBAS UNITARIAS - CARPETA 'test') ---
     testImplementation(libs.junit)
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
 
+    // --- TESTING (PRUEBAS DE INTEGRACIÓN - CARPETA 'androidTest') ---
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.10.5")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("io.mockk:mockk-android:1.13.8")
 
+    // --- DEBUG (HERRAMIENTAS PARA EL DESARROLLO) ---
     debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation("androidx.compose.ui:ui-test-manifest:1.6.0")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     // --- QR (CAMARA Y ESCÁNER) ---
     // ACTUALIZADO CRÍTICO: 1.4.1 recompila libimage_processing_util_jni.so para páginas de 16 KB
