@@ -112,7 +112,10 @@ fun TutorialScreen(
                         if (pagerState.currentPage < 2) {
                             scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                         } else {
-                            viewModel.finishOnboarding(onFinished)
+                            viewModel.finishOnboarding {
+                                android.util.Log.d("TOUR_DEBUG", "Tutorial terminado -> llamando onFinished")
+                                onFinished()
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),

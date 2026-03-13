@@ -469,8 +469,28 @@ class BooksRepository {
             .get()
             .await()
 
-        return snapshot.documents.mapNotNull {
-            it.toObject(Book::class.java)
+        return snapshot.documents.mapNotNull { doc ->
+            try {
+                Book(
+                    id = doc.getString("id") ?: doc.id,
+                    title = doc.getString("title") ?: "",
+                    subtitle = doc.getString("subtitle") ?: "",
+                    authors = doc.get("authors") as? List<String> ?: emptyList(),
+                    description = doc.getString("description") ?: "",
+                    imageUrl = doc.getString("imageUrl") ?: "",
+                    lanzamiento = doc.getString("publishedDate") ?: doc.getString("lanzamiento")
+                    ?: "",
+                    averageRating = doc.getDouble("averageRating") ?: 0.0,
+                    ratingsCount = doc.getLong("ratingsCount")?.toInt() ?: 0,
+                    pageCount = doc.getLong("pageCount")?.toInt() ?: 0,
+                    isMature = doc.getBoolean("isMature") ?: false,
+                    categories = doc.get("categories") as? List<String> ?: emptyList(),
+                    seriesName = doc.getString("seriesName") ?: "",
+                    seriesIndex = doc.getLong("seriesIndex")?.toInt() ?: 0
+                )
+            } catch (e: Exception) {
+                null
+            }
         }
     }
 
