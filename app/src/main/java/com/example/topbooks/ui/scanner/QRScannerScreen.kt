@@ -35,7 +35,9 @@ import com.example.topbooks.R
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.example.topbooks.ui.theme.ColorArcDarkBrown
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
@@ -219,7 +221,7 @@ fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
 
                 // Configuración del flujo de visualización
                 val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
+                    it.surfaceProvider = previewView.surfaceProvider
                 }
 
                 // Configuración del analizador de imágenes para detección de códigos
@@ -266,7 +268,16 @@ private fun processImageProxy(
     val mediaImage = imageProxy.image
     if (mediaImage != null) {
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-        val scanner = BarcodeScanning.getClient()
+
+        // OPTIMIZACIÓN: Configuramos el escáner para buscar exclusivamente formatos de ISBN
+        val options = BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(
+                Barcode.FORMAT_EAN_13,
+                Barcode.FORMAT_EAN_8
+            )
+            .build()
+
+        val scanner = BarcodeScanning.getClient(options)
 
         // Procesamiento asíncrono del fotograma
         scanner.process(image)

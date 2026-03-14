@@ -2,19 +2,23 @@ package com.example.topbooks.ui.friends
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.topbooks.data.repository.BooksRepository
 import com.example.topbooks.data.repository.CommunityRepository
 import com.example.topbooks.data.repository.CommunityRepositoryImpl
+import com.example.topbooks.data.repository.SocialFeedRepository
+import com.example.topbooks.data.repository.SocialFeedRepositoryImpl
 import com.example.topbooks.data.repository.UserRepository
 import com.example.topbooks.data.repository.UserRepositoryImpl
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-// Conservamos las data classes originales para no romper tu UI
 
 /**
  * Modelo de datos visual (UI Model) que representa a un usuario dentro del contexto social.
@@ -37,6 +41,8 @@ data class FriendsState(
     val searchResults: List<SocialUser> = emptyList(),
     val friendsIds: Set<String> = emptySet(),
     val suggestedUsers: List<SocialUser> = emptyList(),
+    val myFriends: List<SocialUser> = emptyList(),
+    val recentInteractions: List<Interaction> = emptyList(),
     val isLoading: Boolean = false,
     val isSearching: Boolean = false
 )
@@ -49,7 +55,9 @@ data class FriendsState(
 class FriendsViewModel(
     // Inyectamos nuestros dos repositorios limpios
     private val communityRepository: CommunityRepository = CommunityRepositoryImpl(),
-    private val userRepository: UserRepository = UserRepositoryImpl()
+    private val userRepository: UserRepository = UserRepositoryImpl(),
+    private val feedRepository: SocialFeedRepository = SocialFeedRepositoryImpl(),
+    private val booksRepository: BooksRepository = BooksRepository()
 ) : ViewModel() {
 
     // --- ESTADO REACTIVO ---
@@ -71,27 +79,35 @@ class FriendsViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // 1. Obtenemos mis amigos
-            val friendsIds = communityRepository.getMyFriendsIds().getOrDefault(emptySet())
-            _uiState.update { it.copy(friendsIds = friendsIds) }
+            val currentUserId = userRepository.getCurrentUserId() ?: return@launch
 
-            // 2. Obtenemos sugerencias (Limitado a 15 para no saturar)
-            val currentUserId = userRepository.getCurrentUserId()
+            // 1. Obtenemos mis amigos completos usando la función optimizada de la lección anterior
+            val friendsList = userRepository.getFriendsList(currentUserId).getOrDefault(emptyList())
+
+            // Mapeamos los datos para la UI y extraemos los IDs
+            val socialFriends = friendsList.map {
+                SocialUser(uid = it.uid, displayName = it.name, photoUrl = it.photo, isFriend = true)
+            }
+            val friendsIds = socialFriends.map { it.uid }.toSet()
+
+            // 2. Obtenemos sugerencias
             val suggested = communityRepository.getSuggestedUsers(15).getOrDefault(emptyList())
 
-            // Filtramos a los usuarios sugeridos: No me sugieras a mí mismo, ni a los que ya son mis amigos.
             val socialSuggested = suggested.filter {
                 it.uid != currentUserId && !friendsIds.contains(it.uid)
             }.map { user ->
-                SocialUser(
-                    uid = user.uid,
-                    displayName = user.displayName,
-                    photoUrl = user.photoURL,
-                    isFriend = false
-                )
+                SocialUser(uid = user.uid, displayName = user.displayName, photoUrl = user.photoURL, isFriend = false)
             }
 
-            _uiState.update { it.copy(suggestedUsers = socialSuggested, isLoading = false) }
+            // Actualizamos to-do el estado de golpe
+            _uiState.update {
+                it.copy(
+                    myFriends = socialFriends, // Guardamos la lista completa
+                    friendsIds = friendsIds,   // Guardamos los IDs para cruzar datos
+                    suggestedUsers = socialSuggested,
+                    isLoading = false
+                )
+            }
         }
     }
 
@@ -150,7 +166,7 @@ class FriendsViewModel(
         updateUserFriendStatus(user.uid, newFriendStatus)
 
         viewModelScope.launch {
-            // Reutilizamos la función del UserRepository que hicimos antes. ¡Magia!
+            // Reutilizamos la función del UserRepository que hicimos antes.
             userRepository.toggleFriendship(
                 myUid = myUid,
                 targetUid = user.uid,
@@ -185,6 +201,70 @@ class FriendsViewModel(
                 searchResults = newSearch,
                 suggestedUsers = newSuggested
             )
+        }
+    }
+
+    /**
+     * Obtiene un resumen rápido de las últimas interacciones de los amigos
+     * para mostrarlas en el Dashboard principal. (VERSIÓN OPTIMIZADA)
+     */
+    fun refreshRecentActivity() {
+        viewModelScope.launch {
+            try {
+                val friendsIds = _uiState.value.friendsIds.toList()
+                if (friendsIds.isEmpty()) return@launch
+
+                // 1. EXTRAER: Buscamos la actividad de TODOS los amigos en paralelo
+                val activitiesDeferred = coroutineScope {
+                    friendsIds.map { friendId ->
+                        async {
+                            val user = userRepository.getUserProfile(friendId).getOrNull() ?: return@async emptyList()
+                            val friendName = user.displayName.ifEmpty { "Usuario" }
+                            val friendPhoto = user.photoURL.ifEmpty { "capibara_1" }
+
+                            // Descargamos reseñas y comentarios
+                            val reviews = feedRepository.getUserReviews(friendId).getOrDefault(emptyList())
+                            val comments = feedRepository.getUserComments(friendId).getOrDefault(emptyList())
+
+                            // Usamos un Pair para guardar temporalmente el Timestamp y poder ordenar después
+                            val userInteractions = mutableListOf<Pair<Long, Interaction>>()
+
+                            reviews.forEach { r ->
+                                val time = r.createAt?.time ?: 0L
+                                //Guardamos el bookId en el campo bookTitle temporalmente
+                                userInteractions.add(Pair(time, Interaction(friendPhoto, friendName, "ha valorado", r.bookId)))
+                            }
+
+                            comments.forEach { c ->
+                                val time = c.createAt?.time ?: 0L
+                                userInteractions.add(Pair(time, Interaction(friendPhoto, friendName, "ha comentado en", c.bookId)))
+                            }
+
+                            userInteractions
+                        }
+                    }
+                }
+
+                // 2. ORDENAR: Esperamos los datos, aplanamos la lista, ordenamos por fecha y cogemos las 3 últimas
+                val top3Activities = activitiesDeferred.awaitAll()
+                    .flatten()
+                    .sortedByDescending { it.first } // it.first es el Timestamp
+                    .take(3)
+
+                // 3. HIDRATAR: Ahora sí, hacemos SOLO 3 peticiones a la API para conseguir los nombres reales de los libros
+                val finalInteractions = top3Activities.map { (_, interaction) ->
+                    // interaction.bookTitle tiene el ID del libro guardado del paso anterior
+                    val book = booksRepository.getBookDetail(interaction.bookTitle).getOrNull()
+
+                    // Creamos una copia final con el título de verdad
+                    interaction.copy(bookTitle = book?.title ?: "un libro")
+                }
+
+                _uiState.update { it.copy(recentInteractions = finalInteractions) }
+
+            } catch (e: Exception) {
+                // Fallo silencioso: si no carga el resumen, la sección mostrará su mensaje vacío
+            }
         }
     }
 }

@@ -7,9 +7,6 @@ import com.example.topbooks.data.model.Comment
 import com.example.topbooks.data.model.Journal
 import com.example.topbooks.data.model.Review
 import com.example.topbooks.data.repository.*
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -81,15 +78,16 @@ class UserListViewModel(
     }
 
     /** Carga la lista de amigos obteniendo sus perfiles completos en paralelo. */
-    private suspend fun fetchFriends(userId: String) = coroutineScope {
-        val ids = communityRepo.getMyFriendsIds().getOrDefault(emptySet())
-        val deferred = ids.map { friendId ->
-            async { userRepo.getUserProfile(friendId).getOrNull() }
+    private fun fetchFriends(userId: String) {
+        viewModelScope.launch {
+            val result = userRepo.getFriendsList(userId)
+            _uiState.update {
+                it.copy(
+                    friends = result.getOrDefault(emptyList()),
+                    isLoading = false
+                )
+            }
         }
-        val users = deferred.awaitAll().filterNotNull().map { user ->
-            SimpleUser(user.uid, user.displayName, user.photoURL)
-        }
-        _uiState.update { it.copy(friends = users, isLoading = false) }
     }
 
     /** Carga los libros marcados como terminados por el usuario. */
@@ -191,20 +189,6 @@ class UserListViewModel(
     fun removeBookmark(bookId: String) {
         viewModelScope.launch {
             progressRepo.deleteUserSubdocument("bookmarks", bookId)
-            loadList(currentListType, currentUserId)
-        }
-    }
-
-    fun removeFavorite(bookId: String) {
-        viewModelScope.launch {
-            progressRepo.deleteUserSubdocument("favorites", bookId)
-            loadList(currentListType, currentUserId)
-        }
-    }
-
-    fun removeReadBook(bookId: String) {
-        viewModelScope.launch {
-            progressRepo.deleteUserSubdocument("read_books", bookId)
             loadList(currentListType, currentUserId)
         }
     }

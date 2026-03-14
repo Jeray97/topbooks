@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -69,10 +70,9 @@ fun FriendsScreen(
     // Observamos el estado global de la pantalla
     val uiState by viewModel.uiState.collectAsState()
 
-    // TODO: Comentado para evitar crasheos, descomenta cuando lo añadas al ViewModel
-    /* LaunchedEffect(Unit) {
+    LaunchedEffect(Unit) {
         viewModel.refreshRecentActivity()
-    } */
+    }
 
     Column(
         modifier = Modifier
@@ -136,17 +136,17 @@ fun FriendsScreen(
             ) {
 
                 // 1. SECCIÓN: Mis amigos
-                val dummyMyFriends = emptyList<SocialUser>() // Ajuste temporal para que renderice
+                val myFriends = uiState.myFriends
                 SocialSection(
                     title = stringResource(R.string.friends_section_my_friends),
-                    isEmpty = dummyMyFriends.isEmpty(),
+                    isEmpty = myFriends.isEmpty(),
                     emptyMessage = stringResource(R.string.friends_empty_my_friends)
                 ) {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
-                        items(dummyMyFriends) { user ->
+                        items(myFriends) { user ->
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -207,14 +207,14 @@ fun FriendsScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 3. SECCIÓN: Interacciones recientes
-                val dummyInteractions = emptyList<Interaction>() // Ajuste temporal
+                val recentInteractions = uiState.recentInteractions
                 SocialSection(
                     title = stringResource(R.string.friends_section_interactions),
-                    isEmpty = dummyInteractions.isEmpty(),
+                    isEmpty = recentInteractions.isEmpty(),
                     emptyMessage = stringResource(R.string.friends_empty_interactions)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        dummyInteractions.forEach { interaction ->
+                        recentInteractions.forEach { interaction ->
                             InteractionItem(
                                 interaction = interaction,
                                 onClick = onNavigateToActivity
