@@ -53,6 +53,8 @@ import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.AvatarHelper
 import kotlinx.coroutines.launch
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 /**
  * PANTALLA PRINCIPAL DE DETALLES DEL LIBRO (Stateful Composable)
@@ -287,7 +289,19 @@ fun BookDetailScreen(
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                         SmallFabItem(Icons.Default.Book, stringResource(R.string.bookdetail_fab_journal)) {
                             isFabExpanded = false
-                            onNavigateToJournal(state.book!!.id, state.book!!.title, state.book!!.authors.joinToString(", "), state.book!!.imageUrl, state.book!!.pageCount.toString())
+
+                            // TÉCNICA: Codificamos los datos para que Compose Navigation no se confunda con espacios o barras (/).
+                            val safeTitle = URLEncoder.encode(state.book!!.title.ifEmpty { "Sin Título" }, StandardCharsets.UTF_8.toString())
+                            val safeAuthor = URLEncoder.encode(state.book!!.authors.joinToString(", ").ifEmpty { "Desconocido" }, StandardCharsets.UTF_8.toString())
+                            val safeImage = URLEncoder.encode(state.book!!.imageUrl.ifEmpty { "empty" }, StandardCharsets.UTF_8.toString())
+
+                            onNavigateToJournal(
+                                state.book!!.id,
+                                safeTitle,
+                                safeAuthor,
+                                safeImage,
+                                state.book!!.pageCount.toString()
+                            )
                         }
                     }
                     Spacer(Modifier.height(8.dp))

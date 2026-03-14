@@ -97,9 +97,7 @@ fun AppNavigation(
         composable("tutorial") {
             TutorialScreen(
                 onFinished = {
-
                     android.util.Log.d("TOUR_DEBUG", "AppNavigation: onFinished recibido")
-
                     authViewModel.markTutorialCompleted()
 
                     navController.navigate("main") {
@@ -129,6 +127,7 @@ fun AppNavigation(
                     navController.navigate("user_list/$type/$userId")
                 },
                 onNavigateToJournal = { bookId ->
+                    // Desde el MainScreen solo tenemos el ID, los demás parámetros opcionales tomarán valor por defecto
                     navController.navigate("reading_journal/$bookId")
                 }
             )
@@ -214,18 +213,36 @@ fun AppNavigation(
             BookDetailScreen(
                 bookId = bookId,
                 onBackClick = { navController.popBackStack() },
-                onNavigateToJournal = { id, _, _, _, _ ->
-                    navController.navigate("reading_journal/$id")
+                // AQUÍ EL ARREGLO: Recogemos los parámetros y construimos la URL con Query Parameters (?)
+                onNavigateToJournal = { id, title, author, image, pages ->
+                    navController.navigate("reading_journal/$id?title=$title&author=$author&image=$image&pages=$pages")
                 }
             )
         }
 
+        // AQUÍ EL ARREGLO: Añadimos los argumentos extra como opcionales para que Compose los intercepte
         composable(
-            route = "reading_journal/{bookId}",
-            arguments = listOf(navArgument("bookId") { type = NavType.StringType })
+            route = "reading_journal/{bookId}?title={title}&author={author}&image={image}&pages={pages}",
+            arguments = listOf(
+                navArgument("bookId") { type = NavType.StringType },
+                navArgument("title") { type = NavType.StringType; defaultValue = "" },
+                navArgument("author") { type = NavType.StringType; defaultValue = "" },
+                navArgument("image") { type = NavType.StringType; defaultValue = "" },
+                navArgument("pages") { type = NavType.StringType; defaultValue = "" }
+            )
         ) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
+            val title = backStackEntry.arguments?.getString("title") ?: ""
+            val author = backStackEntry.arguments?.getString("author") ?: ""
+            val image = backStackEntry.arguments?.getString("image") ?: ""
+            val pages = backStackEntry.arguments?.getString("pages") ?: ""
+
             ReadingJournalScreen(
-                bookId = backStackEntry.arguments?.getString("bookId") ?: "",
+                bookId = bookId,
+                initialTitle = title,
+                initialAuthor = author,
+                initialImage = image,
+                initialPages = pages,
                 onBackClick = { navController.popBackStack() }
             )
         }

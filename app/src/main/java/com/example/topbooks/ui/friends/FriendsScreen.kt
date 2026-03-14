@@ -70,9 +70,6 @@ fun FriendsScreen(
     // Observamos el estado global de la pantalla
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshRecentActivity()
-    }
 
     Column(
         modifier = Modifier
