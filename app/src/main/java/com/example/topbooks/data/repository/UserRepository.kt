@@ -48,6 +48,12 @@ interface UserRepository {
 
     /** Finaliza el tutorial guardando los géneros y libros iniciales en el perfil. */
     suspend fun completeTutorial(userId: String, genres: List<String>, books: List<String>): Result<Boolean>
+
+    /**
+     * Borrado en cascada manual (Client-Side).
+     * Busca y elimina todos los rastros del usuario en la base de datos antes de borrar su cuenta.
+     */
+    suspend fun deleteAllUserData(uid: String): Result<Boolean>
 }
 
 /**
@@ -217,6 +223,58 @@ class UserRepositoryImpl : UserRepository {
                 .await()
             Result.success(true)
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Borrado en cascada manual (Client-Side).
+     * Busca y elimina todos los rastros del usuario en la base de datos antes de borrar su cuenta.
+     */
+    override suspend fun deleteAllUserData(uid: String): Result<Boolean> = kotlinx.coroutines.coroutineScope {
+        try {
+            val db = FirebaseFirestore.getInstance()
+            val batch = db.batch()
+
+            // 1. LIMPIAR AMISTADES (Rastro en otros usuarios)
+            // Vamos a la subcolección de amigos del usuario para ver a quién seguía.
+            val friendsSnapshot = db.collection("users").document(uid).collection("friends").get().await()
+            for (doc in friendsSnapshot.documents) {
+                val friendId = doc.id
+                // Vamos al documento del amigo, y borramos a nuestro usuario de SU lista de amigos
+                val reverseFriendRef = db.collection("users").document(friendId).collection("friends").document(uid)
+                batch.delete(reverseFriendRef)
+
+                // Borramos la referencia en nuestra propia lista
+                batch.delete(doc.reference)
+            }
+
+            // 2. LIMPIAR COMENTARIOS/RESEÑAS (Collection Group)
+            val reviewsSnapshot = db.collectionGroup("reviews").whereEqualTo("userId", uid).get().await()
+            for (doc in reviewsSnapshot.documents) {
+                batch.delete(doc.reference)
+            }
+
+            // 3. LIMPIAR SUBCOLECCIONES PROPIAS (Favoritos, Leídos, Pendientes)
+            // En Firestore, se tiene que leer los documentos de una subcolección para poder borrarlos
+            val collectionsToClean = listOf("favorites", "read_books", "bookmarks")
+            for (collectionName in collectionsToClean) {
+                val subColSnapshot = db.collection("users").document(uid).collection(collectionName).get().await()
+                for (doc in subColSnapshot.documents) {
+                    batch.delete(doc.reference)
+                }
+            }
+
+            // 4. BORRAR EL DOCUMENTO PRINCIPAL DEL USUARIO
+            val userMainRef = db.collection("users").document(uid)
+            batch.delete(userMainRef)
+
+            // 5. EJECUTAR TO-DO EL BLOQUE DE GOLPE
+            batch.commit().await()
+
+            Result.success(true)
+        } catch (e: Exception) {
+            android.util.Log.e("DeleteCascade", "Error borrando datos del usuario: ${e.message}")
             Result.failure(e)
         }
     }
