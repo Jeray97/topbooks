@@ -154,17 +154,25 @@ class ConfigViewModel(
         }
 
         _isDeletingAccount.value = true
+        val uid = user.uid // Guardamos el UID para la limpieza
 
         if (isGoogleUser()) {
             viewModelScope.launch {
-                authRepository.deleteAccount().onSuccess {
+                // 1º BORRAMOS LOS DATOS DE FIRESTORE
+                userRepository.deleteAllUserData(uid).onSuccess {
+                    // 2º SI TIENE ÉXITO, BORRAMOS EL USUARIO DE AUTH
+                    authRepository.deleteAccount().onSuccess {
+                        _isDeletingAccount.value = false
+                        onResult(true, R.string.conf_delete_success)
+                    }.onFailure { error ->
+                        _isDeletingAccount.value = false
+                        val isRecentLoginRequired = error is FirebaseAuthRecentLoginRequiredException || error.message?.contains("recent", ignoreCase = true) == true
+                        if (isRecentLoginRequired) onResult(false, R.string.conf_delete_recent_login_required)
+                        else onResult(false, R.string.conf_delete_error)
+                    }
+                }.onFailure {
                     _isDeletingAccount.value = false
-                    onResult(true, R.string.conf_delete_success)
-                }.onFailure { error ->
-                    _isDeletingAccount.value = false
-                    val isRecentLoginRequired = error is FirebaseAuthRecentLoginRequiredException || error.message?.contains("recent", ignoreCase = true) == true
-                    if (isRecentLoginRequired) onResult(false, R.string.conf_delete_recent_login_required)
-                    else onResult(false, R.string.conf_delete_error)
+                    onResult(false, R.string.conf_delete_error) // Falló al borrar datos
                 }
             }
         } else {
@@ -179,9 +187,16 @@ class ConfigViewModel(
             user.reauthenticate(credential).addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     viewModelScope.launch {
-                        authRepository.deleteAccount().onSuccess {
-                            _isDeletingAccount.value = false
-                            onResult(true, R.string.conf_delete_success)
+                        // 1º BORRAMOS LOS DATOS DE FIRESTORE
+                        userRepository.deleteAllUserData(uid).onSuccess {
+                            // 2º SI TIENE ÉXITO, BORRAMOS EL USUARIO DE AUTH
+                            authRepository.deleteAccount().onSuccess {
+                                _isDeletingAccount.value = false
+                                onResult(true, R.string.conf_delete_success)
+                            }.onFailure {
+                                _isDeletingAccount.value = false
+                                onResult(false, R.string.conf_delete_error)
+                            }
                         }.onFailure {
                             _isDeletingAccount.value = false
                             onResult(false, R.string.conf_delete_error)

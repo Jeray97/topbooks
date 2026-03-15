@@ -38,6 +38,9 @@ interface SocialFeedRepository {
 
     /** Obtiene y escucha un comentario específico en tiempo real. */
     fun observeCommentById(commentId: String): Flow<Result<Comment>>
+
+    /** Obtiene las reseñas que tiene el libro asociado. */
+    suspend fun getReviewsByBook(bookId: String): Result<List<Review>>
 }
 
 /**
@@ -172,5 +175,14 @@ class SocialFeedRepositoryImpl : SocialFeedRepository {
         // Bloque esencial: Se ejecuta automáticamente cuando el Flow deja de recolectar
         // (por ejemplo, cuando el usuario navega hacia atrás y destruye el ViewModel).
         awaitClose { listener.remove() }
+    }
+
+    override suspend fun getReviewsByBook(bookId: String): Result<List<Review>> {
+        return try {
+            val snap = db.collection("reviews")
+                .whereEqualTo("bookId", bookId)
+                .get().await()
+            Result.success(snap.toObjects(Review::class.java))
+        } catch (e: Exception) { Result.failure(e) }
     }
 }

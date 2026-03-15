@@ -14,4 +14,8 @@
 .cxx
 local.properties
 /app/src/google-services.json
-/app/src/TopBooks.zip
+/package.json
+/package-lock.json
+/topbooks-f546d-firebase-adminsdk-fbsvc-ae4d6a4c4f.json
+/users.json
+/verificar_email.js
