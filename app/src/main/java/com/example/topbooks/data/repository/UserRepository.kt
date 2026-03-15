@@ -237,7 +237,6 @@ class UserRepositoryImpl : UserRepository {
             val batch = db.batch()
 
             // 1. LIMPIAR AMISTADES (Rastro en otros usuarios)
-            // Vamos a la subcolección de amigos del usuario para ver a quién seguía.
             val friendsSnapshot = db.collection("users").document(uid).collection("friends").get().await()
             for (doc in friendsSnapshot.documents) {
                 val friendId = doc.id
@@ -249,14 +248,20 @@ class UserRepositoryImpl : UserRepository {
                 batch.delete(doc.reference)
             }
 
-            // 2. LIMPIAR COMENTARIOS/RESEÑAS (Collection Group)
+            // 2. LIMPIAR RESEÑAS GLOBALES (Collection Group)
             val reviewsSnapshot = db.collectionGroup("reviews").whereEqualTo("userId", uid).get().await()
             for (doc in reviewsSnapshot.documents) {
                 batch.delete(doc.reference)
             }
 
-            // 3. LIMPIAR SUBCOLECCIONES PROPIAS (Favoritos, Leídos, Pendientes)
-            // En Firestore, se tiene que leer los documentos de una subcolección para poder borrarlos
+            // 3. LIMPIAR COMENTARIOS GLOBALES (Collection Group) <-- ¡AÑADIDO!
+            // Busca todos los comentarios que haya hecho este usuario en cualquier libro
+            val commentsSnapshot = db.collectionGroup("comments").whereEqualTo("userId", uid).get().await()
+            for (doc in commentsSnapshot.documents) {
+                batch.delete(doc.reference)
+            }
+
+            // 4. LIMPIAR SUBCOLECCIONES PROPIAS
             val collectionsToClean = listOf("favorites", "read_books", "bookmarks")
             for (collectionName in collectionsToClean) {
                 val subColSnapshot = db.collection("users").document(uid).collection(collectionName).get().await()
@@ -265,11 +270,11 @@ class UserRepositoryImpl : UserRepository {
                 }
             }
 
-            // 4. BORRAR EL DOCUMENTO PRINCIPAL DEL USUARIO
+            // 5. BORRAR EL DOCUMENTO PRINCIPAL DEL USUARIO
             val userMainRef = db.collection("users").document(uid)
             batch.delete(userMainRef)
 
-            // 5. EJECUTAR TO-DO EL BLOQUE DE GOLPE
+            // 6. EJECUTAR TO-DO EL BLOQUE DE GOLPE
             batch.commit().await()
 
             Result.success(true)

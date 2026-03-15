@@ -50,9 +50,24 @@ class ProgressRepositoryImpl : ProgressRepository {
     override suspend fun saveReview(book: Book, rating: Int, text: String): Result<Boolean> {
         val uid = myUid ?: return Result.failure(Exception("No auth"))
         return try {
-            ensureBookInGlobal(book) // Guardamos el libro en caché si no existe
+            ensureBookInGlobal(book)
+
+            // Obtenemos el perfil del usuario para guardar su nombre
+            val userDoc = db.collection("users").document(uid).get().await()
+            val userName = userDoc.getString("displayName") ?: "Usuario"
+            val userPhoto = userDoc.getString("photoURL") ?: ""
+
             val ref = db.collection("reviews").document()
-            ref.set(hashMapOf("id" to ref.id, "bookId" to book.id, "userId" to uid, "rating" to rating, "text" to text, "createAt" to com.google.firebase.Timestamp.now())).await()
+            ref.set(hashMapOf(
+                "id"           to ref.id,
+                "bookId"       to book.id,
+                "userId"       to uid,
+                "userName"     to userName,
+                "userPhotoUrl" to userPhoto,
+                "rating"       to rating,
+                "text"         to text,
+                "createAt"     to com.google.firebase.Timestamp.now()
+            )).await()
             Result.success(true)
         } catch (e: Exception) { Result.failure(e) }
     }

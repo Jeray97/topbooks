@@ -42,7 +42,8 @@ class BookDetailViewModel(
     private val booksRepository: BooksRepository = BooksRepository(),
     private val progressRepository: ProgressRepository = ProgressRepositoryImpl(),
     private val userRepository: UserRepository = UserRepositoryImpl(),
-    private val authRepository: AuthRepository = AuthRepositoryImpl()
+    private val authRepository: AuthRepository = AuthRepositoryImpl(),
+    private val feedRepository: SocialFeedRepository = SocialFeedRepositoryImpl()
 ) : ViewModel() {
 
     // 2. INICIALIZAMOS EL STATEFLOW
@@ -308,6 +309,15 @@ class BookDetailViewModel(
 
             // Enviamos el voto real a la base de datos
             booksRepository.voteSeriesEdit(currentBook.id, uid, isUpvote)
+        }
+    }
+
+    fun loadReviews(bookId: String) {
+        viewModelScope.launch {
+            feedRepository.getReviewsByBook(bookId)
+                .onSuccess { reviews ->
+                    _uiState.update { it.copy(reviews = reviews) }
+                }
         }
     }
 }

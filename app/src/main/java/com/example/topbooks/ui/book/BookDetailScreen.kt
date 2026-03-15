@@ -90,7 +90,10 @@ fun BookDetailScreen(
     var showSeriesInfoDialog by remember { mutableStateOf(false) }
 
     // Cargamos el libro al iniciar la pantalla asegurando que solo ocurra cuando cambia el ID
-    LaunchedEffect(bookId) { viewModel.loadBook(bookId) }
+    LaunchedEffect(bookId) {
+        viewModel.loadBook(bookId)
+        viewModel.loadReviews(bookId)
+    }
 
     // --- RENDERIZADO DE FORMULARIOS (Dialogs) ---
     // Solo se muestran si la variable booleana es 'true' y ya tenemos datos del libro.
