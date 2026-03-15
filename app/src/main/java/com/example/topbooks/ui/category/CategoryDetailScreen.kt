@@ -1,5 +1,6 @@
 package com.example.topbooks.ui.category
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -12,16 +13,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.topbooks.R
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.ui.components.BookItem
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.Resource
-import com.example.topbooks.ui.components.CategoryDetailContentBackgroundShape
 import com.example.topbooks.ui.components.SearchBarCustom
 import com.example.topbooks.ui.components.TopBar
 
@@ -78,11 +81,19 @@ fun CategoryDetailContent(
     onBookClick: (String) -> Unit,
     onScanClick: () -> Unit
 ) {
-    // Envolvemos to-do el contenido dentro del fondo personalizado con forma de ola en la parte superior
-    CategoryDetailContentBackgroundShape {
+    // Usamos un Box para poner tu imagen vectorial de fondo en toda la pantalla
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        // --- IMAGEN VECTORIAL DE FONDO ---
+        Image(
+            painter = painterResource(id = R.drawable.category_details_background),
+            contentDescription = null,
+            contentScale = ContentScale.Crop, // Ajusta a Crop o FillBounds según cómo sea tu vector
+            modifier = Modifier.fillMaxSize()
+        )
 
         Scaffold(
-            containerColor = Color.Transparent, // Importante para no tapar el fondo personalizado
+            containerColor = Color.Transparent, // Importante para que se vea la imagen de fondo
             topBar = { TopBar(onBackClick) }
         ) { paddingValues ->
 
@@ -95,7 +106,6 @@ fun CategoryDetailContent(
                 Spacer(modifier = Modifier.height(26.dp))
 
                 // --- BARRA DE BÚSQUEDA ---
-                // Pasamos los eventos de navegación y escaneo hacia arriba
                 SearchBarCustom(onBookClick = onBookClick, onScanClick = onScanClick)
 
                 Spacer(modifier = Modifier.height(40.dp))
@@ -118,27 +128,25 @@ fun CategoryDetailContent(
 
                 // --- CONTENIDO PRINCIPAL: GESTIÓN DE ESTADOS ---
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(20.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 20.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Utiliza la clase [Resource] para pintar la UI correcta en cada momento
                     when (state) {
-                        // 1. ESTADO DE CARGA: Muestra el indicador circular
                         is Resource.Loading -> CircularProgressIndicator(color = ColorTextPrimary)
 
-                        // 2. ESTADO DE ÉXITO: Los libros ya se han descargado
                         is Resource.Success -> {
                             val books = state.data
 
-                            // Comprobación de seguridad por si la API no devuelve resultados
                             if (books.isEmpty()) {
                                 Text("No hay libros disponibles.", color = ColorTextPrimary, fontFamily = CenturyGotic)
                             } else {
-                                // Cuadrícula de 2 columnas para mostrar los libros estilo estantería
+                                // Cuadrícula actualizada a 3 columnas
                                 LazyVerticalGrid(
-                                    columns = GridCells.Fixed(2),
-                                    contentPadding = PaddingValues(16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    columns = GridCells.Fixed(3),
+                                    contentPadding = PaddingValues(bottom = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     verticalArrangement = Arrangement.spacedBy(16.dp),
                                     modifier = Modifier.fillMaxSize()
                                 ) {
@@ -149,10 +157,8 @@ fun CategoryDetailContent(
                             }
                         }
 
-                        // 3. ESTADO DE ERROR: Mostramos el fallo en color rojo para depuración rápida
                         is Resource.Error -> Text(text = "Error: ${state.exception.message}", color = Color.Red, fontFamily = CenturyGotic)
 
-                        // Estado Idle (Inicial) no hace nada
                         else -> {}
                     }
                 }
