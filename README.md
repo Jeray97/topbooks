@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="main/ic_launcher-playstore.png" width="120" alt="TopBooks Logo"/>
+<img src="main/logoreadme.svg" width="120" alt="TopBooks Logo"/>
 
 # TopBooks
 
