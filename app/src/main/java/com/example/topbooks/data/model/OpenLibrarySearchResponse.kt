@@ -57,9 +57,12 @@ data class OpenLibraryDoc(
 
         Log.d("SERIES_DEBUG", "Title: $title -> series: $series")
 
+        // ARREGLO CRÍTICO: A veces la API devuelve "/books/OL..." en lugar de "/works/OL...".
+        // Extraemos solo lo que hay después de la última barra para no romper Compose Navigation.
+        val cleanId = key?.substringAfterLast("/") ?: "unknown"
+
         return Book(
-            // Limpiamos el prefijo "/works/" de Open Library para quedarnos con un ID limpio
-            id = key?.replace("/works/", "") ?: "unknown",
+            id = cleanId,
             title = bookTitle,
             authors = authorName ?: emptyList(),
             description = "Toca para ver detalles...", // Texto por defecto en la vista de lista
@@ -74,7 +77,6 @@ data class OpenLibraryDoc(
         )
     }
 }
-
 
 /**
  * Representa la información detallada de un libro obtenida a través de la "Work API" de Open Library.

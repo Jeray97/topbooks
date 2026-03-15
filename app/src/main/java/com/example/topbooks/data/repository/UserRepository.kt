@@ -1,6 +1,7 @@
 package com.example.topbooks.data.repository
 
 import com.example.topbooks.data.model.User
+import com.example.topbooks.ui.profile.SimpleUser
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -26,6 +27,9 @@ interface UserRepository {
 
     /** Comprueba si el usuario actual sigue a otro usuario específico. */
     suspend fun isFriend(myUid: String, targetUid: String): Result<Boolean>
+
+    /** Obtiene la lista de amigos del usuario. */
+    suspend fun getFriendsList(userId: String): Result<List<SimpleUser>>
 
     /** Añade o elimina a un usuario de la lista de amigos. */
     suspend fun toggleFriendship(myUid: String, targetUid: String, targetName: String, targetPhoto: String, isAdding: Boolean): Result<Boolean>
@@ -178,6 +182,24 @@ class UserRepositoryImpl : UserRepository {
         return try {
             db.collection("users").document(uid).update("favoriteGenres", genres).await()
             Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getFriendsList(userId: String): Result<List<SimpleUser>> {
+        return try {
+            // Leemos directamente la subcolección donde ya guardamos foto y nombre
+            val snapshot = db.collection("users").document(userId).collection("friends").get().await()
+
+            val friends = snapshot.documents.map { doc ->
+                SimpleUser(
+                    uid = doc.id, // ¡El ID del documento es el UID de tu amigo!
+                    name = doc.getString("displayName") ?: "Lector",
+                    photo = doc.getString("photoUrl") ?: ""
+                )
+            }
+            Result.success(friends)
         } catch (e: Exception) {
             Result.failure(e)
         }

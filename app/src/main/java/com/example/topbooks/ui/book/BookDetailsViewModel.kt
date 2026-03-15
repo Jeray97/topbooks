@@ -55,23 +55,36 @@ class BookDetailViewModel(
      */
     fun loadBook(bookId: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            // 1. Cargamos caché del escáner (Rápido)
+            val cachedBook = BooksRepository.lastScannedBook
+            if (cachedBook?.id == bookId) {
+                _uiState.update { it.copy(isLoading = false, book = cachedBook, error = null) }
+                // Mantenemos la caché un momento por si la API viene vacía
+            } else {
+                _uiState.update { it.copy(isLoading = true, error = null) }
+            }
 
+            // 2. Pedimos detalles completos (Lento)
             val result = booksRepository.getBookDetail(bookId)
 
             if (result.isSuccess) {
-                val book = result.getOrNull()
+                val fetchedBook = result.getOrNull()
+                _uiState.update { currentState ->
+                    val previousBook = currentState.book
 
-                _uiState.update {
-                    it.copy(book = book, isLoading = false)
+                    val finalBook = fetchedBook?.copy(
+                        description = if (fetchedBook.description.length < 50 && (previousBook?.description?.length ?: 0) > 50)
+                            previousBook!!.description else fetchedBook.description,
+                        imageUrl = fetchedBook.imageUrl.ifBlank { previousBook?.imageUrl ?: "" },
+                        authors = fetchedBook.authors.ifEmpty { previousBook?.authors ?: emptyList() }
+                    ) ?: previousBook
+
+                    currentState.copy(book = finalBook, isLoading = false)
                 }
-
-                // Una vez tenemos el libro, comprobamos si el usuario ya ha interactuado con él
+                BooksRepository.lastScannedBook = null // Limpiamos ahora sí
                 checkUserLists(bookId)
             } else {
-                _uiState.update {
-                    it.copy(error = result.exceptionOrNull()?.message, isLoading = false)
-                }
+                _uiState.update { it.copy(error = result.exceptionOrNull()?.message, isLoading = false) }
             }
         }
     }

@@ -47,10 +47,9 @@ class CategoryDetailViewModel(
             // 1. Avisamos a la UI de que empezamos a buscar (muestra el spinner)
             _categoryBooks.value = Resource.Loading
 
-            // 2. Llamamos al repositorio.
-            // Le pasamos 'filterModern = true' para que aplique nuestros filtros personalizados:
-            // evita libros antiguos poco relevantes, prioriza bestsellers y activa el escudo anti +18.
-            val result = repository.getBooks(query, filterModern = true)
+            // 2. Llamamos al repositorio utilizando la búsqueda híbrida
+            // Esto buscará en Firebase -> Google Books -> Open Library en paralelo
+            val result = repository.searchHybrid(query)
 
             // 3. Procesamos la respuesta
             if (result.isSuccess) {

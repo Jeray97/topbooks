@@ -1,5 +1,7 @@
 package com.example.topbooks.ui.book
 
+import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -66,6 +68,20 @@ fun ReadingJournalScreen(
     onBackClick: () -> Unit,
     viewModel: ReadingJournalViewModel = viewModel()
 ) {
+    // --- LÓGICA DE DECODIFICACIÓN SEGURA CON LOGS ---
+    Log.d("Journal_Debug", "--- RECEPTOR (ReadingJournalScreen) ---")
+    Log.d("Journal_Debug", "Crudos Recibidos -> ID: $bookId | Título: $initialTitle | Autor: $initialAuthor | Portada: $initialImage")
+
+    // Decodificamos lo que nos llega usando Uri de Android
+    val decodedTitle = try { Uri.decode(initialTitle) } catch (e: Exception) { initialTitle }
+    val decodedAuthor = try { Uri.decode(initialAuthor) } catch (e: Exception) { initialAuthor }
+    val decodedImageRaw = try { Uri.decode(initialImage) } catch (e: Exception) { initialImage }
+
+    // Si nos llegó el dummy "empty", lo vaciamos de verdad
+    val decodedImage = if (decodedImageRaw == "empty") "" else decodedImageRaw
+
+    Log.d("Journal_Debug", "Desempaquetados listos para UI -> Título: $decodedTitle | Autor: $decodedAuthor | Portada: $decodedImage")
+
     // --- ESTADOS PROVENIENTES DEL VIEWMODEL ---
     val uiState by viewModel.uiState.collectAsState()
     val isSaving = uiState.isSaving
@@ -78,10 +94,11 @@ fun ReadingJournalScreen(
         mutableStateOf(if (bookId == "new" || bookId.isEmpty()) UUID.randomUUID().toString() else bookId)
     }
 
-    var title by remember { mutableStateOf(initialTitle) }
-    var author by remember { mutableStateOf(initialAuthor) }
+    // Inicializamos con los valores decodificados de forma segura
+    var title by remember { mutableStateOf(decodedTitle) }
+    var author by remember { mutableStateOf(decodedAuthor) }
     var pages by remember { mutableStateOf(initialPages) }
-    var coverUrl by remember { mutableStateOf(initialImage) }
+    var coverUrl by remember { mutableStateOf(decodedImage) }
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
     var isPublic by remember { mutableStateOf(false) }
@@ -104,40 +121,43 @@ fun ReadingJournalScreen(
     var showSearchDialog by remember { mutableStateOf(false) }
     var showSaveDialog by remember { mutableStateOf(false) }
     var expandedGenre by remember { mutableStateOf(false) }
-
-    // ESTADO DEL NUEVO DIÁLOGO DE BORRADO
     var showDeleteJournalDialog by remember { mutableStateOf(false) }
 
-    // Preparamos las opciones del desplegable de géneros
     val genreOptions = CategoryProvider.allCategories.map { code ->
         val data = CategoryProvider.getCategoryResources(code)
         if (data.nameRes != null) stringResource(id = data.nameRes) else CategoryProvider.formatFallbackName(code)
     } + listOf(stringResource(R.string.journal_genre_other))
 
     // Disparamos la carga del diario si ya existe uno para este libro
-    LaunchedEffect(bookId) { viewModel.loadJournal(bookId) }
+    LaunchedEffect(bookId) {
+        Log.d("Journal_Debug", "Buscando en Firebase el diario ID: $bookId")
+        viewModel.loadJournal(bookId)
+    }
 
     // Sobrescribimos los campos de la UI si encontramos datos guardados en la BD
-    LaunchedEffect(existingJournal) {
-        existingJournal?.let { journal ->
-            currentBookId = journal.bookId
-            title = journal.title.ifEmpty { initialTitle }
-            author = journal.author.ifEmpty { initialAuthor }
-            pages = journal.pages.ifEmpty { initialPages }
-            coverUrl = journal.bookImageUrl.ifEmpty { initialImage }
-            startDate = journal.startDate
-            endDate = journal.endDate
-            isPublic = journal.isPublic
-            mainRating = journal.mainRating
-            rRomance = journal.rRomance
-            rHappy = journal.rHappy
-            rSad = journal.rSad
-            rSpicy = journal.rSpicy
-            genre = journal.genre
-            format = journal.format
-            characters = journal.characters
-            nicknames = journal.nicknames
-            moments = journal.moments
+    LaunchedEffect(existingJournal, isLoadingJournal) {
+        if (existingJournal != null) {
+            Log.d("Journal_Debug", "Firebase: Diario existente encontrado, sobrescribiendo campos.")
+            currentBookId = existingJournal.bookId
+            title = existingJournal.title.ifEmpty { decodedTitle }
+            author = existingJournal.author.ifEmpty { decodedAuthor }
+            pages = existingJournal.pages.ifEmpty { initialPages }
+            coverUrl = existingJournal.bookImageUrl.ifEmpty { decodedImage }
+            startDate = existingJournal.startDate
+            endDate = existingJournal.endDate
+            isPublic = existingJournal.isPublic
+            mainRating = existingJournal.mainRating
+            rRomance = existingJournal.rRomance
+            rHappy = existingJournal.rHappy
+            rSad = existingJournal.rSad
+            rSpicy = existingJournal.rSpicy
+            genre = existingJournal.genre
+            format = existingJournal.format
+            characters = existingJournal.characters
+            nicknames = existingJournal.nicknames
+            moments = existingJournal.moments
+        } else if (!isLoadingJournal) {
+            Log.d("Journal_Debug", "Firebase: No hay diario previo. Conservando los datos desempaquetados.")
         }
     }
 
@@ -223,7 +243,6 @@ fun ReadingJournalScreen(
         )
     }
 
-    // NUEVO DIÁLOGO DE CONFIRMACIÓN PARA BORRAR USANDO STRINGS.XML
     if (showDeleteJournalDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteJournalDialog = false },
@@ -253,7 +272,6 @@ fun ReadingJournalScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
 
-            // TÉCNICA VISUAL DE ALTO NIVEL: Dibujamos una cuadrícula de fondo imitando una libreta matemática
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val step = 16.dp.toPx()
                 for (x in 0..size.width.toInt() step step.toInt()) drawLine(JournalGridColor, start = androidx.compose.ui.geometry.Offset(x.toFloat(), 0f), end = androidx.compose.ui.geometry.Offset(x.toFloat(), size.height))

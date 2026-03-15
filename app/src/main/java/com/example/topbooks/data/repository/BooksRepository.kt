@@ -27,18 +27,15 @@ class BooksRepository {
     private val apiService = RetrofitClient.instance
     private val API_KEY = BuildConfig.API_KEY
     private val db = FirebaseFirestore.getInstance() //Conexión a tu Base de Datos
+    companion object {
+        // Caché global para pasar el libro del escáner a los detalles sin recargar la API
+        var lastScannedBook: Book? = null
+    }
 
     /**
      * Obtiene una lista de libros basada en una consulta (query).
      * * Fase 1: Busca en la base de datos de Firebase. Si la comunidad ya ha guardado suficientes libros, los devuelve.
      * * Fase 2: Si no hay suficientes, hace una petición a Google Books aplicando filtros de calidad, actualidad y variedad.
-     *
-     * @param query Texto de búsqueda (puede incluir modificadores como "subject:").
-     * @param orderBy Criterio de ordenación.
-     * @param filterModern Si es 'true', filtra los libros para devolver solo publicaciones recientes (últimos 5-10 años).
-     * @param page Página actual para la paginación.
-     * @param limit Cantidad máxima de libros a devolver.
-     * @return Un [Result] que contiene la lista de libros si tiene éxito.
      */
     suspend fun getBooks(
         query: String,
@@ -146,7 +143,6 @@ class BooksRepository {
 
     /**
      * Busca y filtra libros guardados localmente en la colección de Firestore.
-     * @param query Búsqueda de texto para cruzar con categorías, título o descripción.
      */
     private suspend fun fetchFromFirebase(query: String): List<Book> {
         return try {
@@ -156,7 +152,11 @@ class BooksRepository {
                 val title = doc.getString("title") ?: ""
                 val subtitle = doc.getString("subtitle") ?: ""
                 val authors = doc.get("authors") as? List<String> ?: emptyList()
-                val description = doc.getString("description") ?: ""
+
+                // SANITIZACIÓN: Limpiamos por si se guardó sucio
+                val rawDescription = doc.getString("description") ?: ""
+                val description = com.example.topbooks.utils.HtmlCleaner.clean(rawDescription)
+
                 val imageUrl = doc.getString("imageUrl") ?: ""
                 val lanzamiento = doc.getString("lanzamiento") ?: ""
                 val averageRating = doc.getDouble("averageRating") ?: 0.0
@@ -194,8 +194,6 @@ class BooksRepository {
 
     /**
      * El "Cerebro" del Filtro de Variedad.
-     * * Analiza los resultados de Google Books para evitar devolver demasiados libros del mismo autor
-     * o volúmenes consecutivos de la misma saga, priorizando la diversidad de lectura.
      */
     private fun applyVarietyFilter(books: List<Book>): List<Book> {
         val filteredList = mutableListOf<Book>()
@@ -236,13 +234,11 @@ class BooksRepository {
 
     /**
      * Búsqueda híbrida y paralela.
-     * * Utiliza Corrutinas (async/await) para disparar búsquedas en Google Books y Open Library
-     * simultáneamente y luego fusiona los resultados limpios y únicos.
      */
     suspend fun searchHybrid(query: String): Result<List<Book>> = coroutineScope {
         try {
 
-            // 1️. BUSCAR PRIMERO EN FIREBASE
+            // 1. BUSCAR PRIMERO EN FIREBASE
             val localBooks = fetchFromFirebase(query)
 
             if (localBooks.size >= 8) {
@@ -251,7 +247,7 @@ class BooksRepository {
 
             val lang = Locale.getDefault().language
 
-            // 2️. BUSCAR EN GOOGLE Y OPENLIBRARY EN PARALELO (CON ESCUDOS)
+            // 2. BUSCAR EN GOOGLE Y OPENLIBRARY EN PARALELO (CON ESCUDOS)
             val googleJob = async {
                 try {
                     apiService.searchBooksGoogle(
@@ -302,68 +298,89 @@ class BooksRepository {
 
     /**
      * Obtiene el detalle de un libro en concreto.
-     * * Prioriza Firebase; si no existe o el ID tiene prefijo "OL", busca en Open Library,
-     * si no, en Google Books.
+     * Si el ID es de Open Library y no tiene descripción, intenta buscar en Google por título.
      */
     suspend fun getBookDetail(id: String): Result<Book> {
         return try {
-            // FASE 1: Buscar detalles en Firebase primero
+            // 1. Firebase (Prioridad 1)
             val snapshot = db.collection("books").document(id).get().await()
             if (snapshot.exists()) {
-                val title = snapshot.getString("title") ?: ""
-                val subtitle = snapshot.getString("subtitle") ?: ""
-                val authors = snapshot.get("authors") as? List<String> ?: emptyList()
-                val description = snapshot.getString("description") ?: ""
-                val imageUrl = snapshot.getString("imageUrl") ?: ""
-                val lanzamiento = snapshot.getString("lanzamiento") ?: ""
-                val averageRating = snapshot.getDouble("averageRating") ?: 0.0
-                val ratingsCount = snapshot.getLong("ratingsCount")?.toInt() ?: 0
-                val pageCount = snapshot.getLong("pageCount")?.toInt() ?: 0
-                val isMature = snapshot.getBoolean("isMature") ?: false
-                val categories = snapshot.get("categories") as? List<String> ?: emptyList()
-                val seriesName = snapshot.getString("seriesName") ?: ""
-                val seriesIndex = snapshot.getLong("seriesIndex")?.toInt() ?: 0
+                val rawDescription = snapshot.getString("description") ?: ""
 
-                val book = Book(id, title, subtitle, authors, description, imageUrl, lanzamiento, averageRating, ratingsCount, pageCount, isMature, categories, seriesName, seriesIndex)
-                return Result.success(book)
+                // SANITIZACIÓN: Limpiamos la descripción por si se guardó con HTML en el pasado
+                val cleanDescription = com.example.topbooks.utils.HtmlCleaner.clean(rawDescription)
+
+                val isDescriptionValid = cleanDescription.isNotBlank() &&
+                        cleanDescription != "Toca para ver detalles..." &&
+                        cleanDescription != "Sin descripción."
+
+                val book = Book(
+                    id = id,
+                    title = snapshot.getString("title") ?: "",
+                    subtitle = snapshot.getString("subtitle") ?: "",
+                    authors = snapshot.get("authors") as? List<String> ?: emptyList(),
+                    description = cleanDescription,
+                    imageUrl = snapshot.getString("imageUrl") ?: "",
+                    lanzamiento = snapshot.getString("lanzamiento") ?: "",
+                    averageRating = snapshot.getDouble("averageRating") ?: 0.0,
+                    ratingsCount = snapshot.getLong("ratingsCount")?.toInt() ?: 0,
+                    pageCount = snapshot.getLong("pageCount")?.toInt() ?: 0,
+                    isMature = snapshot.getBoolean("isMature") ?: false,
+                    categories = snapshot.get("categories") as? List<String> ?: emptyList(),
+                    seriesName = snapshot.getString("seriesName") ?: "",
+                    seriesIndex = snapshot.getLong("seriesIndex")?.toInt() ?: 0
+                )
+                if (isDescriptionValid) return Result.success(book)
             }
 
-            // Si no está en Firebase, lo pedimos a OpenLibrary o Google
+            // 2. Fetch de API (Google u OpenLibrary)
+            var finalBook: Book? = null
+
             if (id.startsWith("OL")) {
                 val response = apiService.getWorkDetailOpenLibrary(id)
                 if (response.isSuccessful) {
                     val work = response.body()
-                    val descriptionText = if (work?.description != null) {
-                        if (work.description is String) work.description
-                        else if (work.description is Map<*, *>) work.description["value"] as? String ?: "Sin descripción."
-                        else "Sin descripción."
-                    } else "Sin descripción."
+                    val descriptionText = when (val desc = work?.description) {
+                        is String -> desc
+                        is Map<*, *> -> desc["value"] as? String ?: ""
+                        else -> ""
+                    }
 
+                    // SANITIZACIÓN: Limpiamos el texto que viene de Open Library
+                    val cleanDesc = com.example.topbooks.utils.HtmlCleaner.clean(descriptionText)
                     val cover = work?.covers?.firstOrNull()?.let { "https://covers.openlibrary.org/b/id/$it-L.jpg" } ?: ""
 
-                    val book = Book(
-                        id = id,
-                        title = work?.title ?: "Sin título",
-                        authors = emptyList(),
-                        description = descriptionText,
-                        imageUrl = cover,
-                        lanzamiento = "",
-                        averageRating = 0.0
-                    )
-                    Result.success(book)
-                } else {
-                    Result.failure(Exception("Error OL Detail"))
+                    finalBook = Book(id = id, title = work?.title ?: "Sin título", authors = emptyList(), description = cleanDesc, imageUrl = cover)
+
+                    // --- EL PUENTE (BRIDGE): Si OL no tiene descripción, saltamos a Google por título ---
+                    if (cleanDesc.isBlank() || cleanDesc == "Sin descripción.") {
+                        val googleFallback = apiService.searchBooksGoogle(
+                            query = "intitle:${finalBook.title}",
+                            apiKey = API_KEY,
+                            startIndex = 0,
+                            maxResults = 1,
+                            orderBy = "relevance"
+                        )
+                        if (googleFallback.isSuccessful) {
+                            val googleBook = googleFallback.body()?.items?.firstOrNull()?.toDomain()
+                            if (googleBook != null) {
+                                finalBook = finalBook.copy(
+                                    description = googleBook.description, // El toDomain de GoogleBooksResponse ya lo limpia
+                                    authors = if (finalBook.authors.isEmpty()) googleBook.authors else finalBook.authors,
+                                    imageUrl = if (finalBook.imageUrl.isEmpty()) googleBook.imageUrl else finalBook.imageUrl
+                                )
+                            }
+                        }
+                    }
                 }
             } else {
                 val response = apiService.getBookDetailGoogle(id, API_KEY)
-                if (response.isSuccessful) {
-                    val item = response.body()
-                    if (item != null) Result.success(item.toDomain())
-                    else Result.failure(Exception("Google Vacío"))
-                } else {
-                    Result.failure(Exception("Error Google Detail"))
-                }
+                if (response.isSuccessful) finalBook = response.body()?.toDomain()
             }
+
+            if (finalBook != null) Result.success(finalBook)
+            else Result.failure(Exception("Libro no encontrado"))
+
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -471,12 +488,16 @@ class BooksRepository {
 
         return snapshot.documents.mapNotNull { doc ->
             try {
+                // SANITIZACIÓN: Limpiamos por si se guardó sucio
+                val rawDescription = doc.getString("description") ?: ""
+                val description = com.example.topbooks.utils.HtmlCleaner.clean(rawDescription)
+
                 Book(
                     id = doc.getString("id") ?: doc.id,
                     title = doc.getString("title") ?: "",
                     subtitle = doc.getString("subtitle") ?: "",
                     authors = doc.get("authors") as? List<String> ?: emptyList(),
-                    description = doc.getString("description") ?: "",
+                    description = description,
                     imageUrl = doc.getString("imageUrl") ?: "",
                     lanzamiento = doc.getString("publishedDate") ?: doc.getString("lanzamiento")
                     ?: "",
@@ -517,7 +538,6 @@ class BooksRepository {
                 val googleJson = URL(googleUrl).readText()
 
                 Log.d("API_TEST_GOOGLE", "=== GOOGLE BOOKS RAW ===")
-                // Imprimimos los primeros 3000 caracteres para no saturar el Logcat
                 Log.d("API_TEST_GOOGLE", googleJson.take(3000))
 
                 // 2. Probamos Open Library
@@ -535,12 +555,8 @@ class BooksRepository {
 
     // --- SISTEMA SOCIAL DE SAGAS ---
 
-    /**
-     * Permite a un usuario de la comunidad proponer una corrección o adición a los datos de la saga de un libro.
-     */
     suspend fun updateBookSeries(book: Book, newName: String, newIndex: Int, editorUid: String, editorName: String, editorAvatar: String): Result<Boolean> {
         return try {
-            // Primero aseguramos que el libro exista en Firebase
             ensureBookExists(book)
 
             val updates = mapOf(
@@ -550,7 +566,7 @@ class BooksRepository {
                 "seriesEditorName" to editorName,
                 "seriesEditorAvatar" to editorAvatar,
                 "seriesEditDate" to System.currentTimeMillis(),
-                "seriesUpvotes" to 0, // Reiniciamos los votos si alguien lo edita
+                "seriesUpvotes" to 0,
                 "seriesDownvotes" to 0,
                 "seriesVoters" to emptyList<String>()
             )
@@ -562,10 +578,6 @@ class BooksRepository {
         }
     }
 
-    /**
-     * Permite a la comunidad votar (positivo o negativo) sobre la edición de una saga.
-     * * Utiliza [FieldValue.increment] para evitar que los votos se sobrescriban si dos usuarios votan exactamente a la vez.
-     */
     suspend fun voteSeriesEdit(bookId: String, uid: String, isUpvote: Boolean): Result<Boolean> {
         return try {
             val bookRef = db.collection("books").document(bookId)
@@ -574,11 +586,90 @@ class BooksRepository {
 
             val updates = mapOf(
                 voteField to FieldValue.increment(1),
-                "seriesVoters" to FieldValue.arrayUnion(uid) // Registramos que este usuario ya votó
+                "seriesVoters" to FieldValue.arrayUnion(uid)
             )
 
             bookRef.update(updates).await()
             Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Búsqueda estricta y directa por ISBN con patrón "Best-Effort" (Mejor Esfuerzo).
+     */
+    suspend fun getBookByIsbn(isbn: String): Result<Book?> = coroutineScope {
+        try {
+            var bookWithoutCover: Book? = null
+
+            // 1. Búsqueda estricta en Google Books
+            val googleResponse = apiService.searchBooksGoogle(
+                query = "isbn:$isbn",
+                apiKey = API_KEY,
+                startIndex = 0,
+                maxResults = 2,
+                orderBy = "relevance"
+            )
+
+            if (googleResponse.isSuccessful) {
+                val items = googleResponse.body()?.items?.map { it.toDomain() }
+                val validBook = items?.find { it.title.isNotEmpty() && it.title != "Sin título" }
+
+                if (validBook != null) {
+                    if (validBook.imageUrl.isNotEmpty()) {
+                        return@coroutineScope Result.success(validBook)
+                    } else {
+                        bookWithoutCover = validBook
+                    }
+                }
+            }
+
+            // 2. Búsqueda flexible en Google Books
+            val fallbackResponse = apiService.searchBooksGoogle(
+                query = isbn,
+                apiKey = API_KEY,
+                startIndex = 0,
+                maxResults = 2,
+                orderBy = "relevance"
+            )
+
+            if (fallbackResponse.isSuccessful) {
+                val items = fallbackResponse.body()?.items?.map { it.toDomain() }
+                val bestBook = items?.filter { it.title.isNotEmpty() && it.title != "Sin título" }?.maxByOrNull { it.imageUrl.length }
+
+                if (bestBook != null) {
+                    if (bestBook.imageUrl.isNotEmpty()) {
+                        return@coroutineScope Result.success(bestBook)
+                    } else if (bookWithoutCover == null) {
+                        bookWithoutCover = bestBook
+                    }
+                }
+            }
+
+            // 3. Open Library
+            val olResponse = apiService.searchBooksOpenLibrary(query = "isbn:$isbn", limit = 2)
+
+            if (olResponse.isSuccessful) {
+                val docs = olResponse.body()?.docs?.map { it.toDomain() }
+                val olBook = docs?.firstOrNull { it.title.isNotEmpty() }
+
+                if (olBook != null) {
+                    if (olBook.imageUrl.isNotEmpty()) {
+                        return@coroutineScope Result.success(olBook)
+                    } else if (bookWithoutCover == null) {
+                        bookWithoutCover = olBook
+                    }
+                }
+            }
+
+            // 4. PLAN B
+            if (bookWithoutCover != null) {
+                return@coroutineScope Result.success(bookWithoutCover)
+            }
+
+            Result.success(null)
+
         } catch (e: Exception) {
             Result.failure(e)
         }
