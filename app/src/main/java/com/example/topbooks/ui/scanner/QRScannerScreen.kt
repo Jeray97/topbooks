@@ -10,6 +10,8 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,11 +21,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -46,10 +55,6 @@ import java.util.concurrent.Executors
 /**
  * PANTALLA DE ESCÁNER DE CÓDIGOS DE BARRAS (Stateful Composable).
  * Provee una interfaz de cámara para escanear el ISBN de libros físicos y buscar su información.
- *
- * @param onBackClick Acción para regresar a la pantalla anterior.
- * @param onBookFound Acción ejecutada al confirmar la selección de un libro encontrado.
- * @param viewModel Gestiona el estado de búsqueda del libro a partir del código escaneado.
  */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -58,11 +63,9 @@ fun QRScannerScreen(
     onBookFound: (String) -> Unit,
     viewModel: ScannerViewModel = viewModel()
 ) {
-    // Gestión de permisos de cámara en tiempo de ejecución
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
     val state by viewModel.uiState.collectAsState()
 
-    // Solicitud automática de permisos al entrar en la pantalla
     LaunchedEffect(Unit) {
         if (!cameraPermissionState.status.isGranted) {
             cameraPermissionState.launchPermissionRequest()
@@ -71,14 +74,18 @@ fun QRScannerScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (cameraPermissionState.status.isGranted) {
-            // Capa de la cámara
+
+            // 1. Capa de la cámara (Fondo)
             CameraPreview(
                 onBarcodeScanned = { barcode ->
                     viewModel.onIsbnDetected(barcode)
                 }
             )
 
-            // Interfaz de control: Botón de cierre
+            // 2. Capa visual: Retícula y Láser animado
+            ScannerOverlay()
+
+            // 3. Interfaz de control: Botón de cierre superior
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -94,24 +101,21 @@ fun QRScannerScreen(
                 }
             }
 
-            // Consola de estado: Muestra mensajes informativos sobre el proceso de escaneo
-            Box(
+            // 4. Texto de ayuda al usuario
+            Text(
+                text = "Apunta al código de barras (ISBN)",
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(16.dp)
-                    .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = state.uiLog,
-                    color = Color.Green,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp
-                )
-            }
+                    .padding(bottom = 64.dp)
+                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
 
-            // Diálogo de éxito: Se muestra cuando el ISBN coincide con un libro en la API
+            // --- DIÁLOGOS DE RESULTADOS ---
+
             state.foundBook?.let { book ->
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissBookInfo() },
@@ -128,7 +132,7 @@ fun QRScannerScreen(
                                 contentScale = ContentScale.Crop
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text(book.title, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            Text(book.title, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                             Text(book.authors.joinToString(", "), color = Color.Gray, fontSize = 14.sp)
                         }
                     },
@@ -151,7 +155,6 @@ fun QRScannerScreen(
                 )
             }
 
-            // Diálogo de error: Se muestra si el código no pertenece a ningún libro conocido
             state.notFoundIsbn?.let { isbn ->
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissError() },
@@ -168,20 +171,23 @@ fun QRScannerScreen(
                 )
             }
 
-            // Overlay de carga durante la consulta a la API
+            // Overlay de carga (Oculta la retícula mientras descarga el libro)
             if (state.isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.4f)),
+                        .background(Color.Black.copy(alpha = 0.7f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = ColorArcMediumBrown)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = ColorArcMediumBrown)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Buscando en bibliotecas...", color = Color.White)
+                    }
                 }
             }
 
         } else {
-            // Vista informativa en caso de que el permiso de cámara sea denegado
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -198,8 +204,76 @@ fun QRScannerScreen(
 }
 
 /**
+ * OVERLAY VISUAL DE ESCANEO (Máscara invertida y láser).
+ * Dibuja un fondo oscuro con un rectángulo transparente en el centro.
+ */
+@Composable
+fun ScannerOverlay() {
+    // Animación infinita para el láser que sube y baja
+    val infiniteTransition = rememberInfiniteTransition(label = "laser_transition")
+    val laserPosition by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "laser_animation"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val canvasWidth = size.width
+        val canvasHeight = size.height
+
+        // Dimensiones del "agujero" (formato rectangular apaisado para códigos de barras)
+        val rectWidth = canvasWidth * 0.7f
+        val rectHeight = rectWidth * 0.5f
+
+        val left = (canvasWidth - rectWidth) / 2f
+        val top = (canvasHeight - rectHeight) / 2f
+        val right = left + rectWidth
+        val bottom = top + rectHeight
+
+        val cornerLength = 30.dp.toPx()
+        val strokeWidth = 4.dp.toPx()
+
+        // 1. DIBUJAMOS LA MÁSCARA OSCURA CON EL AGUJERO (Técnica EvenOdd)
+        val path = Path().apply {
+            addRect(Rect(0f, 0f, canvasWidth, canvasHeight)) // Rectángulo exterior (toda la pantalla)
+            addRoundRect(RoundRect(left, top, right, bottom, CornerRadius(16.dp.toPx()))) // Rectángulo interior (el agujero)
+            fillType = PathFillType.EvenOdd // Esta propiedad es la que hace la "resta" geométrica
+        }
+        drawPath(path, Color.Black.copy(alpha = 0.6f))
+
+        // 2. DIBUJAMOS LAS ESQUINAS DE ENFOQUE
+        val cornerColor = ColorArcMediumBrown
+
+        // Arriba - Izquierda
+        drawLine(cornerColor, Offset(left, top), Offset(left + cornerLength, top), strokeWidth)
+        drawLine(cornerColor, Offset(left, top), Offset(left, top + cornerLength), strokeWidth)
+        // Arriba - Derecha
+        drawLine(cornerColor, Offset(right, top), Offset(right - cornerLength, top), strokeWidth)
+        drawLine(cornerColor, Offset(right, top), Offset(right, top + cornerLength), strokeWidth)
+        // Abajo - Izquierda
+        drawLine(cornerColor, Offset(left, bottom), Offset(left + cornerLength, bottom), strokeWidth)
+        drawLine(cornerColor, Offset(left, bottom), Offset(left, bottom - cornerLength), strokeWidth)
+        // Abajo - Derecha
+        drawLine(cornerColor, Offset(right, bottom), Offset(right - cornerLength, bottom), strokeWidth)
+        drawLine(cornerColor, Offset(right, bottom), Offset(right, bottom - cornerLength), strokeWidth)
+
+        // 3. DIBUJAMOS EL LÁSER ANIMADO
+        val laserY = top + (laserPosition * rectHeight)
+        drawLine(
+            color = ColorArcMediumBrown.copy(alpha = 0.8f),
+            start = Offset(left + 8.dp.toPx(), laserY),
+            end = Offset(right - 8.dp.toPx(), laserY),
+            strokeWidth = 2.dp.toPx()
+        )
+    }
+}
+
+/**
  * COMPONENTE DE VISTA PREVIA DE CÁMARA.
- * Integra CameraX mediante una AndroidView para mostrar el flujo de video y procesar los fotogramas.
  */
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 @Composable
@@ -219,12 +293,10 @@ fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
             cameraProviderFuture.addListener({
                 val cameraProvider = cameraProviderFuture.get()
 
-                // Configuración del flujo de visualización
                 val preview = Preview.Builder().build().also {
                     it.surfaceProvider = previewView.surfaceProvider
                 }
 
-                // Configuración del analizador de imágenes para detección de códigos
                 val imageAnalyzer = ImageAnalysis.Builder()
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
@@ -237,7 +309,6 @@ fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
                 try {
-                    // Vinculación de la cámara al ciclo de vida del componente
                     cameraProvider.unbindAll()
                     cameraProvider.bindToLifecycle(
                         lifecycleOwner,
@@ -258,7 +329,6 @@ fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
 
 /**
  * PROCESADOR DE FOTOGRAMAS.
- * Convierte el proxy de imagen de la cámara en un formato compatible con ML Kit Barcode Scanning.
  */
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 private fun processImageProxy(
@@ -269,7 +339,6 @@ private fun processImageProxy(
     if (mediaImage != null) {
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
-        // OPTIMIZACIÓN: Configuramos el escáner para buscar exclusivamente formatos de ISBN
         val options = BarcodeScannerOptions.Builder()
             .setBarcodeFormats(
                 Barcode.FORMAT_EAN_13,
@@ -279,17 +348,15 @@ private fun processImageProxy(
 
         val scanner = BarcodeScanning.getClient(options)
 
-        // Procesamiento asíncrono del fotograma
         scanner.process(image)
             .addOnSuccessListener { barcodes ->
                 for (barcode in barcodes) {
                     barcode.rawValue?.let { value ->
-                        onSuccess(value) // Código detectado exitosamente
+                        onSuccess(value)
                     }
                 }
             }
             .addOnCompleteListener {
-                // Es crítico cerrar el proxy para liberar la cámara para el siguiente fotograma
                 imageProxy.close()
             }
     } else {

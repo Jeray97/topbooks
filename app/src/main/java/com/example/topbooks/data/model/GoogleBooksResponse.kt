@@ -57,12 +57,16 @@ data class BookItem(
         val safeTitle = volumeInfo?.title ?: "Sin título"
         val safeSubtitle = volumeInfo?.subtitle ?: ""
 
+        // SANITIZACIÓN: Limpiamos el HTML de Google Books
+        val rawDescription = volumeInfo?.description ?: "Sin descripción disponible."
+        val cleanDescription = com.example.topbooks.utils.HtmlCleaner.clean(rawDescription)
+
         return Book(
             id = id ?: "unknown_id",
             title = safeTitle,
             subtitle = safeSubtitle,
             authors = volumeInfo?.authors ?: emptyList(),
-            description = volumeInfo?.description ?: "Sin descripción disponible.",
+            description = cleanDescription,
 
             // TRUCO DE SEGURIDAD: Reemplazamos "http" por "https"
             // porque Android bloquea por defecto las imágenes que no son seguras (Cleartext traffic).
