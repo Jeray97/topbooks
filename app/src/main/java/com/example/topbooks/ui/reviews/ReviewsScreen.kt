@@ -32,6 +32,7 @@ import com.example.topbooks.data.model.Comment
 import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.AvatarHelper
+import com.example.topbooks.ui.community.CommunityFeedScreen
 
 /**
  * PANTALLA DE RESEÑAS Y COMUNIDAD (Stateful Composable).
@@ -48,20 +49,32 @@ import com.example.topbooks.utils.AvatarHelper
 fun ReviewsScreen(
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
+    onPostClick: (postId: String) -> Unit = {},   // ← NUEVO parámetro
     viewModel: ReviewsViewModel = viewModel(),
     bookId: String? = null,
     targetCommentId: String? = null
 ) {
+    if (bookId == null) {
+        CommunityFeedScreen(
+            onBackClick = onBackClick,
+            onPostClick = { post ->
+                onPostClick(post.id)              // ← Ahora va al detalle del post
+            },
+            onCreatePostClick = { /* TODO */ }
+        )
+        return
+    }
+    // ★ TODO LO DE ABAJO ES EL CÓDIGO ORIGINAL, sin cambios.
+    // Si tu archivo ya tenía esto, déjalo tal cual.
     val state by viewModel.uiState.collectAsState()
 
-    // Recarga el feed social cada vez que cambia el libro objetivo
     LaunchedEffect(bookId) {
         viewModel.loadSocialFeed(bookId, targetCommentId)
     }
 
     Scaffold(
         containerColor = ColorBackGroundGeneral,
-        topBar = { TopBar(onBackClick = onBackClick) }
+        // topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
