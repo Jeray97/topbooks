@@ -1,146 +1,272 @@
 package com.example.topbooks.ui.community
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
+import com.example.topbooks.data.model.PostReply as DataPostReply
+import com.example.topbooks.data.repository.BooksRepository
+import com.example.topbooks.data.repository.CommunityRepository
+import com.example.topbooks.data.repository.CommunityRepositoryImpl
+import com.example.topbooks.data.repository.PostRepository
+import com.example.topbooks.data.repository.PostRepositoryImpl
+import com.example.topbooks.data.repository.UserRepository
+import com.example.topbooks.data.repository.UserRepositoryImpl
+import com.google.firebase.functions.FirebaseFunctions
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * VIEWMODEL DEL DETALLE DE POST
- *
- * Responsabilidades:
- *  - Cargar el post + sus reacciones agregadas + el hilo plano de replies.
- *  - Gestionar las reacciones del usuario (toggle con optimistic UI).
- *  - Enviar respuestas nuevas al hilo.
- *  - Likes en respuestas individuales.
- *  - Estado del emoji picker (abierto / cerrado).
- *
- * Por ahora consume MockPostDetailRepository (datos en memoria). Los métodos
- * son síncronos por simplicidad — al pasar a Firestore haremos suspend funs.
- */
-class PostDetailViewModel : ViewModel() {
+class PostDetailViewModel(
+    private val postRepository: PostRepository = PostRepositoryImpl(),
+    private val userRepository: UserRepository = UserRepositoryImpl(),
+    private val booksRepository: BooksRepository = BooksRepository(),
+    private val communityRepository: CommunityRepository = CommunityRepositoryImpl()
+) : ViewModel() {
+
+    private val functions = FirebaseFunctions.getInstance()
 
     private val _uiState = MutableStateFlow(PostDetailUiState())
     val uiState: StateFlow<PostDetailUiState> = _uiState.asStateFlow()
 
-    /**
-     * "Usuario actual" mock. En producción vendría del repositorio de auth/users.
-     * Lo necesitamos para construir las respuestas que escriba el usuario.
-     */
-    private val mockCurrentUser = PostAuthor(
-        id = "u_me",
-        displayName = "Tú",
-        photoUrl = null,
-        isFriend = false,
-        isVerified = true
-    )
+    private var myUid: String = ""
+    private var friendIds: Set<String> = emptySet()
+    private var currentPostId: String = ""
 
-    /**
-     * Carga el post inicial + reacciones + replies.
-     * Si el postId no existe, deja la UI con isLoading=false y post=null
-     * (la pantalla mostrará un mensaje de "no encontrado").
-     */
-    fun loadPost(postId: String) {
-        _uiState.update { it.copy(isLoading = true) }
+    init {
         viewModelScope.launch {
-            MockPostDetailRepository.getPostDetail(postId).collect { snapshot ->
-                if (snapshot == null) {
-                    _uiState.update {
-                        it.copy(isLoading = false, post = null, errorMessage = "Post no encontrado")
-                    }
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            post = snapshot.post,
-                            reactions = snapshot.reactions,
-                            replies = snapshot.replies,
-                            totalReactionCount = snapshot.totalReactionCount,
-                            savedCount = snapshot.savedCount
-                        )
-                    }
+            myUid = userRepository.getCurrentUserId() ?: ""
+            friendIds = communityRepository.getMyFriendsIds().getOrDefault(emptySet())
+        }
+    }
+
+    fun loadPost(postId: String) {
+        currentPostId = postId
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        viewModelScope.launch {
+            try {
+                val dataPost = postRepository.getPostById(postId).getOrNull()
+                if (dataPost == null) {
+                    _uiState.update { it.copy(isLoading = false, post = null, errorMessage = "Post no encontrado") }
+                    return@launch
                 }
+
+                val user = userRepository.getUserProfile(dataPost.userId).getOrNull()
+                val book = if (dataPost.bookId.isNotBlank()) {
+                    booksRepository.getBookDetail(dataPost.bookId).getOrNull()
+                } else null
+
+                val enrichedPost = dataPost.copy(
+                    userName = user?.displayName ?: dataPost.userName,
+                    userPhotoUrl = user?.photoURL ?: dataPost.userPhotoUrl,
+                    bookTitle = book?.title ?: dataPost.bookTitle,
+                    bookAuthor = book?.authors?.joinToString() ?: dataPost.bookAuthor,
+                    bookImageUrl = book?.imageUrl ?: dataPost.bookImageUrl
+                )
+
+                val isFriend = dataPost.userId in friendIds
+                val isLikedByMe = myUid in dataPost.likedBy
+                val isSavedByMe = myUid in dataPost.savedBy
+                val uiPost = enrichedPost.toUiPost(user, isFriend, isLikedByMe, isSavedByMe)
+
+                val reactions = buildReactionsFromPost(enrichedPost, myUid)
+                val replies = enrichReplies(enrichedPost.replies, dataPost.userId)
+                val totalReactions = enrichedPost.reactions.values.sumOf { it.size }
+                val savedCount = enrichedPost.savedBy.size
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        post = uiPost,
+                        reactions = reactions,
+                        replies = replies,
+                        totalReactionCount = totalReactions,
+                        savedCount = savedCount
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("PostDetailVM", "Error cargando post: ${e.message}")
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
         }
     }
 
-    /**
-     * Toggle de una reacción (top fijo o emoji custom). Aplica optimistic UI:
-     * actualizamos local antes de "confirmar" con el repo.
-     */
+    private suspend fun enrichReplies(
+        replies: List<DataPostReply>,
+        originalAuthorId: String
+    ): List<PostReply> {
+        return replies.map { dataReply ->
+            viewModelScope.async {
+                val user = userRepository.getUserProfile(dataReply.userId).getOrNull()
+                val enrichedReply = dataReply.copy(
+                    userName = user?.displayName ?: dataReply.userName,
+                    userPhotoUrl = user?.photoURL ?: dataReply.userPhotoUrl
+                )
+                val isFromOriginalAuthor = dataReply.userId == originalAuthorId
+                val isLikedByMe = myUid in dataReply.likedBy
+                enrichedReply.toUiPostReply(user, isFromOriginalAuthor, isLikedByMe)
+            }
+        }.awaitAll().sortedBy { it.createdAtMillis }
+    }
+
     fun toggleReaction(emoji: String) {
-        val postId = _uiState.value.post?.id ?: return
-        val snapshot = MockPostDetailRepository.toggleReaction(postId, emoji) ?: return
+        val post = _uiState.value.post ?: return
+        val oldReactions = _uiState.value.reactions
+
+        val updatedReactions = oldReactions.map { reaction ->
+            if (reaction.emoji == emoji) {
+                Reaction(
+                    emoji = emoji,
+                    count = if (reaction.reactedByMe) reaction.count - 1 else reaction.count + 1,
+                    reactedByMe = !reaction.reactedByMe
+                )
+            } else reaction
+        }.filter { it.emoji in TOP_FIXED_REACTIONS || it.count > 0 }
+         .sortedWith(
+             compareByDescending<Reaction> { it.emoji in TOP_FIXED_REACTIONS }
+                 .thenByDescending { it.count }
+         )
+
+        val totalReactions = updatedReactions.sumOf { it.count }
+
         _uiState.update {
             it.copy(
-                reactions = snapshot.reactions,
-                totalReactionCount = snapshot.totalReactionCount,
-                emojiPickerOpen = false  // Si estaba abierto el picker, lo cerramos al elegir
+                reactions = updatedReactions,
+                totalReactionCount = totalReactions,
+                emojiPickerOpen = false
             )
+        }
+
+        viewModelScope.launch {
+            try {
+                postRepository.toggleReaction(post.id, emoji, myUid)
+            } catch (e: Exception) {
+                Log.e("PostDetailVM", "Error toggle reaction: ${e.message}")
+                _uiState.update { it.copy(reactions = oldReactions) }
+            }
         }
     }
 
-    /**
-     * Toggle del estado del emoji picker (botón "+ reaccionar").
-     */
     fun toggleEmojiPicker() {
         _uiState.update { it.copy(emojiPickerOpen = !it.emojiPickerOpen) }
     }
 
-    /**
-     * Envía una nueva respuesta al hilo.
-     * Mientras se envía, marcamos isSendingReply=true para que la UI pueda
-     * deshabilitar el botón de envío (evita doble click).
-     */
     fun sendReply(text: String, onSuccess: () -> Unit = {}) {
         val post = _uiState.value.post ?: return
         if (text.isBlank()) return
 
         _uiState.update { it.copy(isSendingReply = true) }
         viewModelScope.launch {
-            delay(200)  // Simulamos latencia
-            val snapshot = MockPostDetailRepository.addReply(
-                postId = post.id,
-                body = text.trim(),
-                currentUserAuthor = mockCurrentUser,
-                postOriginalAuthorId = post.author.id
-            )
-            if (snapshot != null) {
-                _uiState.update {
-                    it.copy(
-                        replies = snapshot.replies,
-                        isSendingReply = false
-                    )
-                }
-                onSuccess()
-            } else {
+            try {
+                val me = userRepository.getUserProfile(myUid).getOrNull()
+                val myName = me?.displayName ?: "Usuario"
+                val myPhoto = me?.photoURL ?: "capibara_1"
+
+                val dataReply = DataPostReply(
+                    userId = myUid,
+                    text = text.trim(),
+                    userName = myName,
+                    userPhotoUrl = myPhoto
+                )
+
+                postRepository.addReply(post.id, dataReply).fold(
+                    onSuccess = {
+                        val newReply = PostReply(
+                            id = System.currentTimeMillis().toString(),
+                            author = PostAuthor(
+                                id = myUid,
+                                displayName = myName,
+                                photoUrl = myPhoto,
+                                isFriend = false,
+                                isVerified = false
+                            ),
+                            body = text.trim(),
+                            createdAtMillis = System.currentTimeMillis(),
+                            likeCount = 0,
+                            isLikedByMe = false,
+                            isFromOriginalAuthor = myUid == post.author.id
+                        )
+
+                        _uiState.update {
+                            it.copy(
+                                replies = it.replies + newReply,
+                                isSendingReply = false
+                            )
+                        }
+
+                        if (myUid != post.author.id) {
+                            sendPostReplyNotification(post.author.id, myName, post.id)
+                        }
+
+                        onSuccess()
+                    },
+                    onFailure = { error ->
+                        Log.e("PostDetailVM", "Error enviando respuesta: ${error.message}")
+                        _uiState.update {
+                            it.copy(
+                                isSendingReply = false,
+                                errorMessage = "No se pudo enviar la respuesta"
+                            )
+                        }
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("PostDetailVM", "Error: ${e.message}")
                 _uiState.update {
                     it.copy(
                         isSendingReply = false,
-                        errorMessage = "No se pudo enviar la respuesta"
+                        errorMessage = e.message
                     )
                 }
             }
         }
     }
 
-    /**
-     * Toggle de like sobre una respuesta concreta.
-     */
     fun toggleReplyLike(replyId: String) {
-        val postId = _uiState.value.post?.id ?: return
-        val snapshot = MockPostDetailRepository.toggleReplyLike(postId, replyId) ?: return
-        _uiState.update { it.copy(replies = snapshot.replies) }
+        val post = _uiState.value.post ?: return
+        val oldReplies = _uiState.value.replies
+
+        val updatedReplies = oldReplies.map { reply ->
+            if (reply.id == replyId) {
+                reply.copy(
+                    isLikedByMe = !reply.isLikedByMe,
+                    likeCount = if (reply.isLikedByMe) reply.likeCount - 1 else reply.likeCount + 1
+                )
+            } else reply
+        }
+
+        _uiState.update { it.copy(replies = updatedReplies) }
+
+        viewModelScope.launch {
+            try {
+                postRepository.toggleReplyLike(post.id, replyId, myUid)
+            } catch (e: Exception) {
+                Log.e("PostDetailVM", "Error toggle reply like: ${e.message}")
+                _uiState.update { it.copy(replies = oldReplies) }
+            }
+        }
     }
 
-    /**
-     * Limpia el mensaje de error tras mostrarlo.
-     */
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun sendPostReplyNotification(postAuthorId: String, responderName: String, postId: String) {
+        val data = hashMapOf(
+            "postAuthorId" to postAuthorId,
+            "responderName" to responderName,
+            "postId" to postId
+        )
+        functions.getHttpsCallable("enviarNotificacionRespuestaPost")
+            .call(data)
+            .addOnSuccessListener {
+                Log.d("PostDetailVM", "Notificación de respuesta enviada")
+            }
+            .addOnFailureListener { e ->
+                Log.e("PostDetailVM", "Error enviando notificación: ${e.message}")
+            }
     }
 }

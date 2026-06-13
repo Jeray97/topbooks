@@ -71,6 +71,8 @@ fun BookDetailScreen(
     bookId: String,
     onBackClick: () -> Unit,
     onNavigateToJournal: (String, String, String, String, String) -> Unit,
+    onNavigateToReviews: (String) -> Unit = {},
+    onNavigateToCreatePost: (String, String) -> Unit = { _, _ -> },
     viewModel: BookDetailViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -314,11 +316,7 @@ fun BookDetailScreen(
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                         SmallFabItem(Icons.Default.Edit, stringResource(R.string.bookdetail_fab_review)) {
                             isFabExpanded = false
-                            // Verificación extra de seguridad para evitar spam: el email debe estar verificado
-                            viewModel.checkEmailVerification { isVerified ->
-                                if (isVerified) showReviewDialog = true
-                                else Toast.makeText(context, context.getString(R.string.bookdetail_toast_verify_review), Toast.LENGTH_LONG).show()
-                            }
+                            onNavigateToCreatePost(bookId, "REVIEW")
                         }
                     }
                     Spacer(Modifier.height(8.dp))
@@ -326,15 +324,21 @@ fun BookDetailScreen(
                     AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                         SmallFabItem(Icons.AutoMirrored.Filled.Send, stringResource(R.string.bookdetail_fab_comment)) {
                             isFabExpanded = false
-                            viewModel.checkEmailVerification { isVerified ->
-                                if (isVerified) showCommentDialog = true
-                                else Toast.makeText(context, context.getString(R.string.bookdetail_toast_verify_comment), Toast.LENGTH_LONG).show()
-                            }
+                            onNavigateToCreatePost(bookId, "QUOTE")
                         }
                     }
                     Spacer(Modifier.height(8.dp))
 
-                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) { SmallFabItem(Icons.Default.Search, stringResource(R.string.bookdetail_fab_see_reviews)) { isFabExpanded = false; coroutineScope.launch { listState.animateScrollToItem(2) } } }
+                    AnimatedVisibility(visible = isFabExpanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                        SmallFabItem(Icons.Default.Search, stringResource(R.string.bookdetail_fab_see_reviews)) {
+                            isFabExpanded = false
+                            if (state.reviews.isNotEmpty()) {
+                                onNavigateToReviews(bookId)
+                            } else {
+                                Toast.makeText(context, context.getString(R.string.bookdetail_reviews_empty), Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
                     Spacer(Modifier.height(16.dp))
 
                     // Rotación animada del icono "+" principal al desplegarse

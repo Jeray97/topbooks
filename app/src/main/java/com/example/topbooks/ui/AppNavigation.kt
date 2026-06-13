@@ -29,6 +29,14 @@ import com.example.topbooks.ui.friends.SocialActivityScreen
 import com.example.topbooks.ui.home.RecommendedScreen
 import com.example.topbooks.ui.home.RecommendedSectionScreen
 import com.example.topbooks.ui.scanner.QRScannerScreen
+import com.example.topbooks.ui.community.CreateStoryScreen
+import com.example.topbooks.ui.community.CreatePostScreen
+import com.example.topbooks.ui.community.PostDetailScreen
+import com.example.topbooks.ui.community.StoryViewerScreen
+import com.example.topbooks.ui.club.ClubListScreen
+import com.example.topbooks.ui.club.ClubDetailScreen
+import com.example.topbooks.ui.club.CreateClubScreen
+import com.example.topbooks.ui.club.DiscussionScreen
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
 import com.example.topbooks.ui.tutorial.TutorialScreen
 import com.example.topbooks.ui.reviews.ReviewsScreen
@@ -127,9 +135,13 @@ fun AppNavigation(
                     navController.navigate("user_list/$type/$userId")
                 },
                 onNavigateToJournal = { bookId ->
-                    // Desde el MainScreen solo tenemos el ID, los demás parámetros opcionales tomarán valor por defecto
                     navController.navigate("reading_journal/$bookId")
-                }
+                },
+                onNavigateToCreateStory = { navController.navigate("create_story") },
+                onNavigateToStoryViewer = { userId -> navController.navigate("story_viewer/$userId") },
+                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") },
+                onNavigateToCreatePost = { navController.navigate("create_post") },
+                onNavigateToClubs = { navController.navigate("club_list") }
             )
         }
 
@@ -185,8 +197,10 @@ fun AppNavigation(
         composable(
             route = "reviews_thread/{bookId}",
             arguments = listOf(navArgument("bookId") { type = NavType.StringType })
-        ) {
+        ) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
             ReviewsScreen(
+                bookId = bookId,
                 onBackClick = { navController.popBackStack() },
                 onBookClick = { id -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") }
             )
@@ -213,9 +227,14 @@ fun AppNavigation(
             BookDetailScreen(
                 bookId = bookId,
                 onBackClick = { navController.popBackStack() },
-                // AQUÍ EL ARREGLO: Recogemos los parámetros y construimos la URL con Query Parameters (?)
                 onNavigateToJournal = { id, title, author, image, pages ->
                     navController.navigate("reading_journal/$id?title=$title&author=$author&image=$image&pages=$pages")
+                },
+                onNavigateToReviews = { id ->
+                    navController.navigate("reviews_thread/$id")
+                },
+                onNavigateToCreatePost = { id, type ->
+                    navController.navigate("create_post?bookId=$id&type=$type")
                 }
             )
         }
@@ -322,6 +341,103 @@ fun AppNavigation(
                 colorArgb = backStackEntry.arguments?.getInt("color") ?: 0,
                 onBackClick = { navController.popBackStack() },
                 onBookClick = { id -> navController.navigate("book_detail/$id") }
+            )
+        }
+
+        // --- HISTORIAS ---
+
+        composable("create_story") {
+            CreateStoryScreen(
+                onBackClick = { navController.popBackStack() },
+                onStoryCreated = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "create_post?bookId={bookId}&type={type}",
+            arguments = listOf(
+                navArgument("bookId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("type") { type = NavType.StringType; nullable = true; defaultValue = null }
+            )
+        ) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getString("bookId")
+            val type = backStackEntry.arguments?.getString("type")
+            CreatePostScreen(
+                onBackClick = { navController.popBackStack() },
+                onPostCreated = { navController.popBackStack() },
+                initialBookId = bookId,
+                initialType = type
+            )
+        }
+
+        composable(
+            route = "story_viewer/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+            StoryViewerScreen(
+                userId = userId,
+                isOwnProfile = userId == myUid,
+                onClose = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "post_detail/{postId}",
+            arguments = listOf(navArgument("postId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: ""
+            PostDetailScreen(
+                postId = postId,
+                onBackClick = { navController.popBackStack() },
+                onAuthorClick = { userId -> navController.navigate("profile/$userId") },
+                onBookClick = { bookId -> if (bookId.isNotEmpty()) navController.navigate("book_detail/$bookId") }
+            )
+        }
+
+        // --- CLUBES DE LECTURA ---
+
+        composable("club_list") {
+            ClubListScreen(
+                onClubClick = { clubId -> navController.navigate("club_detail/$clubId") },
+                onCreateClubClick = { navController.navigate("create_club") }
+            )
+        }
+
+        composable(
+            route = "club_detail/{clubId}",
+            arguments = listOf(navArgument("clubId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val clubId = backStackEntry.arguments?.getString("clubId") ?: ""
+            ClubDetailScreen(
+                clubId = clubId,
+                onBackClick = { navController.popBackStack() },
+                onDiscussionClick = { cId, dId -> navController.navigate("discussion/$cId/$dId") },
+                onBookClick = { bookId -> if (bookId.isNotEmpty()) navController.navigate("book_detail/$bookId") }
+            )
+        }
+
+        composable("create_club") {
+            CreateClubScreen(
+                onBackClick = { navController.popBackStack() },
+                onClubCreated = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "discussion/{clubId}/{discussionId}",
+            arguments = listOf(
+                navArgument("clubId") { type = NavType.StringType },
+                navArgument("discussionId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val clubId = backStackEntry.arguments?.getString("clubId") ?: ""
+            val discussionId = backStackEntry.arguments?.getString("discussionId") ?: ""
+            DiscussionScreen(
+                clubId = clubId,
+                discussionId = discussionId,
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

@@ -13,8 +13,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -65,6 +67,7 @@ data class Interaction(
 fun FriendsScreen(
     onNavigateToProfile: (String) -> Unit,
     onNavigateToActivity: () -> Unit,
+    onNavigateToClubs: () -> Unit = {},
     viewModel: FriendsViewModel = viewModel()
 ) {
     // Observamos el estado global de la pantalla
@@ -131,6 +134,52 @@ fun FriendsScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
+
+                // ACCESO RÁPIDO: CLUBES DE LECTURA
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                        .clickable { onNavigateToClubs() },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = ColorArcDarkBrown)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Groups,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Clubes de lectura",
+                                fontFamily = CenturyGotic,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Lee y discute con otros lectores",
+                                fontFamily = CenturyGotic,
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.ArrowForwardIos,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
 
                 // 1. SECCIÓN: Mis amigos
                 val myFriends = uiState.myFriends

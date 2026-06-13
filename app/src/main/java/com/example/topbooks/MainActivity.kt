@@ -124,6 +124,18 @@ class MainActivity : ComponentActivity() {
                     pendingRoute = "reviews_thread/$bookId"
                 }
             }
+            "NEW_POST_REPLY" -> {
+                val postId = intent.getStringExtra("postId")
+                if (!postId.isNullOrEmpty()) {
+                    pendingRoute = "post_detail/$postId"
+                }
+            }
+            "NEW_CLUB_DISCUSSION", "CLUB_REMINDER" -> {
+                val clubId = intent.getStringExtra("clubId")
+                if (!clubId.isNullOrEmpty()) {
+                    pendingRoute = "club_detail/$clubId"
+                }
+            }
         }
 
         // Limpieza de metadatos del Intent para evitar procesamientos duplicados
@@ -131,5 +143,7 @@ class MainActivity : ComponentActivity() {
         intent.removeExtra("followerId")
         intent.removeExtra("bookId")
         intent.removeExtra("commentId")
+        intent.removeExtra("postId")
+        intent.removeExtra("clubId")
     }
 }

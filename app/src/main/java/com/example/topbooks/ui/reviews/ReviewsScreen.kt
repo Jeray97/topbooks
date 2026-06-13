@@ -49,7 +49,10 @@ import com.example.topbooks.ui.community.CommunityFeedScreen
 fun ReviewsScreen(
     onBackClick: () -> Unit,
     onBookClick: (String) -> Unit,
-    onPostClick: (postId: String) -> Unit = {},   // ← NUEVO parámetro
+    onPostClick: (postId: String) -> Unit = {},
+    onCreateStoryClick: () -> Unit = {},
+    onStoryClick: (userId: String) -> Unit = {},
+    onCreatePostClick: () -> Unit = {},
     viewModel: ReviewsViewModel = viewModel(),
     bookId: String? = null,
     targetCommentId: String? = null
@@ -58,14 +61,14 @@ fun ReviewsScreen(
         CommunityFeedScreen(
             onBackClick = onBackClick,
             onPostClick = { post ->
-                onPostClick(post.id)              // ← Ahora va al detalle del post
+                onPostClick(post.id)
             },
-            onCreatePostClick = { /* TODO */ }
+            onCreatePostClick = onCreatePostClick,
+            onCreateStoryClick = onCreateStoryClick,
+            onStoryClick = onStoryClick
         )
         return
     }
-    // ★ TODO LO DE ABAJO ES EL CÓDIGO ORIGINAL, sin cambios.
-    // Si tu archivo ya tenía esto, déjalo tal cual.
     val state by viewModel.uiState.collectAsState()
 
     LaunchedEffect(bookId) {

@@ -29,13 +29,13 @@ import com.example.topbooks.ui.theme.GuardianCity
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    title: String? = null
 ) {
     CenterAlignedTopAppBar(
         title = {
             Text(
-                text = stringResource(R.string.app_name),
-                // Usamos la fuente personalizada y el color de texto corporativo
+                text = title ?: stringResource(R.string.app_name),
                 fontFamily = GuardianCity,
                 color = ColorTitleCategoryDetail,
                 fontSize = 22.sp,

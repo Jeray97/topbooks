@@ -89,6 +89,8 @@ fun CommunityFeedScreen(
     onBackClick: () -> Unit,
     onPostClick: (Post) -> Unit,
     onCreatePostClick: () -> Unit,
+    onCreateStoryClick: () -> Unit = {},
+    onStoryClick: (userId: String) -> Unit = {},
     viewModel: CommunityViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -123,7 +125,13 @@ fun CommunityFeedScreen(
             }
 
             // ─── STORY-BAR ───
-            item { StoryBar(state.stories) }
+            item {
+                StoryBar(
+                    stories = state.stories,
+                    onCreateStoryClick = onCreateStoryClick,
+                    onStoryClick = onStoryClick
+                )
+            }
 
             // ─── ESTADO CARGANDO ───
             if (state.isLoading) {
@@ -281,7 +289,11 @@ private fun TabPill(
  * ───────────────────────────────────────────────────────────────────────────── */
 
 @Composable
-private fun StoryBar(stories: List<StoryItem>) {
+private fun StoryBar(
+    stories: List<StoryItem>,
+    onCreateStoryClick: () -> Unit,
+    onStoryClick: (userId: String) -> Unit
+) {
     val scroll = rememberScrollState()
     Row(
         modifier = Modifier
@@ -290,19 +302,20 @@ private fun StoryBar(stories: List<StoryItem>) {
             .padding(horizontal = 12.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Item especial "tu lectura" (siempre primero)
-        AddYourReadingStory()
+        AddYourReadingStory(onClick = onCreateStoryClick)
 
         stories.forEach { story ->
-            StoryAvatar(story = story)
+            StoryAvatar(story = story, onClick = { onStoryClick(story.author.id) })
         }
     }
 }
 
 @Composable
-private fun AddYourReadingStory() {
+private fun AddYourReadingStory(onClick: () -> Unit) {
     Column(
-        modifier = Modifier.width(64.dp),
+        modifier = Modifier
+            .width(64.dp)
+            .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
@@ -337,9 +350,11 @@ private fun AddYourReadingStory() {
 }
 
 @Composable
-private fun StoryAvatar(story: StoryItem) {
+private fun StoryAvatar(story: StoryItem, onClick: () -> Unit) {
     Column(
-        modifier = Modifier.width(64.dp),
+        modifier = Modifier
+            .width(64.dp)
+            .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Anillo dorado degradado (es siempre amigo en la story-bar)

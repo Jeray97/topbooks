@@ -1,6 +1,7 @@
 package com.example.topbooks.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,12 +9,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CollectionsBookmark
+import androidx.compose.material.icons.filled.Numbers
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -29,7 +36,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.topbooks.R
+import com.example.topbooks.ui.community.SearchFilter
 import com.example.topbooks.ui.search.SearchViewModel
+import com.example.topbooks.ui.theme.CenturyGotic
+import com.example.topbooks.ui.theme.ColorArcMediumBrown
+import com.example.topbooks.ui.theme.ColorTextPrimary
 
 /**
  * Componente reutilizable de Barra de Búsqueda con autocompletado y botón de escáner.
@@ -45,6 +56,7 @@ fun SearchBarCustom(
 
     val results by viewModel.searchResults.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val searchFilter by viewModel.searchFilter.collectAsState()
 
     val focusManager = LocalFocusManager.current
     val iconGray = Color(0xFF9E9E9E)
@@ -66,7 +78,18 @@ fun SearchBarCustom(
                         active = true
                         viewModel.onQueryChange(it)
                     },
-                    placeholder = { Text(text = stringResource(R.string.search_hint), color = iconGray) },
+                    placeholder = {
+                        Text(
+                            text = when (searchFilter) {
+                                SearchFilter.GENERAL -> stringResource(R.string.search_hint)
+                                SearchFilter.TITLE -> "Buscar por título..."
+                                SearchFilter.AUTHOR -> "Buscar por autor..."
+                                SearchFilter.ISBN -> "Buscar por ISBN..."
+                                SearchFilter.SERIES -> "Buscar por saga..."
+                            },
+                            color = iconGray
+                        )
+                    },
                     // CORRECCIÓN: La etiqueta debe ir aquí para que el test pueda escribir texto
                     modifier = Modifier
                         .weight(1f)
@@ -111,6 +134,67 @@ fun SearchBarCustom(
                         contentDescription = stringResource(id = R.string.desc_scan_icon),
                         modifier = Modifier.size(24.dp),
                         tint = iconGray
+                    )
+                }
+            }
+
+            // Chips de filtro de búsqueda
+            if (active || text.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    SearchFilterChip(
+                        label = "General",
+                        icon = Icons.Default.Search,
+                        isSelected = searchFilter == SearchFilter.GENERAL,
+                        onClick = {
+                            viewModel.setSearchFilter(SearchFilter.GENERAL)
+                            if (text.length >= 3) viewModel.onQueryChange(text)
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    SearchFilterChip(
+                        label = "Título",
+                        icon = Icons.Default.Title,
+                        isSelected = searchFilter == SearchFilter.TITLE,
+                        onClick = {
+                            viewModel.setSearchFilter(SearchFilter.TITLE)
+                            if (text.length >= 3) viewModel.onQueryChange(text)
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    SearchFilterChip(
+                        label = "Autor",
+                        icon = Icons.Default.Person,
+                        isSelected = searchFilter == SearchFilter.AUTHOR,
+                        onClick = {
+                            viewModel.setSearchFilter(SearchFilter.AUTHOR)
+                            if (text.length >= 3) viewModel.onQueryChange(text)
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    SearchFilterChip(
+                        label = "ISBN",
+                        icon = Icons.Default.Numbers,
+                        isSelected = searchFilter == SearchFilter.ISBN,
+                        onClick = {
+                            viewModel.setSearchFilter(SearchFilter.ISBN)
+                            if (text.length >= 3) viewModel.onQueryChange(text)
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    SearchFilterChip(
+                        label = "Saga",
+                        icon = Icons.Default.CollectionsBookmark,
+                        isSelected = searchFilter == SearchFilter.SERIES,
+                        onClick = {
+                            viewModel.setSearchFilter(SearchFilter.SERIES)
+                            if (text.length >= 3) viewModel.onQueryChange(text)
+                        },
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -173,6 +257,53 @@ fun SearchBarCustom(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Chip de filtro de búsqueda reutilizable.
+ */
+@Composable
+private fun SearchFilterChip(
+    label: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(32.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isSelected) ColorArcMediumBrown else Color.White)
+            .border(
+                width = 1.dp,
+                color = if (isSelected) ColorArcMediumBrown else ColorArcMediumBrown.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isSelected) Color.White else ColorArcMediumBrown,
+                modifier = Modifier.size(12.dp)
+            )
+            Spacer(modifier = Modifier.width(3.dp))
+            Text(
+                text = label,
+                fontFamily = CenturyGotic,
+                fontSize = 9.sp,
+                color = if (isSelected) Color.White else ColorTextPrimary,
+                maxLines = 1
+            )
         }
     }
 }
