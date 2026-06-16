@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.repository.BooksRepository
+import com.example.topbooks.data.repository.ShelfRepository
+import com.example.topbooks.data.repository.ShelfRepositoryImpl
 import com.example.topbooks.data.repository.UserRepository
 import com.example.topbooks.data.repository.UserRepositoryImpl
 import kotlinx.coroutines.async
@@ -38,7 +40,8 @@ data class OnboardingState(
  */
 class TutorialViewModel(
     private val booksRepository: BooksRepository = BooksRepository(),
-    private val userRepository: UserRepository = UserRepositoryImpl() // Reemplazamos el updater local por el Repositorio central
+    private val userRepository: UserRepository = UserRepositoryImpl(),
+    private val shelfRepository: ShelfRepository = ShelfRepositoryImpl()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingState())
@@ -112,6 +115,7 @@ class TutorialViewModel(
                 genres = state.selectedGenres.toList(),
                 books = state.selectedBookIds.toList()
             ).onSuccess {
+                createDefaultShelves()
                 _uiState.update { it.copy(isSaving = false) }
                 onSuccess()
             }.onFailure { error ->
@@ -119,5 +123,21 @@ class TutorialViewModel(
                 _uiState.update { it.copy(isSaving = false) }
             }
         }
+    }
+
+    private suspend fun createDefaultShelves() {
+        val defaultShelves = listOf(
+            Triple("Leídos", 0xFF8D5B4CL, 0),
+            Triple("Quiero leer", 0xFF6B8E23L, 1),
+            Triple("Favoritos", 0xFFCD853FL, 2)
+        )
+
+        defaultShelves.forEach { (name, color, order) ->
+            shelfRepository.createShelf(name, color).onFailure { error ->
+                Log.e("TutorialVM", "Error creando estantería '$name': ${error.message}")
+            }
+        }
+
+        Log.d("TutorialVM", "Estanterías predefinidas creadas correctamente")
     }
 }

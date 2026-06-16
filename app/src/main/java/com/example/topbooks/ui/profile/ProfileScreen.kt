@@ -57,6 +57,7 @@ fun ProfileScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToList: (String, String) -> Unit,
+    onNavigateToFriendShelves: (String, String) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {},
     viewModel: ProfileViewModel = viewModel()
 ) {
@@ -194,6 +195,30 @@ fun ProfileScreen(
                             fontFamily = GuardianCity,
                             fontWeight = FontWeight.Bold,
                             color = if (state.isFriend) Color.Gray else ColorArcMediumBrown
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(ColorArcMediumBrown.copy(alpha = 0.1f))
+                            .clickable { onNavigateToFriendShelves(user.uid, user.displayName) }
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MenuBook,
+                            contentDescription = null,
+                            tint = ColorArcMediumBrown,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Ver estanterías",
+                            fontFamily = GuardianCity,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorArcMediumBrown
                         )
                     }
                 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +46,7 @@ fun ProgressScreen(
     onBookClick: (String) -> Unit,
     onAddJournalClick: () -> Unit,
     onJournalClick: (String) -> Unit,
+    onNavigateToShelves: () -> Unit = {},
     viewModel: ProgressViewModel = viewModel()
 ) {
     // Escuchamos el flujo de estado del ViewModel
@@ -72,6 +74,47 @@ fun ProgressScreen(
                 color = ColorTituloTopBooks,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clickable { onNavigateToShelves() }
+                    .background(Color.White.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MenuBook,
+                    contentDescription = "Estanterías",
+                    tint = ColorArcDarkBrown,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Mis Estanterías",
+                        fontFamily = CenturyGotic,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorArcDarkBrown
+                    )
+                    Text(
+                        text = "Organiza tus libros en estanterías personalizadas",
+                        fontFamily = CenturyGotic,
+                        fontSize = 11.sp,
+                        color = Color.Gray
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = ColorArcDarkBrown,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 

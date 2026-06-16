@@ -43,6 +43,8 @@ import com.example.topbooks.ui.reviews.ReviewsScreen
 import com.example.topbooks.ui.profile.ProfileScreen
 import com.example.topbooks.ui.profile.UserListScreen
 import com.example.topbooks.ui.reviews.SingleCommentScreen
+import com.example.topbooks.ui.shelf.FriendShelvesScreen
+import com.example.topbooks.ui.shelf.ShelvesScreen
 
 /**
  * Orquestador principal de la navegación de la aplicación.
@@ -141,7 +143,8 @@ fun AppNavigation(
                 onNavigateToStoryViewer = { userId -> navController.navigate("story_viewer/$userId") },
                 onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") },
                 onNavigateToCreatePost = { navController.navigate("create_post") },
-                onNavigateToClubs = { navController.navigate("club_list") }
+                onNavigateToClubs = { navController.navigate("club_list") },
+                onNavigateToShelves = { navController.navigate("shelves") }
             )
         }
 
@@ -157,6 +160,9 @@ fun AppNavigation(
                 onNavigateToSettings = { navController.navigate("config") },
                 onNavigateToDetail = { id -> if (id.isNotEmpty()) navController.navigate("book_detail/$id") },
                 onNavigateToList = { type, id -> navController.navigate("user_list/$type/$id") },
+                onNavigateToFriendShelves = { friendId, friendName ->
+                    navController.navigate("friend_shelves/$friendId/$friendName")
+                },
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -438,6 +444,32 @@ fun AppNavigation(
                 clubId = clubId,
                 discussionId = discussionId,
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // --- ESTANTERÍAS ---
+
+        composable("shelves") {
+            ShelvesScreen(
+                onBackClick = { navController.popBackStack() },
+                onBookClick = { bookId -> if (bookId.isNotEmpty()) navController.navigate("book_detail/$bookId") }
+            )
+        }
+
+        composable(
+            route = "friend_shelves/{friendId}/{friendName}",
+            arguments = listOf(
+                navArgument("friendId") { type = NavType.StringType },
+                navArgument("friendName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val friendId = backStackEntry.arguments?.getString("friendId") ?: ""
+            val friendName = backStackEntry.arguments?.getString("friendName") ?: ""
+            FriendShelvesScreen(
+                friendId = friendId,
+                friendName = friendName,
+                onBackClick = { navController.popBackStack() },
+                onBookClick = { bookId -> if (bookId.isNotEmpty()) navController.navigate("book_detail/$bookId") }
             )
         }
     }
