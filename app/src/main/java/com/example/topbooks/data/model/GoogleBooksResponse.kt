@@ -53,13 +53,23 @@ data class BookItem(
      * @return Una instancia limpia y segura de la clase [Book].
      */
     fun toDomain(): Book {
-        // Aseguramos que tenemos textos válidos, nunca nulos
         val safeTitle = volumeInfo?.title ?: "Sin título"
         val safeSubtitle = volumeInfo?.subtitle ?: ""
 
-        // SANITIZACIÓN: Limpiamos el HTML de Google Books
         val rawDescription = volumeInfo?.description ?: "Sin descripción disponible."
         val cleanDescription = com.example.topbooks.utils.HtmlCleaner.clean(rawDescription)
+
+        val apiSeries = volumeInfo?.seriesInfo
+        val finalSeriesName: String
+        val finalSeriesIndex: Int
+
+        if (apiSeries?.seriesDisplayTitle?.isNotBlank() == true) {
+            finalSeriesName = apiSeries.seriesDisplayTitle
+            finalSeriesIndex = apiSeries.bookDisplayNumber?.toIntOrNull() ?: series?.index ?: 0
+        } else {
+            finalSeriesName = series?.name ?: ""
+            finalSeriesIndex = series?.index ?: 0
+        }
 
         return Book(
             id = id ?: "unknown_id",
@@ -67,20 +77,14 @@ data class BookItem(
             subtitle = safeSubtitle,
             authors = volumeInfo?.authors ?: emptyList(),
             description = cleanDescription,
-
-            // TRUCO DE SEGURIDAD: Reemplazamos "http" por "https"
-            // porque Android bloquea por defecto las imágenes que no son seguras (Cleartext traffic).
             imageUrl = volumeInfo?.imageLinks?.thumbnail?.replace("http:", "https:") ?: "",
-
             lanzamiento = volumeInfo?.publishedDate ?: "",
             averageRating = volumeInfo?.averageRating ?: 0.0,
             ratingsCount = volumeInfo?.ratingsCount ?: 0,
             isMature = volumeInfo?.maturityRating == "MATURE",
             categories = volumeInfo?.categories ?: emptyList(),
-
-            // Asignamos los datos de la saga detectados por nuestro algoritmo
-            seriesName = series?.name ?: "",
-            seriesIndex = series?.index ?: 0,
+            seriesName = finalSeriesName,
+            seriesIndex = finalSeriesIndex,
             provider = "Google Books"
         )
     }
@@ -101,7 +105,19 @@ data class VolumeInfo(
     @SerializedName("averageRating") val averageRating: Double?,
     @SerializedName("ratingsCount") val ratingsCount: Int?,
     @SerializedName("maturityRating") val maturityRating: String?,
-    @SerializedName("categories") val categories: List<String>?
+    @SerializedName("categories") val categories: List<String>?,
+    @SerializedName("seriesInfo") val seriesInfo: SeriesInfo?
+)
+
+/**
+ * Metadatos de serie que Google Books devuelve directamente cuando los tiene disponibles.
+ *
+ * @property seriesDisplayTitle Nombre legible de la saga (ej. "Harry Potter").
+ * @property bookDisplayNumber Número del volumen como texto (ej. "1", "3").
+ */
+data class SeriesInfo(
+    @SerializedName("seriesDisplayTitle") val seriesDisplayTitle: String?,
+    @SerializedName("bookDisplayNumber") val bookDisplayNumber: String?
 )
 
 /**
