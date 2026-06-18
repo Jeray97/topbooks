@@ -254,6 +254,37 @@ class PostDetailViewModel(
         _uiState.update { it.copy(errorMessage = null) }
     }
 
+    fun toggleLike() {
+        val post = _uiState.value.post ?: return
+        val updated = post.copy(
+            isLikedByMe = !post.isLikedByMe,
+            likeCount = post.likeCount + (if (post.isLikedByMe) -1 else 1)
+        )
+        _uiState.update { it.copy(post = updated) }
+        viewModelScope.launch {
+            try {
+                postRepository.toggleLike(post.id, myUid)
+            } catch (e: Exception) {
+                Log.e("PostDetailVM", "Error toggle like: ${e.message}")
+                _uiState.update { it.copy(post = post) }
+            }
+        }
+    }
+
+    fun toggleSave() {
+        val post = _uiState.value.post ?: return
+        val updated = post.copy(isSavedByMe = !post.isSavedByMe)
+        _uiState.update { it.copy(post = updated) }
+        viewModelScope.launch {
+            try {
+                postRepository.toggleSave(post.id, myUid)
+            } catch (e: Exception) {
+                Log.e("PostDetailVM", "Error toggle save: ${e.message}")
+                _uiState.update { it.copy(post = post) }
+            }
+        }
+    }
+
     private fun sendPostReplyNotification(postAuthorId: String, responderName: String, postId: String) {
         val data = hashMapOf(
             "postAuthorId" to postAuthorId,

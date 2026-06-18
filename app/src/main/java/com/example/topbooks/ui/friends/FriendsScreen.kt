@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Check
@@ -173,7 +174,7 @@ fun FriendsScreen(
                             )
                         }
                         Icon(
-                            imageVector = Icons.Default.ArrowForwardIos,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                             contentDescription = null,
                             tint = Color.White.copy(alpha = 0.7f),
                             modifier = Modifier.size(16.dp)

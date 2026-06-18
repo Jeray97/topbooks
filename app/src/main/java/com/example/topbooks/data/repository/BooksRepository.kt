@@ -151,7 +151,7 @@ class BooksRepository {
                 val id = doc.getString("id") ?: doc.id
                 val title = doc.getString("title") ?: ""
                 val subtitle = doc.getString("subtitle") ?: ""
-                val authors = doc.get("authors") as? List<String> ?: emptyList()
+                val authors = (doc.get("authors") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
 
                 // SANITIZACIÓN: Limpiamos por si se guardó sucio
                 val rawDescription = doc.getString("description") ?: ""
@@ -163,7 +163,7 @@ class BooksRepository {
                 val ratingsCount = doc.getLong("ratingsCount")?.toInt() ?: 0
                 val pageCount = doc.getLong("pageCount")?.toInt() ?: 0
                 val isMature = doc.getBoolean("isMature") ?: false
-                val categories = doc.get("categories") as? List<String> ?: emptyList()
+                val categories = (doc.get("categories") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
 
                 val seriesName = doc.getString("seriesName") ?: ""
                 val seriesIndex = doc.getLong("seriesIndex")?.toInt() ?: 0
@@ -318,7 +318,7 @@ class BooksRepository {
                     id = id,
                     title = snapshot.getString("title") ?: "",
                     subtitle = snapshot.getString("subtitle") ?: "",
-                    authors = snapshot.get("authors") as? List<String> ?: emptyList(),
+                    authors = (snapshot.get("authors") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                     description = cleanDescription,
                     imageUrl = snapshot.getString("imageUrl") ?: "",
                     lanzamiento = snapshot.getString("lanzamiento") ?: "",
@@ -326,7 +326,7 @@ class BooksRepository {
                     ratingsCount = snapshot.getLong("ratingsCount")?.toInt() ?: 0,
                     pageCount = snapshot.getLong("pageCount")?.toInt() ?: 0,
                     isMature = snapshot.getBoolean("isMature") ?: false,
-                    categories = snapshot.get("categories") as? List<String> ?: emptyList(),
+                    categories = (snapshot.get("categories") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                     seriesName = snapshot.getString("seriesName") ?: "",
                     seriesIndex = snapshot.getLong("seriesIndex")?.toInt() ?: 0
                 )
@@ -496,7 +496,7 @@ class BooksRepository {
                     id = doc.getString("id") ?: doc.id,
                     title = doc.getString("title") ?: "",
                     subtitle = doc.getString("subtitle") ?: "",
-                    authors = doc.get("authors") as? List<String> ?: emptyList(),
+                    authors = (doc.get("authors") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                     description = description,
                     imageUrl = doc.getString("imageUrl") ?: "",
                     lanzamiento = doc.getString("publishedDate") ?: doc.getString("lanzamiento")
@@ -505,7 +505,7 @@ class BooksRepository {
                     ratingsCount = doc.getLong("ratingsCount")?.toInt() ?: 0,
                     pageCount = doc.getLong("pageCount")?.toInt() ?: 0,
                     isMature = doc.getBoolean("isMature") ?: false,
-                    categories = doc.get("categories") as? List<String> ?: emptyList(),
+                    categories = (doc.get("categories") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                     seriesName = doc.getString("seriesName") ?: "",
                     seriesIndex = doc.getLong("seriesIndex")?.toInt() ?: 0
                 )

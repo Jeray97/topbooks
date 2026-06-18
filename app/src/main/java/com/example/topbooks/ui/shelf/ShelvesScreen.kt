@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
@@ -164,7 +165,7 @@ fun ShelvesScreen(
                 actions = {
                     IconButton(onClick = { viewModel.toggleViewMode() }) {
                         Icon(
-                            imageVector = if (state.viewMode == ViewMode.SPINES) Icons.Default.GridView else Icons.Default.MenuBook,
+                            imageVector = if (state.viewMode == ViewMode.SPINES) Icons.Default.GridView else Icons.AutoMirrored.Filled.MenuBook,
                             contentDescription = "Cambiar vista",
                             tint = ColorArcDarkBrown
                         )

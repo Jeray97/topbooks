@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,6 +45,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -51,7 +55,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.topbooks.ui.components.TopBar
+import com.example.topbooks.utils.AvatarHelper
 import com.example.topbooks.ui.theme.CenturyGotic
 import com.example.topbooks.ui.theme.ColorArcDarkBrown
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
@@ -95,6 +102,7 @@ fun PostDetailScreen(
     onBackClick: () -> Unit,
     onAuthorClick: (String) -> Unit = {},
     onBookClick: (String) -> Unit = {},
+    onShareClick: (Post) -> Unit = {},
     viewModel: PostDetailViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -131,14 +139,15 @@ fun PostDetailScreen(
             else -> PostDetailContent(
                 state = state,
                 padding = padding,
-                onLikeClick = { /* TODO: viewModel.toggleLike */ },
-                onSaveClick = { /* TODO: viewModel.toggleSave */ },
+                onLikeClick = { viewModel.toggleLike() },
+                onSaveClick = { viewModel.toggleSave() },
                 onReactionClick = { emoji -> viewModel.toggleReaction(emoji) },
                 onAddReactionClick = { viewModel.toggleEmojiPicker() },
                 onPickEmoji = { emoji -> viewModel.toggleReaction(emoji) },
                 onReplyLikeClick = { replyId -> viewModel.toggleReplyLike(replyId) },
                 onAuthorClick = onAuthorClick,
-                onBookClick = onBookClick
+                onBookClick = onBookClick,
+                onShareClick = { state.post?.let { onShareClick(it) } }
             )
         }
     }
@@ -185,7 +194,8 @@ private fun PostDetailContent(
     onPickEmoji: (String) -> Unit,
     onReplyLikeClick: (String) -> Unit,
     onAuthorClick: (String) -> Unit,
-    onBookClick: (String) -> Unit
+    onBookClick: (String) -> Unit,
+    onShareClick: () -> Unit
 ) {
     val post = state.post ?: return
 
@@ -210,7 +220,8 @@ private fun PostDetailContent(
                 onAddReactionClick = onAddReactionClick,
                 onPickEmoji = onPickEmoji,
                 onAuthorClick = { onAuthorClick(post.author.id) },
-                onBookClick = { post.book?.let { onBookClick(it.id) } }
+                onBookClick = { post.book?.let { onBookClick(it.id) } },
+                onShareClick = onShareClick
             )
         }
 
@@ -264,7 +275,8 @@ private fun MainPostCard(
     onAddReactionClick: () -> Unit,
     onPickEmoji: (String) -> Unit,
     onAuthorClick: () -> Unit,
-    onBookClick: () -> Unit
+    onBookClick: () -> Unit,
+    onShareClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -336,7 +348,8 @@ private fun MainPostCard(
             isLiked = post.isLikedByMe,
             isSaved = post.isSavedByMe,
             onLikeClick = onLikeClick,
-            onSaveClick = onSaveClick
+            onSaveClick = onSaveClick,
+            onShareClick = onShareClick
         )
     }
 }
@@ -391,9 +404,16 @@ private fun AvatarCircle(author: PostAuthor, size: androidx.compose.ui.unit.Dp) 
             .background(ringBrush)
             .padding(2.dp)
             .clip(CircleShape)
-            .background(fallbackCoverColor(author.id))
             .border(2.dp, Color.White, CircleShape)
-    )
+    ) {
+        val avatarRes = AvatarHelper.getDrawableId(author.photoUrl)
+        Image(
+            painter = painterResource(id = avatarRes),
+            contentDescription = author.displayName,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+    }
 }
 
 @Composable
@@ -443,12 +463,26 @@ private fun BookStripDetail(book: PostBook, rating: Int?, onClick: () -> Unit) {
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(width = 50.dp, height = 75.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(fallbackCoverColor(book.id))
-        )
+        if (book.coverUrl?.isNotBlank() == true) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(book.coverUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = book.title,
+                modifier = Modifier
+                    .size(width = 50.dp, height = 75.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(width = 50.dp, height = 75.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(fallbackCoverColor(book.id))
+            )
+        }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -687,7 +721,8 @@ private fun PrimaryActions(
     isLiked: Boolean,
     isSaved: Boolean,
     onLikeClick: () -> Unit,
-    onSaveClick: () -> Unit
+    onSaveClick: () -> Unit,
+    onShareClick: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -718,7 +753,7 @@ private fun PrimaryActions(
             icon = Icons.Default.Share,
             label = "Compartir",
             color = SUB_TEXT,
-            onClick = { /* TODO: share intent */ }
+            onClick = onShareClick
         )
     }
 }
@@ -906,6 +941,7 @@ private fun ReplyComposeBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
+            .navigationBarsPadding()
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)

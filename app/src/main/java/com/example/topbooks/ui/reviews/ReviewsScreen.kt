@@ -87,7 +87,7 @@ fun ReviewsScreen(
             // Cabecera dinámica según el contexto de la pantalla
             item {
                 Text(
-                    text = if (bookId != null) stringResource(R.string.reviews_title_thread) else stringResource(R.string.reviews_title_community),
+                    text = stringResource(R.string.reviews_title_thread),
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Bold,
                     fontSize = 24.sp,

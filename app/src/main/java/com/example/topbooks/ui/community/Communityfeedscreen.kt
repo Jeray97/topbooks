@@ -38,13 +38,19 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.topbooks.ui.components.TopBar
+import com.example.topbooks.utils.AvatarHelper
 import com.example.topbooks.ui.theme.CenturyGotic
 import com.example.topbooks.ui.theme.ColorArcDarkBrown
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
@@ -357,7 +363,6 @@ private fun StoryAvatar(story: StoryItem, onClick: () -> Unit) {
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Anillo dorado degradado (es siempre amigo en la story-bar)
         Box(
             modifier = Modifier
                 .size(56.dp)
@@ -366,8 +371,15 @@ private fun StoryAvatar(story: StoryItem, onClick: () -> Unit) {
                 .padding(2.5.dp)
                 .clip(CircleShape)
                 .border(2.5.dp, ColorBackGroundGeneral, CircleShape)
-                .background(fallbackCoverColor(story.author.id))
-        )
+        ) {
+            val avatarRes = AvatarHelper.getDrawableId(story.author.photoUrl)
+            androidx.compose.foundation.Image(
+                painter = painterResource(id = avatarRes),
+                contentDescription = story.author.displayName,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
         Spacer(Modifier.height(4.dp))
         Text(
             text = story.author.displayName.split(" ").first(),  // Solo el primer nombre
@@ -543,9 +555,16 @@ private fun AvatarWithRing(author: PostAuthor, size: androidx.compose.ui.unit.Dp
             .background(ringBrush)
             .padding(2.dp)
             .clip(CircleShape)
-            .background(fallbackCoverColor(author.id))
             .border(2.dp, Color.White, CircleShape)
-    )
+    ) {
+        val avatarRes = AvatarHelper.getDrawableId(author.photoUrl)
+        androidx.compose.foundation.Image(
+            painter = painterResource(id = avatarRes),
+            contentDescription = author.displayName,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+    }
 }
 
 @Composable
@@ -616,13 +635,26 @@ private fun BookStrip(book: PostBook, rating: Int?) {
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Portada: si hay coverUrl iría AsyncImage, por ahora color de respaldo
-        Box(
-            modifier = Modifier
-                .size(width = 38.dp, height = 56.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(fallbackCoverColor(book.id))
-        )
+        if (book.coverUrl?.isNotBlank() == true) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(book.coverUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = book.title,
+                modifier = Modifier
+                    .size(width = 38.dp, height = 56.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(width = 38.dp, height = 56.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(fallbackCoverColor(book.id))
+            )
+        }
         Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(

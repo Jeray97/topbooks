@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.FormatQuote
@@ -134,7 +135,7 @@ fun CreateStoryScreen(
                     )
                     StoryTypeCard(
                         type = StoryType.READING_STATUS,
-                        icon = Icons.Default.MenuBook,
+                        icon = Icons.AutoMirrored.Filled.MenuBook,
                         label = "Leyendo",
                         isSelected = selectedType == StoryType.READING_STATUS,
                         onClick = { selectedType = StoryType.READING_STATUS },

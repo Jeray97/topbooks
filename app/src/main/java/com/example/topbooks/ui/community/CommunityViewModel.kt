@@ -50,10 +50,18 @@ class CommunityViewModel(
     private fun loadStories() {
         viewModelScope.launch {
             try {
-                val stories = storyRepository.getFriendsStories(friendIds.toList()).getOrDefault(emptyList())
-                val enrichedStories = stories.map { story ->
+                val friendsStories = storyRepository.getFriendsStories(friendIds.toList()).getOrDefault(emptyList())
+                val communityStories = storyRepository.getCommunityStories(limit = 20).getOrDefault(emptyList())
+
+                val allStories = (friendsStories + communityStories)
+                    .distinctBy { it.id }
+                    .sortedByDescending { it.createdAt?.time ?: 0L }
+                    .take(20)
+
+                val enrichedStories = allStories.map { story ->
                     viewModelScope.async {
                         val user = getCachedUser(story.userId)
+                        val isFriend = story.userId in friendIds
                         val enrichedStory = if (story.bookId.isNotBlank()) {
                             val book = getCachedBook(story.bookId)
                             story.copy(
@@ -69,7 +77,7 @@ class CommunityViewModel(
                                 userPhotoUrl = user?.photoURL ?: story.userPhotoUrl
                             )
                         }
-                        enrichedStory.toUiStoryItem(user, isFriend = true)
+                        enrichedStory.toUiStoryItem(user, isFriend = isFriend)
                     }
                 }.awaitAll()
                 _uiState.update { it.copy(stories = enrichedStories) }

@@ -27,20 +27,24 @@ class ShelfRepositoryImpl : ShelfRepository {
     private fun shelvesRef(uid: String) = db.collection("users").document(uid).collection("shelves")
 
     private fun mapToShelf(doc: com.google.firebase.firestore.DocumentSnapshot): Shelf {
-        val rawMeta = doc.get("bookMetadata") as? Map<String, Map<String, Any>> ?: emptyMap()
+        val rawMeta = (doc.get("bookMetadata") as? Map<*, *>)?.mapNotNull { (k, v) ->
+            (k as? String)?.let { key ->
+                key to ((v as? Map<*, *>) ?: emptyMap<Any, Any>())
+            }
+        }?.toMap() ?: emptyMap()
         val bookMetadata = rawMeta.mapValues { (_, v) ->
             ShelfBookMeta(
                 title = v["title"] as? String ?: "",
                 imageUrl = v["imageUrl"] as? String ?: "",
                 pageCount = (v["pageCount"] as? Long)?.toInt() ?: 0,
-                authors = v["authors"] as? List<String> ?: emptyList()
+                authors = (v["authors"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
             )
         }
         return Shelf(
             id = doc.id,
             name = doc.getString("name") ?: "",
             color = doc.getLong("color") ?: 0xFF8D5B4C,
-            bookIds = doc.get("bookIds") as? List<String> ?: emptyList(),
+            bookIds = (doc.get("bookIds") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
             bookMetadata = bookMetadata,
             order = doc.getLong("order")?.toInt() ?: 0,
             isPublic = doc.getBoolean("isPublic") ?: false,
@@ -139,7 +143,7 @@ class ShelfRepositoryImpl : ShelfRepository {
         return try {
             val ref = shelvesRef(uid).document(shelfId)
             val doc = ref.get().await()
-            val currentIds = (doc.get("bookIds") as? List<String> ?: emptyList()).toMutableList()
+            val currentIds = ((doc.get("bookIds") as? List<*>)?.filterIsInstance<String>() ?: emptyList()).toMutableList()
             if (!currentIds.contains(bookId)) {
                 currentIds.add(bookId)
                 val metaMap = mapOf(
@@ -166,7 +170,7 @@ class ShelfRepositoryImpl : ShelfRepository {
         return try {
             val ref = shelvesRef(uid).document(shelfId)
             val doc = ref.get().await()
-            val currentIds = (doc.get("bookIds") as? List<String> ?: emptyList()).toMutableList()
+            val currentIds = ((doc.get("bookIds") as? List<*>)?.filterIsInstance<String>() ?: emptyList()).toMutableList()
             currentIds.remove(bookId)
             ref.update(
                 mapOf(
@@ -188,7 +192,7 @@ class ShelfRepositoryImpl : ShelfRepository {
             }
             val ref = shelvesRef(uid).document(toShelfId)
             val doc = ref.get().await()
-            val currentIds = (doc.get("bookIds") as? List<String> ?: emptyList()).toMutableList()
+            val currentIds = ((doc.get("bookIds") as? List<*>)?.filterIsInstance<String>() ?: emptyList()).toMutableList()
             currentIds.remove(bookId)
             val insertIndex = toIndex.coerceIn(0, currentIds.size)
             currentIds.add(insertIndex, bookId)

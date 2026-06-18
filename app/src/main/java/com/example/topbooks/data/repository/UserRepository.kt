@@ -178,7 +178,7 @@ class UserRepositoryImpl : UserRepository {
             .await()
 
         // Realizamos un casteo seguro a List<String>
-        return snapshot.get("favoriteGenres") as? List<String> ?: emptyList()
+        return (snapshot.get("favoriteGenres") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
     }
 
     /**

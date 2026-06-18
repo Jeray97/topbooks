@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FormatQuote
@@ -144,7 +145,7 @@ class CreatePostViewModel(
 
     fun createPost(
         type: PostType,
-        bookId: String,
+        book: com.example.topbooks.data.model.Book?,
         text: String,
         rating: Int,
         quoteSource: String,
@@ -154,7 +155,10 @@ class CreatePostViewModel(
             _uiState.update { it.copy(isCreating = true, errorMessage = null) }
             val post = Post(
                 type = type.name,
-                bookId = bookId,
+                bookId = book?.id ?: "",
+                bookTitle = book?.title ?: "",
+                bookAuthor = book?.authors?.joinToString() ?: "",
+                bookImageUrl = book?.imageUrl ?: "",
                 text = text,
                 rating = rating,
                 quote = if (type == PostType.QUOTE) text else "",
@@ -269,7 +273,7 @@ fun CreatePostScreen(
                     )
                     PostTypeCard(
                         label = "Terminé",
-                        icon = Icons.Default.MenuBook,
+                        icon = Icons.AutoMirrored.Filled.MenuBook,
                         isSelected = selectedType == PostType.FINISHED,
                         onClick = { selectedType = PostType.FINISHED },
                         modifier = Modifier.weight(1f)
@@ -498,7 +502,7 @@ fun CreatePostScreen(
                 onClick = {
                     viewModel.createPost(
                         type = selectedType,
-                        bookId = selectedBook?.id ?: "",
+                        book = selectedBook,
                         text = postText,
                         rating = rating,
                         quoteSource = quoteSource

@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.topbooks.ui.auth
 
 import android.app.Activity
@@ -46,6 +48,7 @@ import com.google.android.gms.common.api.ApiException
  * @param onLoginSuccess Callback que se ejecuta cuando el usuario inicia sesión correctamente para navegar a la Home.
  * @param onNavigateToRegister Callback para navegar a la pantalla de crear una cuenta nueva.
  */
+@Suppress("DEPRECATION")
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel = viewModel(),

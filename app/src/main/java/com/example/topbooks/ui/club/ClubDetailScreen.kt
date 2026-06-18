@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.ChatBubbleOutline
@@ -595,7 +596,7 @@ private fun MembershipButton(
                 CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
             } else {
                 Icon(
-                    imageVector = if (isMember) Icons.Default.Logout else Icons.Default.People,
+                    imageVector = if (isMember) Icons.AutoMirrored.Filled.Logout else Icons.Default.People,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
