@@ -1,5 +1,6 @@
 package com.example.topbooks.ui.community
 
+import android.app.Application
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -103,7 +104,7 @@ fun PostDetailScreen(
     onAuthorClick: (String) -> Unit = {},
     onBookClick: (String) -> Unit = {},
     onShareClick: (Post) -> Unit = {},
-    viewModel: PostDetailViewModel = viewModel()
+    viewModel: PostDetailViewModel = viewModel(factory = PostDetailViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val state by viewModel.uiState.collectAsState()
     var replyText by remember { mutableStateOf("") }

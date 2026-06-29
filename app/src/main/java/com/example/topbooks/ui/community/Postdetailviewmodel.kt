@@ -1,8 +1,11 @@
 package com.example.topbooks.ui.community
 
+import android.app.Application
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.topbooks.data.model.PostReply as DataPostReply
 import com.example.topbooks.data.repository.BooksRepository
 import com.example.topbooks.data.repository.CommunityRepository
@@ -21,11 +24,23 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class PostDetailViewModel(
-    private val postRepository: PostRepository = PostRepositoryImpl(),
-    private val userRepository: UserRepository = UserRepositoryImpl(),
-    private val booksRepository: BooksRepository = BooksRepository(),
-    private val communityRepository: CommunityRepository = CommunityRepositoryImpl()
+    private val postRepository: PostRepository,
+    private val userRepository: UserRepository,
+    private val booksRepository: BooksRepository,
+    private val communityRepository: CommunityRepository
 ) : ViewModel() {
+
+    class Factory(private val context: Application) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+            @Suppress("UNCHECKED_CAST")
+            return PostDetailViewModel(
+                postRepository = PostRepositoryImpl(context),
+                userRepository = UserRepositoryImpl(context),
+                booksRepository = BooksRepository(context),
+                communityRepository = CommunityRepositoryImpl()
+            ) as T
+        }
+    }
 
     private val functions = FirebaseFunctions.getInstance()
 

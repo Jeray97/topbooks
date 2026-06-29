@@ -1,5 +1,11 @@
 package com.example.topbooks.data.repository
 
+import android.content.Context
+import com.example.topbooks.data.local.AppDatabase
+import com.example.topbooks.data.local.NetworkMonitor
+import com.example.topbooks.data.local.PostDao
+import com.example.topbooks.data.local.toDomain
+import com.example.topbooks.data.local.toEntity
 import com.example.topbooks.data.model.Post
 import com.example.topbooks.data.model.PostReply
 import com.example.topbooks.data.model.PostType
@@ -26,9 +32,16 @@ interface PostRepository {
     suspend fun toggleReplyLike(postId: String, replyId: String, userId: String): Result<Boolean>
 }
 
-class PostRepositoryImpl : PostRepository {
+class PostRepositoryImpl(context: Context? = null) : PostRepository {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    
+    private val postDao: PostDao? = context?.let { AppDatabase.getInstance(it).postDao() }
+    private val networkMonitor: NetworkMonitor? = context?.let { NetworkMonitor(it) }
+    
+    companion object {
+        private const val CACHE_VALIDITY_MS = 30 * 60 * 1000L // 30 minutos
+    }
 
     override suspend fun createPost(post: Post): Result<String> {
         return try {
@@ -58,17 +71,43 @@ class PostRepositoryImpl : PostRepository {
 
     override suspend fun getPostById(postId: String): Result<Post> {
         return try {
+            val cachedPost = postDao?.getPostById(postId)
+            val isOnline = networkMonitor?.isCurrentlyOnline() ?: true
+            
+            if (cachedPost != null && (!isOnline || System.currentTimeMillis() - cachedPost.cachedAt < CACHE_VALIDITY_MS)) {
+                return Result.success(cachedPost.toDomain())
+            }
+            
+            if (!isOnline && cachedPost != null) {
+                return Result.success(cachedPost.toDomain())
+            }
+            
             val snap = db.collection("posts").document(postId).get().await()
             val post = snap.toObject(Post::class.java)
-            if (post != null) Result.success(post)
+            if (post != null) {
+                postDao?.insertPost(post.toEntity())
+                Result.success(post)
+            }
             else Result.failure(Exception("Post no encontrado"))
         } catch (e: Exception) {
-            Result.failure(e)
+            val cachedPost = postDao?.getPostById(postId)
+            if (cachedPost != null) {
+                Result.success(cachedPost.toDomain())
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
     override suspend fun getCommunityFeed(limit: Long, lastPostId: String?): Result<List<Post>> {
         return try {
+            val isOnline = networkMonitor?.isCurrentlyOnline() ?: true
+            val cachedPosts = postDao?.getRecentPosts(limit.toInt()) ?: emptyList()
+            
+            if (!isOnline && cachedPosts.isNotEmpty()) {
+                return Result.success(cachedPosts.map { it.toDomain() })
+            }
+            
             var query = db.collection("posts")
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .limit(limit)
@@ -79,36 +118,71 @@ class PostRepositoryImpl : PostRepository {
             }
 
             val snap = query.get().await()
-            Result.success(snap.toObjects(Post::class.java))
+            val posts = snap.toObjects(Post::class.java)
+            postDao?.insertPosts(posts.map { it.toEntity() })
+            Result.success(posts)
         } catch (e: Exception) {
-            Result.failure(e)
+            val cachedPosts = postDao?.getRecentPosts(limit.toInt()) ?: emptyList()
+            if (cachedPosts.isNotEmpty()) {
+                Result.success(cachedPosts.map { it.toDomain() })
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
     override suspend fun getFriendsFeed(friendIds: List<String>, limit: Long): Result<List<Post>> {
         return try {
             if (friendIds.isEmpty()) return Result.success(emptyList())
+            
+            val isOnline = networkMonitor?.isCurrentlyOnline() ?: true
+            val cachedPosts = postDao?.getPostsByUsers(friendIds, limit.toInt()) ?: emptyList()
+            
+            if (!isOnline && cachedPosts.isNotEmpty()) {
+                return Result.success(cachedPosts.map { it.toDomain() })
+            }
 
             val snap = db.collection("posts")
                 .whereIn("userId", friendIds.take(10))
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .limit(limit)
                 .get().await()
-            Result.success(snap.toObjects(Post::class.java))
+            val posts = snap.toObjects(Post::class.java)
+            postDao?.insertPosts(posts.map { it.toEntity() })
+            Result.success(posts)
         } catch (e: Exception) {
-            Result.failure(e)
+            val cachedPosts = postDao?.getPostsByUsers(friendIds, limit.toInt()) ?: emptyList()
+            if (cachedPosts.isNotEmpty()) {
+                Result.success(cachedPosts.map { it.toDomain() })
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
     override suspend fun getTopFeed(limit: Long): Result<List<Post>> {
         return try {
+            val isOnline = networkMonitor?.isCurrentlyOnline() ?: true
+            val cachedPosts = postDao?.getTopPosts(limit.toInt()) ?: emptyList()
+            
+            if (!isOnline && cachedPosts.isNotEmpty()) {
+                return Result.success(cachedPosts.map { it.toDomain() })
+            }
+            
             val snap = db.collection("posts")
                 .orderBy("likes", Query.Direction.DESCENDING)
                 .limit(limit)
                 .get().await()
-            Result.success(snap.toObjects(Post::class.java))
+            val posts = snap.toObjects(Post::class.java)
+            postDao?.insertPosts(posts.map { it.toEntity() })
+            Result.success(posts)
         } catch (e: Exception) {
-            Result.failure(e)
+            val cachedPosts = postDao?.getTopPosts(limit.toInt()) ?: emptyList()
+            if (cachedPosts.isNotEmpty()) {
+                Result.success(cachedPosts.map { it.toDomain() })
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
@@ -119,6 +193,29 @@ class PostRepositoryImpl : PostRepository {
         limit: Long
     ): Result<List<Post>> {
         return try {
+            val isOnline = networkMonitor?.isCurrentlyOnline() ?: true
+            
+            val cachedFriends = postDao?.getPostsByUsers(friendIds, 15) ?: emptyList()
+            val cachedRecent = postDao?.getRecentPosts(40) ?: emptyList()
+            val allCached = (cachedFriends + cachedRecent).distinctBy { it.id }
+            
+            if (!isOnline && allCached.isNotEmpty()) {
+                val cachedDomainPosts = allCached.map { it.toDomain() }
+                val scored = cachedDomainPosts.map { post ->
+                    var score = 0.0
+                    if (post.userId in friendIds) score += 50.0
+                    val postAge = System.currentTimeMillis() - (post.createdAt?.time ?: System.currentTimeMillis())
+                    val hoursAgo = postAge / (1000.0 * 60 * 60)
+                    score += maxOf(0.0, 30.0 - hoursAgo)
+                    val engagement = post.likes + (post.replyCount * 2) + (post.reactions.values.sumOf { it.size } * 1.5)
+                    score += engagement * 2.0
+                    if (post.savedBy.contains(userId)) score += 20.0
+                    post to score
+                }
+                val sorted = scored.sortedByDescending { it.second }.take(limit.toInt()).map { it.first }
+                return Result.success(sorted)
+            }
+            
             val allPosts = mutableListOf<Post>()
             val seenIds = mutableSetOf<String>()
 
@@ -140,6 +237,8 @@ class PostRepositoryImpl : PostRepository {
             recentSnap.toObjects(Post::class.java).forEach { post ->
                 if (seenIds.add(post.id)) allPosts.add(post)
             }
+
+            postDao?.insertPosts(allPosts.map { it.toEntity() })
 
             val now = System.currentTimeMillis()
             val scoredPosts = allPosts.map { post ->
@@ -166,19 +265,53 @@ class PostRepositoryImpl : PostRepository {
 
             Result.success(sortedPosts)
         } catch (e: Exception) {
-            Result.failure(e)
+            val cachedFriends = postDao?.getPostsByUsers(friendIds, 15) ?: emptyList()
+            val cachedRecent = postDao?.getRecentPosts(40) ?: emptyList()
+            val allCached = (cachedFriends + cachedRecent).distinctBy { it.id }
+            if (allCached.isNotEmpty()) {
+                val cachedDomainPosts = allCached.map { it.toDomain() }
+                val scored = cachedDomainPosts.map { post ->
+                    var score = 0.0
+                    if (post.userId in friendIds) score += 50.0
+                    val postAge = System.currentTimeMillis() - (post.createdAt?.time ?: System.currentTimeMillis())
+                    val hoursAgo = postAge / (1000.0 * 60 * 60)
+                    score += maxOf(0.0, 30.0 - hoursAgo)
+                    val engagement = post.likes + (post.replyCount * 2) + (post.reactions.values.sumOf { it.size } * 1.5)
+                    score += engagement * 2.0
+                    if (post.savedBy.contains(userId)) score += 20.0
+                    post to score
+                }
+                val sorted = scored.sortedByDescending { it.second }.take(limit.toInt()).map { it.first }
+                Result.success(sorted)
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
     override suspend fun getUserPosts(userId: String): Result<List<Post>> {
         return try {
+            val isOnline = networkMonitor?.isCurrentlyOnline() ?: true
+            val cachedPosts = postDao?.getPostsByUser(userId) ?: emptyList()
+            
+            if (!isOnline && cachedPosts.isNotEmpty()) {
+                return Result.success(cachedPosts.map { it.toDomain() })
+            }
+            
             val snap = db.collection("posts")
                 .whereEqualTo("userId", userId)
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get().await()
-            Result.success(snap.toObjects(Post::class.java))
+            val posts = snap.toObjects(Post::class.java)
+            postDao?.insertPosts(posts.map { it.toEntity() })
+            Result.success(posts)
         } catch (e: Exception) {
-            Result.failure(e)
+            val cachedPosts = postDao?.getPostsByUser(userId) ?: emptyList()
+            if (cachedPosts.isNotEmpty()) {
+                Result.success(cachedPosts.map { it.toDomain() })
+            } else {
+                Result.failure(e)
+            }
         }
     }
 

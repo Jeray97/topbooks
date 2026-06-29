@@ -1,5 +1,6 @@
 package com.example.topbooks.ui.community
 
+import android.app.Application
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -97,7 +98,7 @@ fun CommunityFeedScreen(
     onCreatePostClick: () -> Unit,
     onCreateStoryClick: () -> Unit = {},
     onStoryClick: (userId: String) -> Unit = {},
-    viewModel: CommunityViewModel = viewModel()
+    viewModel: CommunityViewModel = viewModel(factory = CommunityViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val state by viewModel.uiState.collectAsState()
 

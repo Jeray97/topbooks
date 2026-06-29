@@ -1,5 +1,6 @@
 package com.example.topbooks.ui.community
 
+import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -49,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,7 +71,7 @@ import com.example.topbooks.ui.theme.CenturyGotic
 fun CreateStoryScreen(
     onBackClick: () -> Unit,
     onStoryCreated: () -> Unit,
-    viewModel: StoryViewModel = viewModel()
+    viewModel: StoryViewModel = viewModel(factory = StoryViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val state by viewModel.uiState.collectAsState()
     var selectedBook by remember { mutableStateOf<Book?>(null) }

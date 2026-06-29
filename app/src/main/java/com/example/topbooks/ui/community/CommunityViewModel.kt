@@ -1,8 +1,12 @@
 package com.example.topbooks.ui.community
 
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.topbooks.data.model.Post as DataPost
 import com.example.topbooks.data.repository.*
 import kotlinx.coroutines.async
@@ -14,12 +18,25 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class CommunityViewModel(
-    private val postRepository: PostRepository = PostRepositoryImpl(),
-    private val storyRepository: StoryRepository = StoryRepositoryImpl(),
-    private val communityRepository: CommunityRepository = CommunityRepositoryImpl(),
-    private val userRepository: UserRepository = UserRepositoryImpl(),
-    private val booksRepository: BooksRepository = BooksRepository()
+    private val postRepository: PostRepository,
+    private val storyRepository: StoryRepository,
+    private val communityRepository: CommunityRepository,
+    private val userRepository: UserRepository,
+    private val booksRepository: BooksRepository
 ) : ViewModel() {
+
+    class Factory(private val context: Application) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+            @Suppress("UNCHECKED_CAST")
+            return CommunityViewModel(
+                postRepository = PostRepositoryImpl(context),
+                storyRepository = StoryRepositoryImpl(),
+                communityRepository = CommunityRepositoryImpl(),
+                userRepository = UserRepositoryImpl(context),
+                booksRepository = BooksRepository(context)
+            ) as T
+        }
+    }
 
     private val _uiState = MutableStateFlow(CommunityFeedUiState())
     val uiState: StateFlow<CommunityFeedUiState> = _uiState.asStateFlow()

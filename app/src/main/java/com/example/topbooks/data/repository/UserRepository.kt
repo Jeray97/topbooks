@@ -1,5 +1,11 @@
 package com.example.topbooks.data.repository
 
+import android.content.Context
+import com.example.topbooks.data.local.AppDatabase
+import com.example.topbooks.data.local.NetworkMonitor
+import com.example.topbooks.data.local.UserDao
+import com.example.topbooks.data.local.toDomain
+import com.example.topbooks.data.local.toEntity
 import com.example.topbooks.data.model.User
 import com.example.topbooks.ui.profile.SimpleUser
 import com.google.firebase.auth.FirebaseAuth
@@ -60,9 +66,16 @@ interface UserRepository {
  * 2. IMPLEMENTACIÓN DE LA INTERFAZ
  * Se conecta a la colección principal "users" de Firebase Firestore.
  */
-class UserRepositoryImpl : UserRepository {
+class UserRepositoryImpl(context: Context? = null) : UserRepository {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    
+    private val userDao: UserDao? = context?.let { AppDatabase.getInstance(it).userDao() }
+    private val networkMonitor: NetworkMonitor? = context?.let { NetworkMonitor(it) }
+    
+    companion object {
+        private const val CACHE_VALIDITY_MS = 60 * 60 * 1000L // 1 hora
+    }
 
     override fun getCurrentUserId(): String? = auth.currentUser?.uid
 
@@ -71,10 +84,30 @@ class UserRepositoryImpl : UserRepository {
      */
     override suspend fun getUserProfile(userId: String): Result<User?> {
         return try {
+            val cachedUser = userDao?.getUserById(userId)
+            val isOnline = networkMonitor?.isCurrentlyOnline() ?: true
+            
+            if (cachedUser != null && (!isOnline || System.currentTimeMillis() - cachedUser.cachedAt < CACHE_VALIDITY_MS)) {
+                return Result.success(cachedUser.toDomain())
+            }
+            
+            if (!isOnline && cachedUser != null) {
+                return Result.success(cachedUser.toDomain())
+            }
+            
             val doc = db.collection("users").document(userId).get().await()
-            Result.success(doc.toObject(User::class.java))
+            val user = doc.toObject(User::class.java)
+            if (user != null) {
+                userDao?.insertUser(user.toEntity())
+            }
+            Result.success(user)
         } catch (e: Exception) {
-            Result.failure(e)
+            val cachedUser = userDao?.getUserById(userId)
+            if (cachedUser != null) {
+                Result.success(cachedUser.toDomain())
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
@@ -171,14 +204,35 @@ class UserRepositoryImpl : UserRepository {
 
 
     override suspend fun getFavoriteGenres(uid: String): List<String> {
-        val snapshot = FirebaseFirestore.getInstance()
-            .collection("users")
-            .document(uid)
-            .get()
-            .await()
+        return try {
+            val cachedUser = userDao?.getUserById(uid)
+            val isOnline = networkMonitor?.isCurrentlyOnline() ?: true
+            
+            if (cachedUser != null && (!isOnline || System.currentTimeMillis() - cachedUser.cachedAt < CACHE_VALIDITY_MS)) {
+                return cachedUser.favoriteGenres
+            }
+            
+            if (!isOnline && cachedUser != null) {
+                return cachedUser.favoriteGenres
+            }
+            
+            val snapshot = FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(uid)
+                .get()
+                .await()
 
-        // Realizamos un casteo seguro a List<String>
-        return (snapshot.get("favoriteGenres") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+            val genres = (snapshot.get("favoriteGenres") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+            
+            if (cachedUser != null) {
+                userDao?.insertUser(cachedUser.toDomain().copy(favoriteGenres = genres).toEntity())
+            }
+            
+            genres
+        } catch (e: Exception) {
+            val cachedUser = userDao?.getUserById(uid)
+            cachedUser?.favoriteGenres ?: emptyList()
+        }
     }
 
     /**

@@ -1,7 +1,10 @@
 package com.example.topbooks.ui.community
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.topbooks.data.model.Story
 import com.example.topbooks.data.model.StoryType
 import com.example.topbooks.data.repository.BooksRepository
@@ -25,10 +28,21 @@ data class StoryUiState(
 )
 
 class StoryViewModel(
-    private val storyRepository: StoryRepository = StoryRepositoryImpl(),
-    private val booksRepository: BooksRepository = BooksRepository(),
-    private val userRepository: UserRepository = UserRepositoryImpl()
+    private val storyRepository: StoryRepository,
+    private val booksRepository: BooksRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
+
+    class Factory(private val context: Application) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+            @Suppress("UNCHECKED_CAST")
+            return StoryViewModel(
+                storyRepository = StoryRepositoryImpl(),
+                booksRepository = BooksRepository(context),
+                userRepository = UserRepositoryImpl(context)
+            ) as T
+        }
+    }
 
     private val _uiState = MutableStateFlow(StoryUiState())
     val uiState: StateFlow<StoryUiState> = _uiState.asStateFlow()

@@ -1,5 +1,6 @@
 package com.example.topbooks.ui.community
 
+import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,11 +53,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topbooks.data.model.Post
@@ -92,9 +96,19 @@ data class CreatePostState(
 )
 
 class CreatePostViewModel(
-    private val postRepository: PostRepository = PostRepositoryImpl(),
-    private val booksRepository: BooksRepository = BooksRepository()
+    private val postRepository: PostRepository,
+    private val booksRepository: BooksRepository
 ) : ViewModel() {
+
+    class Factory(private val context: Application) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+            @Suppress("UNCHECKED_CAST")
+            return CreatePostViewModel(
+                postRepository = PostRepositoryImpl(context),
+                booksRepository = BooksRepository(context)
+            ) as T
+        }
+    }
 
     private val _uiState = MutableStateFlow(CreatePostState())
     val uiState: StateFlow<CreatePostState> = _uiState.asStateFlow()
@@ -183,7 +197,7 @@ fun CreatePostScreen(
     onPostCreated: () -> Unit,
     initialBookId: String? = null,
     initialType: String? = null,
-    viewModel: CreatePostViewModel = viewModel()
+    viewModel: CreatePostViewModel = viewModel(factory = CreatePostViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val state by viewModel.uiState.collectAsState()
 
