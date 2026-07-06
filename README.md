@@ -30,7 +30,7 @@ Proyecto personal desarrollado por [Jeray Reyes Morales](https://github.com/Jera
 
 ### 📚 Biblioteca personal
 - Estanterías personalizables con colores, visibilidad pública/privada y reordenación por drag-and-drop
-- **Diario de lectura** con valoraciones multi-eje (romance, felicidad, tristeza, picante), playlists, citas y notas
+- **Diario de lectura** con valoraciones multi-eje (romance, alegría, tristeza, picante), playlists, citas y notas
 - Seguimiento de libros leídos, pendientes y favoritos
 - Marcadores con cita, página y capítulo
 
