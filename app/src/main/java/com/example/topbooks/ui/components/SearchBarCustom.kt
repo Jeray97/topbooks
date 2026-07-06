@@ -39,8 +39,7 @@ import com.example.topbooks.R
 import com.example.topbooks.ui.community.SearchFilter
 import com.example.topbooks.ui.search.SearchViewModel
 import com.example.topbooks.ui.theme.CenturyGotic
-import com.example.topbooks.ui.theme.ColorArcMediumBrown
-import com.example.topbooks.ui.theme.ColorTextPrimary
+import com.example.topbooks.ui.theme.LoginColors
 
 /**
  * Componente reutilizable de Barra de Búsqueda con autocompletado y botón de escáner.
@@ -59,7 +58,6 @@ fun SearchBarCustom(
     val searchFilter by viewModel.searchFilter.collectAsState()
 
     val focusManager = LocalFocusManager.current
-    val iconGray = Color(0xFF9E9E9E)
 
     Box(modifier = Modifier.fillMaxWidth().zIndex(1f)) {
         Column {
@@ -87,22 +85,22 @@ fun SearchBarCustom(
                                 SearchFilter.ISBN -> "Buscar por ISBN..."
                                 SearchFilter.SERIES -> "Buscar por saga..."
                             },
-                            color = iconGray
+                            color = LoginColors.Outline
                         )
                     },
-                    // CORRECCIÓN: La etiqueta debe ir aquí para que el test pueda escribir texto
                     modifier = Modifier
                         .weight(1f)
                         .height(55.dp)
-                        .testTag("search_input"),
+                        .testTag("search_input")
+                        .border(1.dp, LoginColors.OutlineVariant, RoundedCornerShape(12.dp)),
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        disabledContainerColor = Color.White,
+                        focusedContainerColor = LoginColors.Surface,
+                        unfocusedContainerColor = LoginColors.Surface,
+                        disabledContainerColor = LoginColors.Surface,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor = Color.Black
+                        cursorColor = LoginColors.Primary
                     ),
                     trailingIcon = {
                         if (text.isNotEmpty()) {
@@ -111,10 +109,10 @@ fun SearchBarCustom(
                                 viewModel.clearResults()
                                 active = false
                             }) {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.desc_clear_icon), tint = iconGray)
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.desc_clear_icon), tint = LoginColors.Outline)
                             }
                         } else {
-                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.desc_search_icon), tint = iconGray)
+                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.desc_search_icon), tint = LoginColors.Outline)
                         }
                     },
                     singleLine = true
@@ -125,7 +123,8 @@ fun SearchBarCustom(
                 Box(
                     modifier = Modifier
                         .size(55.dp)
-                        .background(Color.White, RoundedCornerShape(12.dp))
+                        .background(LoginColors.Surface, RoundedCornerShape(12.dp))
+                        .border(1.dp, LoginColors.OutlineVariant, RoundedCornerShape(12.dp))
                         .clickable { onScanClick() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -133,7 +132,7 @@ fun SearchBarCustom(
                         painter = painterResource(id = R.drawable.icon_codigodebarras),
                         contentDescription = stringResource(id = R.string.desc_scan_icon),
                         modifier = Modifier.size(24.dp),
-                        tint = iconGray
+                        tint = LoginColors.Outline
                     )
                 }
             }
@@ -207,16 +206,15 @@ fun SearchBarCustom(
                         .heightIn(max = 250.dp),
                     shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp),
                     shadowElevation = 8.dp,
-                    color = Color.White
+                    color = LoginColors.Surface
                 ) {
                     if (isLoading) {
                         Box(Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
-                            // CORRECCIÓN: Añadida etiqueta para que el test verifique el estado de carga
                             CircularProgressIndicator(
                                 modifier = Modifier
                                     .size(30.dp)
                                     .testTag("loading_spinner"),
-                                color = Color(0xFFB9836B)
+                                color = LoginColors.Primary
                             )
                         }
                     } else {
@@ -247,11 +245,11 @@ fun SearchBarCustom(
                                     Spacer(modifier = Modifier.width(12.dp))
 
                                     Column {
-                                        Text(book.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(book.authors.firstOrNull() ?: stringResource(R.string.book_unknown_author), fontSize = 12.sp, color = Color.Gray, maxLines = 1)
+                                        Text(book.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = LoginColors.OnSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(book.authors.firstOrNull() ?: stringResource(R.string.book_unknown_author), fontSize = 12.sp, color = LoginColors.OnSurfaceVariant, maxLines = 1)
                                     }
                                 }
-                                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                                HorizontalDivider(color = LoginColors.OutlineVariant.copy(alpha = 0.5f))
                             }
                         }
                     }
@@ -276,10 +274,10 @@ private fun SearchFilterChip(
         modifier = modifier
             .height(32.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isSelected) ColorArcMediumBrown else Color.White)
+            .background(if (isSelected) LoginColors.Primary else LoginColors.Surface)
             .border(
                 width = 1.dp,
-                color = if (isSelected) ColorArcMediumBrown else ColorArcMediumBrown.copy(alpha = 0.3f),
+                color = if (isSelected) LoginColors.Primary else LoginColors.OutlineVariant,
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(onClick = onClick)
@@ -293,7 +291,7 @@ private fun SearchFilterChip(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) Color.White else ColorArcMediumBrown,
+                tint = if (isSelected) LoginColors.OnPrimary else LoginColors.Primary,
                 modifier = Modifier.size(12.dp)
             )
             Spacer(modifier = Modifier.width(3.dp))
@@ -301,7 +299,7 @@ private fun SearchFilterChip(
                 text = label,
                 fontFamily = CenturyGotic,
                 fontSize = 9.sp,
-                color = if (isSelected) Color.White else ColorTextPrimary,
+                color = if (isSelected) LoginColors.OnPrimary else LoginColors.OnSurface,
                 maxLines = 1
             )
         }

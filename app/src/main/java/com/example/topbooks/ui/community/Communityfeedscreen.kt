@@ -50,46 +50,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.utils.AvatarHelper
-import com.example.topbooks.ui.theme.CenturyGotic
-import com.example.topbooks.ui.theme.ColorArcDarkBrown
-import com.example.topbooks.ui.theme.ColorArcMediumBrown
-import com.example.topbooks.ui.theme.ColorBackGroundGeneral
-import com.example.topbooks.ui.theme.ColorJournalRomance
-import com.example.topbooks.ui.theme.ColorJournalStar
-import com.example.topbooks.ui.theme.ColorTextPrimary
-import com.example.topbooks.ui.theme.ColorTituloTopBooks
 import com.example.topbooks.ui.theme.GuardianCity
-
-/* =============================================================================
- *  PANTALLA: FEED COMUNIDAD
- * =============================================================================
- *  Pantalla principal del feed social. Implementa el Mockup 1:
- *    - TopBar oficial reutilizada
- *    - Cabecera "Comunidad" + subtítulo dinámico
- *    - 3 tabs (Comunidad / Amigos / Top)
- *    - Story-bar horizontal con amigos lectores
- *    - LazyColumn de cards (reseña / cita / terminado)
- *    - FAB para crear post
- *
- *  Esta pantalla es independiente — se monta directamente cuando estás en la
- *  pestaña Reseñas del bottom nav. La pantalla anterior (hilo de un libro)
- *  sigue funcionando porque ReviewsScreen.kt la sigue mostrando cuando
- *  bookId != null.
- * ============================================================================= */
-
-private val SUB_TEXT = Color(0xFF8D5B4C)
-private val LIKE_COLOR = ColorJournalRomance        // #FF4081
-private val SAVE_COLOR = Color(0xFFB9836B)           // marrón dorado
-private val CARD_BG = Color.White
-private val CARD_BORDER = Color(0xFFECDDD2)
-private val ACTION_TAG_BG = Color(0xFFF6E6DD)
-private val BOOK_STRIP_BG = Color(0xFFF6E6DD)
-private val FRIEND_RING_GRADIENT = listOf(Color(0xFFB9836B), Color(0xFF8D5B4C))
-private val COMMUNITY_RING = Color(0xFFC89B8C)
-private val TAB_INACTIVE_BG = Color(0xFFFFFFFF).copy(alpha = 0.6f)
-private val TAB_ACTIVE_BG = Color(0xFF8D5B4C)
+import com.example.topbooks.ui.theme.LoginColors
 
 @Composable
 fun CommunityFeedScreen(
@@ -103,15 +66,15 @@ fun CommunityFeedScreen(
     val state by viewModel.uiState.collectAsState()
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
-        //topBar = { TopBar(onBackClick = onBackClick) },
+        containerColor = LoginColors.Background,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onCreatePostClick,
-                containerColor = ColorArcDarkBrown,
-                contentColor = Color.White,
+                containerColor = LoginColors.Primary,
+                contentColor = LoginColors.OnPrimary,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Compartir", fontFamily = CenturyGotic) }
+                text = { Text("Compartir", fontWeight = FontWeight.SemiBold) },
+                shape = RoundedCornerShape(12.dp)
             )
         }
     ) { padding ->
@@ -120,10 +83,8 @@ fun CommunityFeedScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // ─── CABECERA ───
             item { HeaderSection(state.newPostsCountToday) }
 
-            // ─── TABS ───
             item {
                 TabsRow(
                     activeTab = state.activeTab,
@@ -131,7 +92,6 @@ fun CommunityFeedScreen(
                 )
             }
 
-            // ─── STORY-BAR ───
             item {
                 StoryBar(
                     stories = state.stories,
@@ -140,7 +100,6 @@ fun CommunityFeedScreen(
                 )
             }
 
-            // ─── ESTADO CARGANDO ───
             if (state.isLoading) {
                 item {
                     Box(
@@ -149,16 +108,14 @@ fun CommunityFeedScreen(
                             .padding(40.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = ColorArcMediumBrown)
+                        CircularProgressIndicator(color = LoginColors.Primary)
                     }
                 }
             } else if (state.posts.isEmpty()) {
-                // ─── ESTADO VACÍO ───
                 item { EmptyFeedMessage(state.activeTab) }
             } else {
-                // ─── LISTA DE POSTS ───
                 items(state.posts, key = { it.id }) { post ->
-                    Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                         PostCard(
                             post = post,
                             onLikeClick = { viewModel.toggleLike(post) },
@@ -169,75 +126,60 @@ fun CommunityFeedScreen(
                     }
                 }
 
-                // ─── ESPACIO INFERIOR PARA NO TAPAR EL FAB ───
                 item { Spacer(Modifier.height(80.dp)) }
             }
         }
     }
 }
 
-
-/* ─────────────────────────────────────────────────────────────────────────────
- *  CABECERA: "Comunidad" + subtítulo dinámico
- * ───────────────────────────────────────────────────────────────────────────── */
-
 @Composable
 private fun HeaderSection(newPostsCount: Int) {
     Column(
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp)
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
     ) {
         Text(
             text = "Comunidad",
             fontFamily = GuardianCity,
             fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
-            color = ColorTituloTopBooks
+            fontSize = 28.sp,
+            color = LoginColors.Primary
         )
         if (newPostsCount > 0) {
             Text(
                 text = if (newPostsCount == 1) "1 nueva reseña hoy"
                 else "$newPostsCount nuevas reseñas hoy",
-                fontFamily = CenturyGotic,
                 fontSize = 12.sp,
-                color = SUB_TEXT,
-                modifier = Modifier.padding(top = 2.dp)
+                color = LoginColors.OnSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
     }
 }
-
-
-/* ─────────────────────────────────────────────────────────────────────────────
- *  TABS: Comunidad / Amigos / Top
- * ───────────────────────────────────────────────────────────────────────────── */
 
 @Composable
 private fun TabsRow(activeTab: FeedTab, onTabClick: (FeedTab) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         TabPill(
             label = "Comunidad",
             icon = Icons.Default.Public,
             isActive = activeTab == FeedTab.COMMUNITY,
-            modifier = Modifier.weight(1f),
             onClick = { onTabClick(FeedTab.COMMUNITY) }
         )
         TabPill(
             label = "Amigos",
             icon = Icons.Default.People,
             isActive = activeTab == FeedTab.FRIENDS,
-            modifier = Modifier.weight(1f),
             onClick = { onTabClick(FeedTab.FRIENDS) }
         )
         TabPill(
             label = "Top",
             icon = Icons.Default.Star,
             isActive = activeTab == FeedTab.TOP,
-            modifier = Modifier.weight(1f),
             onClick = { onTabClick(FeedTab.TOP) }
         )
     }
@@ -248,26 +190,28 @@ private fun TabPill(
     label: String,
     icon: ImageVector,
     isActive: Boolean,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    // Animamos el cambio de color para que el tab "deslice" entre estados
     val bgColor by animateColorAsState(
-        if (isActive) TAB_ACTIVE_BG else TAB_INACTIVE_BG,
+        if (isActive) LoginColors.Primary else LoginColors.SurfaceContainer,
         label = "tabBg"
     )
     val textColor by animateColorAsState(
-        if (isActive) ColorBackGroundGeneral else SUB_TEXT,
+        if (isActive) LoginColors.OnPrimary else LoginColors.OnSurface,
         label = "tabText"
     )
 
     Row(
-        modifier = modifier
+        modifier = Modifier
             .height(36.dp)
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(9999.dp))
             .background(bgColor)
+            .then(
+                if (!isActive) Modifier.border(1.dp, LoginColors.OutlineVariant, RoundedCornerShape(9999.dp))
+                else Modifier
+            )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -275,25 +219,19 @@ private fun TabPill(
             imageVector = icon,
             contentDescription = null,
             tint = textColor,
-            modifier = Modifier.size(14.dp)
+            modifier = Modifier.size(18.dp)
         )
-        Spacer(Modifier.width(4.dp))
+        Spacer(Modifier.width(8.dp))
         Text(
             text = label,
-            fontFamily = CenturyGotic,
-            fontSize = 12.sp,
-            fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
             color = textColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
     }
 }
-
-
-/* ─────────────────────────────────────────────────────────────────────────────
- *  STORY-BAR: amigos lectores en una fila scrolleable
- * ───────────────────────────────────────────────────────────────────────────── */
 
 @Composable
 private fun StoryBar(
@@ -306,7 +244,7 @@ private fun StoryBar(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(scroll)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         AddYourReadingStory(onClick = onCreateStoryClick)
@@ -321,7 +259,7 @@ private fun StoryBar(
 private fun AddYourReadingStory(onClick: () -> Unit) {
     Column(
         modifier = Modifier
-            .width(64.dp)
+            .width(72.dp)
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -329,27 +267,22 @@ private fun AddYourReadingStory(onClick: () -> Unit) {
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .background(COMMUNITY_RING)
-                .padding(2.5.dp)
-                .clip(CircleShape)
-                .background(ColorArcDarkBrown)
-                .border(2.5.dp, ColorBackGroundGeneral, CircleShape),
+                .border(2.dp, LoginColors.SurfaceTint, CircleShape)
+                .background(LoginColors.SurfaceContainerLow),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = null,
-                tint = ColorBackGroundGeneral,
-                modifier = Modifier.size(24.dp)
+                tint = LoginColors.SurfaceTint,
+                modifier = Modifier.size(28.dp)
             )
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
             text = "Tu lectura",
-            fontFamily = CenturyGotic,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            color = ColorTextPrimary,
+            fontSize = 12.sp,
+            color = LoginColors.OnSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -360,7 +293,7 @@ private fun AddYourReadingStory(onClick: () -> Unit) {
 private fun StoryAvatar(story: StoryItem, onClick: () -> Unit) {
     Column(
         modifier = Modifier
-            .width(64.dp)
+            .width(72.dp)
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -368,10 +301,8 @@ private fun StoryAvatar(story: StoryItem, onClick: () -> Unit) {
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .background(Brush.linearGradient(FRIEND_RING_GRADIENT))
-                .padding(2.5.dp)
+                .border(2.dp, LoginColors.Surface, CircleShape)
                 .clip(CircleShape)
-                .border(2.5.dp, ColorBackGroundGeneral, CircleShape)
         ) {
             val avatarRes = AvatarHelper.getDrawableId(story.author.photoUrl)
             androidx.compose.foundation.Image(
@@ -381,13 +312,11 @@ private fun StoryAvatar(story: StoryItem, onClick: () -> Unit) {
                 contentScale = ContentScale.Crop
             )
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
-            text = story.author.displayName.split(" ").first(),  // Solo el primer nombre
-            fontFamily = CenturyGotic,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            color = ColorTextPrimary,
+            text = story.author.displayName.split(" ").first(),
+            fontSize = 14.sp,
+            color = LoginColors.OnSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -395,20 +324,14 @@ private fun StoryAvatar(story: StoryItem, onClick: () -> Unit) {
             Text(
                 text = if (story.hasFinished) "✓ Terminó"
                 else "📖 ${book.title.take(8)}",
-                fontFamily = CenturyGotic,
-                fontSize = 9.sp,
-                color = SUB_TEXT,
+                fontSize = 12.sp,
+                color = LoginColors.Outline,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
-
-
-/* ─────────────────────────────────────────────────────────────────────────────
- *  ESTADO VACÍO
- * ───────────────────────────────────────────────────────────────────────────── */
 
 @Composable
 private fun EmptyFeedMessage(tab: FeedTab) {
@@ -425,18 +348,12 @@ private fun EmptyFeedMessage(tab: FeedTab) {
     ) {
         Text(
             text = message,
-            fontFamily = CenturyGotic,
-            fontSize = 13.sp,
-            color = SUB_TEXT,
+            fontSize = 16.sp,
+            color = LoginColors.OnSurfaceVariant,
             fontStyle = FontStyle.Italic
         )
     }
 }
-
-
-/* ─────────────────────────────────────────────────────────────────────────────
- *  POST CARD: la card que se repite en el feed
- * ───────────────────────────────────────────────────────────────────────────── */
 
 @Composable
 private fun PostCard(
@@ -449,30 +366,27 @@ private fun PostCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(CARD_BG)
-            .border(1.dp, CARD_BORDER, RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(LoginColors.Surface)
+            .border(1.dp, LoginColors.OutlineVariant, RoundedCornerShape(12.dp))
             .clickable(onClick = onCardClick)
-            .padding(14.dp)
+            .padding(16.dp)
     ) {
-        // Header: avatar + nombre + meta + tag
         PostHeader(post)
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // Contenido según tipo
         when (post.type) {
             PostType.QUOTE -> QuoteContent(post)
             else -> {
                 post.book?.let { BookStrip(it, post.rating) }
                 if (post.body.isNotBlank()) {
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(12.dp))
                     Text(
                         text = post.body,
-                        fontFamily = CenturyGotic,
-                        fontSize = 13.sp,
-                        color = ColorTextPrimary,
-                        lineHeight = 20.sp,
+                        fontSize = 16.sp,
+                        color = LoginColors.OnSurface,
+                        lineHeight = 24.sp,
                         maxLines = 4,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -480,9 +394,8 @@ private fun PostCard(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // Acciones: like / comment / save / overflow
         PostActions(
             post = post,
             onLikeClick = onLikeClick,
@@ -492,71 +405,60 @@ private fun PostCard(
     }
 }
 
-
-/* ─── HEADER DE LA CARD ─── */
-
 @Composable
 private fun PostHeader(post: Post) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // Avatar con anillo según relación (amigo dorado / comunidad gris)
-        AvatarWithRing(author = post.author, size = 36.dp)
+        AvatarWithRing(author = post.author, size = 40.dp)
 
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = post.author.displayName,
-                    fontFamily = CenturyGotic,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = ColorTextPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = LoginColors.OnSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
                 )
                 if (post.author.isVerified) {
-                    Spacer(Modifier.width(5.dp))
+                    Spacer(Modifier.width(6.dp))
                     VerifiedBadge()
                 }
             }
-            // Meta: fecha + estrellas (si las hay)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = formatRelativeTime(post.createdAtMillis),
-                    fontFamily = CenturyGotic,
-                    fontSize = 11.sp,
-                    color = SUB_TEXT
+                    fontSize = 12.sp,
+                    color = LoginColors.OnSurfaceVariant
                 )
                 post.rating?.let { stars ->
                     Text(
                         text = " · ",
-                        fontFamily = CenturyGotic,
-                        fontSize = 11.sp,
-                        color = SUB_TEXT
+                        fontSize = 12.sp,
+                        color = LoginColors.OnSurfaceVariant
                     )
                     StarRow(stars)
                 }
             }
         }
 
-        // Tag de tipo: "reseñó" / "cita" / "terminó"
         ActionTag(post.type)
     }
 }
 
 @Composable
 private fun AvatarWithRing(author: PostAuthor, size: androidx.compose.ui.unit.Dp) {
-    val ringBrush = if (author.isFriend) Brush.linearGradient(FRIEND_RING_GRADIENT)
-    else Brush.linearGradient(listOf(COMMUNITY_RING, COMMUNITY_RING))
+    val ringColor = if (author.isFriend) LoginColors.SecondaryContainer else LoginColors.OutlineVariant
     Box(
         modifier = Modifier
             .size(size + 4.dp)
             .clip(CircleShape)
-            .background(ringBrush)
+            .border(2.dp, ringColor, CircleShape)
             .padding(2.dp)
             .clip(CircleShape)
-            .border(2.dp, Color.White, CircleShape)
     ) {
         val avatarRes = AvatarHelper.getDrawableId(author.photoUrl)
         androidx.compose.foundation.Image(
@@ -572,15 +474,15 @@ private fun AvatarWithRing(author: PostAuthor, size: androidx.compose.ui.unit.Dp
 private fun VerifiedBadge() {
     Box(
         modifier = Modifier
-            .size(12.dp)
+            .size(14.dp)
             .clip(CircleShape)
-            .background(SAVE_COLOR),
+            .background(LoginColors.SurfaceTint),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = "✓",
-            fontSize = 8.sp,
-            color = Color.White,
+            fontSize = 9.sp,
+            color = LoginColors.OnPrimary,
             fontWeight = FontWeight.Bold
         )
     }
@@ -593,8 +495,8 @@ private fun StarRow(stars: Int) {
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = null,
-                tint = ColorJournalStar,
-                modifier = Modifier.size(11.dp)
+                tint = LoginColors.SecondaryContainer,
+                modifier = Modifier.size(14.dp)
             )
         }
     }
@@ -603,37 +505,36 @@ private fun StarRow(stars: Int) {
 @Composable
 private fun ActionTag(type: PostType) {
     val (bg, fg) = when (type) {
-        PostType.REVIEW -> Color(0xFFFFE5EE) to Color(0xFFC73670)        // Rosa romance
-        PostType.FINISHED -> Color(0xFFE3F0D8) to Color(0xFF4A8520)     // Verde terminado
-        PostType.QUOTE -> ACTION_TAG_BG to SUB_TEXT                       // Beige neutro
-        PostType.READING -> Color(0xFFE5EDFA) to Color(0xFF1E5BB8)      // Azul leyendo
+        PostType.REVIEW -> Color(0xFFFFDAD8) to LoginColors.PrimaryContainer
+        PostType.FINISHED -> Color(0xFFE3F0D8) to Color(0xFF4A8520)
+        PostType.QUOTE -> LoginColors.SurfaceContainer to LoginColors.OnSurfaceVariant
+        PostType.READING -> Color(0xFFE5EDFA) to Color(0xFF1E5BB8)
     }
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(9999.dp))
             .background(bg)
-            .padding(horizontal = 9.dp, vertical = 3.dp)
+            .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
         Text(
             text = postTypeTagLabel(type),
-            fontFamily = CenturyGotic,
-            fontSize = 10.sp,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
             color = fg
         )
     }
 }
-
-
-/* ─── BOOK STRIP (información compacta del libro) ─── */
 
 @Composable
 private fun BookStrip(book: PostBook, rating: Int?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(BOOK_STRIP_BG)
-            .padding(8.dp),
+            .clip(RoundedCornerShape(8.dp))
+            .background(LoginColors.SurfaceContainer)
+            .border(1.dp, LoginColors.OutlineVariant, RoundedCornerShape(8.dp))
+            .drawLeftBorder(LoginColors.Primary, 4.dp)
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (book.coverUrl?.isNotBlank() == true) {
@@ -644,34 +545,32 @@ private fun BookStrip(book: PostBook, rating: Int?) {
                     .build(),
                 contentDescription = book.title,
                 modifier = Modifier
-                    .size(width = 38.dp, height = 56.dp)
+                    .size(width = 48.dp, height = 64.dp)
                     .clip(RoundedCornerShape(4.dp)),
                 contentScale = ContentScale.Crop
             )
         } else {
             Box(
                 modifier = Modifier
-                    .size(width = 38.dp, height = 56.dp)
+                    .size(width = 48.dp, height = 64.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(fallbackCoverColor(book.id))
             )
         }
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = book.title,
-                fontFamily = CenturyGotic,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = ColorTextPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = LoginColors.OnSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = book.author,
-                fontFamily = CenturyGotic,
-                fontSize = 10.sp,
-                color = SUB_TEXT,
+                fontSize = 12.sp,
+                color = LoginColors.OnSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp)
@@ -684,50 +583,36 @@ private fun BookStrip(book: PostBook, rating: Int?) {
     }
 }
 
-
-/* ─── CONTENIDO TIPO CITA: serif italic + borde dorado lateral ─── */
-
 @Composable
 private fun QuoteContent(post: Post) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 0.dp, topEnd = 12.dp, bottomEnd = 12.dp, bottomStart = 0.dp))
-            .background(BOOK_STRIP_BG)
-            .border(
-                width = 0.dp,
-                color = Color.Transparent,
-                shape = RoundedCornerShape(0.dp)
-            )
-            .drawLeftBorder(SAVE_COLOR, 3.dp)
-            .padding(start = 14.dp, top = 12.dp, end = 14.dp, bottom = 12.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(LoginColors.SurfaceContainer)
+            .drawLeftBorder(LoginColors.Primary, 4.dp)
+            .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp)
     ) {
         Text(
             text = "\"${post.body}\"",
-            fontFamily = GuardianCity,  // Serif para citas
+            fontFamily = GuardianCity,
             fontStyle = FontStyle.Italic,
-            fontSize = 14.sp,
-            color = ColorTextPrimary,
-            lineHeight = 22.sp
+            fontSize = 16.sp,
+            color = LoginColors.OnSurface,
+            lineHeight = 24.sp
         )
         post.quoteSource?.let { source ->
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = "— $source",
-                fontFamily = CenturyGotic,
-                fontSize = 10.sp,
-                color = SUB_TEXT,
+                fontSize = 12.sp,
+                color = LoginColors.OnSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
         }
     }
 }
 
-/**
- * Modifier auxiliar para dibujar SOLO un borde lateral izquierdo (los Modifier
- * border() estándar dibujan los 4 lados o ninguno). Lo hacemos con un Canvas
- * lineal que pinta una franja vertical en la izquierda.
- */
 private fun Modifier.drawLeftBorder(color: Color, width: androidx.compose.ui.unit.Dp): Modifier =
     this.then(
         Modifier.drawWithContent {
@@ -741,9 +626,6 @@ private fun Modifier.drawLeftBorder(color: Color, width: androidx.compose.ui.uni
         }
     )
 
-
-/* ─── ACCIONES: like / comment / save / overflow ─── */
-
 @Composable
 private fun PostActions(
     post: Post,
@@ -751,56 +633,51 @@ private fun PostActions(
     onSaveClick: () -> Unit,
     onCommentClick: () -> Unit
 ) {
-    // Línea separadora superior + fila de acciones
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(1.dp)
-            .background(BOOK_STRIP_BG)
+            .background(LoginColors.OutlineVariant.copy(alpha = 0.3f))
     )
-    Spacer(Modifier.height(10.dp))
+    Spacer(Modifier.height(12.dp))
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(18.dp)
+        horizontalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // LIKE
         ActionButton(
             icon = if (post.isLikedByMe) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
             label = if (post.likeCount > 0) post.likeCount.toString() else "Me gusta",
-            tint = if (post.isLikedByMe) LIKE_COLOR else SUB_TEXT,
+            tint = if (post.isLikedByMe) LoginColors.SurfaceTint else LoginColors.OnSurfaceVariant,
             onClick = onLikeClick,
             isHighlighted = post.isLikedByMe
         )
 
-        // COMMENT
         ActionButton(
             icon = Icons.Default.ChatBubbleOutline,
             label = if (post.commentCount > 0) post.commentCount.toString() else "Responder",
-            tint = SUB_TEXT,
+            tint = LoginColors.OnSurfaceVariant,
             onClick = onCommentClick
         )
 
-        // SAVE
         ActionButton(
             icon = if (post.isSavedByMe) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
             label = if (post.isSavedByMe) "Guardada" else "Guardar",
-            tint = if (post.isSavedByMe) SAVE_COLOR else SUB_TEXT,
+            tint = if (post.isSavedByMe) LoginColors.SurfaceTint else LoginColors.OnSurfaceVariant,
             onClick = onSaveClick,
             isHighlighted = post.isSavedByMe
         )
 
         Spacer(Modifier.weight(1f))
 
-        // MENU OVERFLOW
         Icon(
             imageVector = Icons.Default.MoreHoriz,
             contentDescription = null,
-            tint = SUB_TEXT,
+            tint = LoginColors.OnSurfaceVariant,
             modifier = Modifier
-                .size(16.dp)
-                .clickable { /* TODO: menú reportar/ocultar/etc */ }
+                .size(20.dp)
+                .clickable { }
         )
     }
 }
@@ -813,7 +690,6 @@ private fun ActionButton(
     onClick: () -> Unit,
     isHighlighted: Boolean = false
 ) {
-    // Animación sutil de escala al pulsar el like
     val scale by animateFloatAsState(
         targetValue = if (isHighlighted) 1.05f else 1f,
         label = "actionScale"
@@ -829,15 +705,14 @@ private fun ActionButton(
             imageVector = icon,
             contentDescription = null,
             tint = tint,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(20.dp)
         )
-        Spacer(Modifier.width(5.dp))
+        Spacer(Modifier.width(6.dp))
         Text(
             text = label,
-            fontFamily = CenturyGotic,
             fontSize = 12.sp,
             color = tint,
-            fontWeight = if (isHighlighted) FontWeight.Medium else FontWeight.Normal
+            fontWeight = if (isHighlighted) FontWeight.SemiBold else FontWeight.Normal
         )
     }
 }

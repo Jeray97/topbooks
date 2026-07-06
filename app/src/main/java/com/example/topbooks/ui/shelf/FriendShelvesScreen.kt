@@ -223,6 +223,8 @@ fun FriendShelfRow(
 
         WoodenShelf(
             books = books,
+            viewMode = ViewMode.SPINES,
+            perspectiveMode = PerspectiveMode.ORTHO,
             recentlyAddedBookId = null,
             draggingBook = null,
             onBookTap = { book -> previewBook = book },

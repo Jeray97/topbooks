@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,7 +33,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.topbooks.R
 import com.example.topbooks.data.model.Book
-import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.Resource
 
@@ -93,37 +94,66 @@ fun RecommendedContent(
     onSectionClick: (String, String, Int) -> Unit
 ) {
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
-        topBar = { TopBar(onBackClick = onBackClick) } // Barra superior estándar
+        containerColor = LoginColors.Background
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
-                // Habilitamos scroll vertical para navegar por las distintas secciones
                 .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                text = stringResource(R.string.recommended_title),
-                fontFamily = CenturyGotic,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = ColorTituloTopBooks,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBackClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = LoginColors.Primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.app_name),
+                    fontFamily = GuardianCity,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = LoginColors.Primary
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = stringResource(R.string.recommended_title),
+                fontFamily = GuardianCity,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = LoginColors.Primary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Descubre nuevas lecturas",
+                fontSize = 16.sp,
+                color = LoginColors.OnSurfaceVariant,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
 
             // --- 1. SECCIÓN: LIBROS POPULARES ---
             BrownCardSection(
                 title = stringResource(R.string.recommended_section_popular),
                 resource = popularState,
                 onBookClick = onBookClick,
-                backgroundColor = ColorBackGroundCategorySection,
+                backgroundColor = LoginColors.SurfaceContainerHigh,
                 onArrowClick = {
-                    // Notificamos el clic enviando la query ya traducida
-                    onSectionClick("popular", popularQuery, ColorBackGroundCategorySection.toArgb())
+                    onSectionClick("popular", popularQuery, LoginColors.SurfaceContainerHigh.toArgb())
                 }
             )
 
@@ -134,9 +164,9 @@ fun RecommendedContent(
                 title = stringResource(R.string.recommended_section_tastes, genreForTastes),
                 resource = tastesState,
                 onBookClick = onBookClick,
-                backgroundColor = ColorBackGroundRecommendedSection,
+                backgroundColor = LoginColors.SurfaceContainerHigh,
                 onArrowClick = {
-                    onSectionClick("tastes", genreForTastes, ColorBackGroundRecommendedSection.toArgb())
+                    onSectionClick("tastes", genreForTastes, LoginColors.SurfaceContainerHigh.toArgb())
                 }
             )
 
@@ -148,13 +178,12 @@ fun RecommendedContent(
                 resource = friendsState,
                 onBookClick = onBookClick,
                 isEmptyMessage = stringResource(R.string.recommended_friends_empty),
-                backgroundColor = ColorBackGroundFavoritesSection,
+                backgroundColor = LoginColors.SurfaceContainerHigh,
                 onArrowClick = {
-                    onSectionClick("friends", "General", ColorBackGroundFavoritesSection.toArgb())
+                    onSectionClick("friends", "General", LoginColors.SurfaceContainerHigh.toArgb())
                 }
             )
 
-            // Espaciado final para evitar que el contenido quede oculto tras barras de navegación
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
@@ -176,74 +205,70 @@ fun BrownCardSection(
     resource: Resource<List<Book>>,
     onBookClick: (String) -> Unit,
     isEmptyMessage: String = stringResource(R.string.recommended_empty_default),
-    backgroundColor: Color = ColorArcDarkBrown,
+    backgroundColor: Color = LoginColors.SurfaceContainerHigh,
     onArrowClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        Column(modifier = Modifier.padding(vertical = 16.dp)) {
-            // Cabecera interactiva con título y flecha
+        Column(modifier = Modifier.padding(vertical = 20.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 20.dp)
                     .clickable { onArrowClick() },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = title,
-                    fontFamily = CenturyGotic,
-                    fontSize = 16.sp,
-                    color = Color.White,
+                    fontFamily = GuardianCity,
+                    fontSize = 20.sp,
+                    color = LoginColors.OnSurface,
                     fontWeight = FontWeight.SemiBold
                 )
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = LoginColors.Primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- GESTIÓN DINÁMICA DE CONTENIDO SEGÚN ESTADO ---
             when (resource) {
                 is Resource.Loading -> {
-                    // Skeleton loading horizontal para feedback visual inmediato
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp)
+                        contentPadding = PaddingValues(horizontal = 20.dp)
                     ) {
                         items(3) {
                             Box(
                                 modifier = Modifier
-                                    .width(100.dp)
-                                    .height(150.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color.White.copy(alpha = 0.2f))
+                                    .width(120.dp)
+                                    .height(180.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(LoginColors.OutlineVariant.copy(alpha = 0.3f))
                             )
                         }
                     }
                 }
                 is Resource.Success -> {
                     if (resource.data.isEmpty()) {
-                        // Mensaje informativo si no hay datos
                         Text(
                             text = isEmptyMessage,
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            color = LoginColors.OnSurfaceVariant,
+                            fontSize = 14.sp,
+                            fontStyle = FontStyle.Italic,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp)
                         )
                     } else {
-                        // Lista de libros renderizados con WhiteBookItem
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp)
+                            contentPadding = PaddingValues(horizontal = 20.dp)
                         ) {
                             items(resource.data) { book ->
                                 WhiteBookItem(book = book, onClick = { onBookClick(book.id) })
@@ -252,12 +277,11 @@ fun BrownCardSection(
                     }
                 }
                 is Resource.Error -> {
-                    // Feedback visual en caso de error de red o servidor
                     Text(
                         text = stringResource(R.string.recommended_error_loading),
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        color = LoginColors.OnSurfaceVariant,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
                 }
                 else -> {}
@@ -275,14 +299,14 @@ fun BrownCardSection(
 fun WhiteBookItem(book: Book, onClick: () -> Unit) {
     Card(
         modifier = Modifier
-            .width(100.dp)
-            .height(150.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+            .width(120.dp)
+            .height(180.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = LoginColors.Surface),
+        elevation = CardDefaults.cardElevation(4.dp),
         onClick = onClick
     ) {
         if (book.imageUrl.isNotEmpty()) {
-            // Carga de imagen con Coil y placeholder de error
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(book.imageUrl)
@@ -294,14 +318,13 @@ fun WhiteBookItem(book: Book, onClick: () -> Unit) {
                 modifier = Modifier.fillMaxSize()
             )
         } else {
-            // Fallback visual: Si no hay imagen, centramos el título del libro
             Box(
                 modifier = Modifier.fillMaxSize().padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = book.title,
-                    color = ColorArcDarkBrown,
+                    color = LoginColors.Primary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 3,

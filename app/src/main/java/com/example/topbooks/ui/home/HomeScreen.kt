@@ -2,6 +2,7 @@ package com.example.topbooks.ui.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -66,24 +67,24 @@ fun HomeScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral
+        containerColor = LoginColors.Background
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(ColorBackGroundGeneral)
+                .background(LoginColors.Background)
                 .padding(16.dp)
                 // Permitimos scroll vertical para dispositivos con pantallas pequeñas
                 .verticalScroll(rememberScrollState())
         ) {
             // Cabecera con tipografía corporativa
             Text(
-                text = stringResource(id = R.string.welcome_title),
+                text = stringResource(id = R.string.app_name),
                 fontFamily = GuardianCity,
-                fontSize = 32.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = ColorTituloTopBooks,
+                color = LoginColors.Primary,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
@@ -98,7 +99,7 @@ fun HomeScreen(
             // --- 1. SECCIÓN CATEGORÍAS ---
             SectionContainer(
                 title = stringResource(id = R.string.section_categories),
-                backgroundColor = ColorBackGroundCategorySection,
+                backgroundColor = LoginColors.SurfaceContainerLow,
                 onArrowClick = onSeeAllCategoriesClick
             ) {
                 CategoryRow(onCategoryClick = onCategoryClick)
@@ -110,7 +111,7 @@ fun HomeScreen(
             // --- 2. SECCIÓN RECOMENDADOS ---
             SectionContainer(
                 title = stringResource(id = R.string.section_recommended),
-                backgroundColor = ColorBackGroundRecommendedSection,
+                backgroundColor = LoginColors.SurfaceContainerLow,
                 onArrowClick = onRecommendedClick
             ) {
                 BookListRow(resource = recommendedState, onBookClick = onBookClick)
@@ -121,7 +122,7 @@ fun HomeScreen(
             // --- 3. SECCIÓN FAVORITOS DE AMIGOS ---
             SectionContainer(
                 title = stringResource(id = R.string.section_friends_favorites),
-                backgroundColor = ColorBackGroundFavoritesSection,
+                backgroundColor = LoginColors.SurfaceContainerLow,
                 onArrowClick = onFriendsActivityClick
             ) {
                 when (val state = friendsState) {
@@ -165,18 +166,18 @@ fun EmptyFriendsMessage() {
             painter = painterResource(id = R.drawable.social),
             contentDescription = null,
             modifier = Modifier.size(60.dp).padding(bottom = 8.dp),
-            colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.5f))
+            colorFilter = ColorFilter.tint(LoginColors.Outline.copy(alpha = 0.5f))
         )
         Text(
             text = stringResource(id = R.string.home_friends_empty_title),
-            color = Color.White.copy(alpha = 0.8f),
+            color = LoginColors.OnSurfaceVariant.copy(alpha = 0.8f),
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = CenturyGotic
         )
         Text(
             text = stringResource(id = R.string.home_friends_empty_desc),
-            color = Color.White.copy(alpha = 0.6f),
+            color = LoginColors.OnSurfaceVariant.copy(alpha = 0.6f),
             fontSize = 10.sp,
             fontFamily = CenturyGotic
         )
@@ -210,12 +211,12 @@ fun BookListRow(
         is Resource.Loading -> BookPlaceholderRow()
         is Resource.Success -> {
             if (resource.data.isEmpty()) {
-                Text(stringResource(id = R.string.home_books_empty), color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
+                Text(stringResource(id = R.string.home_books_empty), color = LoginColors.OnSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
             } else {
                 BookListRowContent(resource.data, onBookClick)
             }
         }
-        is Resource.Error -> Text(stringResource(id = R.string.home_books_error), color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
+        is Resource.Error -> Text(stringResource(id = R.string.home_books_error), color = LoginColors.OnSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
         else -> {}
     }
 }
@@ -236,10 +237,12 @@ fun SectionContainer(
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth()
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, LoginColors.OutlineVariant, RoundedCornerShape(24.dp))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(24.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -247,9 +250,10 @@ fun SectionContainer(
             ) {
                 Text(
                     text = title,
-                    fontFamily = CenturyGotic,
-                    color = Color.White,
-                    fontSize = 20.sp
+                    fontFamily = GuardianCity,
+                    color = LoginColors.PrimaryContainer,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
                 IconButton(
                     onClick = { onArrowClick?.invoke() },
@@ -258,11 +262,11 @@ fun SectionContainer(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
-                        tint = if (onArrowClick != null) Color.White else Color.Transparent
+                        tint = if (onArrowClick != null) LoginColors.PrimaryContainer else Color.Transparent
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             content()
         }
     }
@@ -293,24 +297,32 @@ fun CategoryRow(
                 modifier = Modifier.clickable { onCategoryClick(categoryName, apiQuery) }
             ) {
                 Box(
-                    modifier = Modifier.size(70.dp).clip(CircleShape).background(Color.White),
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(LoginColors.Surface)
+                        .border(1.dp, LoginColors.OutlineVariant, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         painter = painterResource(id = iconResId),
                         contentDescription = null,
                         tint = Color.Unspecified,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(40.dp)
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                // Etiqueta flotante blanca debajo del icono
-                Surface(color = Color.White, shape = RoundedCornerShape(12.dp)) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = LoginColors.Surface,
+                    shape = RoundedCornerShape(9999.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, LoginColors.OutlineVariant)
+                ) {
                     Text(
                         text = categoryName,
-                        fontSize = 12.sp,
-                        color = ColorBackGroundCategorySection,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = LoginColors.PrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }
@@ -326,7 +338,10 @@ fun BookPlaceholderRow() {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         items(5) {
             Box(
-                modifier = Modifier.size(90.dp, 130.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.5f))
+                modifier = Modifier
+                    .size(140.dp, 210.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(LoginColors.OutlineVariant.copy(alpha = 0.3f))
             )
         }
     }

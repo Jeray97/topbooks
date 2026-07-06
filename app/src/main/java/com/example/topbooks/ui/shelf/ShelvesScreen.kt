@@ -24,9 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,6 +43,10 @@ import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.CropSquare
+import androidx.compose.material.icons.filled.ViewInAr
+import androidx.compose.material.icons.automirrored.filled.RotateRight
+import androidx.compose.material.icons.filled.ViewColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -165,8 +166,23 @@ fun ShelvesScreen(
                 actions = {
                     IconButton(onClick = { viewModel.toggleViewMode() }) {
                         Icon(
-                            imageVector = if (state.viewMode == ViewMode.SPINES) Icons.Default.GridView else Icons.AutoMirrored.Filled.MenuBook,
+                            imageVector = when (state.viewMode) {
+                                ViewMode.SPINES -> Icons.AutoMirrored.Filled.MenuBook
+                                ViewMode.COVERS -> Icons.Default.GridView
+                                ViewMode.MIXED -> Icons.Default.ViewColumn
+                            },
                             contentDescription = "Cambiar vista",
+                            tint = ColorArcDarkBrown
+                        )
+                    }
+                    IconButton(onClick = { viewModel.cyclePerspective() }) {
+                        Icon(
+                            imageVector = when (state.perspectiveMode) {
+                                PerspectiveMode.FLAT -> Icons.Default.CropSquare
+                                PerspectiveMode.ORTHO -> Icons.Default.ViewInAr
+                                PerspectiveMode.ISO -> Icons.AutoMirrored.Filled.RotateRight
+                            },
+                            contentDescription = "Cambiar perspectiva",
                             tint = ColorArcDarkBrown
                         )
                     }
@@ -327,6 +343,7 @@ fun ShelvesScreen(
                                 books = filteredBooks,
                                 totalPages = totalPages,
                                 viewMode = state.viewMode,
+                                perspectiveMode = state.perspectiveMode,
                                 recentlyAddedBookId = state.recentlyAddedBookId,
                                 draggingBook = state.draggingBook,
                                 onBookClick = onBookClick,
@@ -384,6 +401,7 @@ fun ShelfRow(
     books: List<ShelfBook>,
     totalPages: Int,
     viewMode: ViewMode,
+    perspectiveMode: PerspectiveMode,
     recentlyAddedBookId: String?,
     draggingBook: ShelfBook?,
     onBookClick: (String) -> Unit,
@@ -477,22 +495,17 @@ fun ShelfRow(
 
         Spacer(Modifier.height(12.dp))
 
-        if (viewMode == ViewMode.SPINES) {
-            WoodenShelf(
-                books = books,
-                recentlyAddedBookId = recentlyAddedBookId,
-                draggingBook = draggingBook,
-                onBookTap = { book -> previewBook = book },
-                onRemoveBook = onRemoveBook,
-                onDragStart = onDragStart,
-                onDragEnd = onDragEnd
-            )
-        } else {
-            GridShelf(
-                books = books,
-                onBookTap = { book -> previewBook = book }
-            )
-        }
+        WoodenShelf(
+            books = books,
+            viewMode = viewMode,
+            perspectiveMode = perspectiveMode,
+            recentlyAddedBookId = recentlyAddedBookId,
+            draggingBook = draggingBook,
+            onBookTap = { book -> previewBook = book },
+            onRemoveBook = onRemoveBook,
+            onDragStart = onDragStart,
+            onDragEnd = onDragEnd
+        )
     }
 
     if (previewBook != null) {
@@ -628,6 +641,8 @@ fun BookCoverPopup(
 @Composable
 fun WoodenShelf(
     books: List<ShelfBook>,
+    viewMode: ViewMode,
+    perspectiveMode: PerspectiveMode,
     recentlyAddedBookId: String?,
     draggingBook: ShelfBook?,
     onBookTap: (ShelfBook) -> Unit,
@@ -635,7 +650,35 @@ fun WoodenShelf(
     onDragStart: (ShelfBook) -> Unit,
     onDragEnd: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+    val rotationX by animateFloatAsState(
+        targetValue = when (perspectiveMode) {
+            PerspectiveMode.FLAT -> 0f
+            PerspectiveMode.ORTHO -> 8f
+            PerspectiveMode.ISO -> 12f
+        },
+        animationSpec = tween(600),
+        label = "rotationX"
+    )
+    val rotationY by animateFloatAsState(
+        targetValue = when (perspectiveMode) {
+            PerspectiveMode.FLAT -> 0f
+            PerspectiveMode.ORTHO -> 0f
+            PerspectiveMode.ISO -> -3f
+        },
+        animationSpec = tween(600),
+        label = "rotationY"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .graphicsLayer {
+                this.rotationX = rotationX
+                this.rotationY = rotationY
+                this.cameraDistance = 12f * density
+            }
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -658,7 +701,9 @@ fun WoodenShelf(
             } else {
                 LazyRow(
                     modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(1.dp),
+                    horizontalArrangement = Arrangement.spacedBy(
+                        if (viewMode == ViewMode.COVERS) 8.dp else 1.dp
+                    ),
                     verticalAlignment = Alignment.Bottom,
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                 ) {
@@ -666,6 +711,12 @@ fun WoodenShelf(
                         val book = books[index]
                         val isRecentlyAdded = book.id == recentlyAddedBookId
                         val isDragging = draggingBook?.id == book.id
+
+                        val showCover = when (viewMode) {
+                            ViewMode.SPINES -> false
+                            ViewMode.COVERS -> true
+                            ViewMode.MIXED -> index % 3 == 0
+                        }
 
                         var bookVisible by remember { mutableStateOf(false) }
                         val bookAlpha by animateFloatAsState(
@@ -686,22 +737,36 @@ fun WoodenShelf(
                             label = "bounceScale"
                         )
 
+                        val hoverOffset by animateFloatAsState(
+                            targetValue = if (isRecentlyAdded) -8f else 0f,
+                            animationSpec = tween(400),
+                            label = "hoverOffset"
+                        )
+
                         Box(
                             modifier = Modifier
                                 .graphicsLayer {
                                     this.alpha = if (isDragging) 0.3f else bookAlpha
-                                    this.translationY = bookOffsetY
+                                    this.translationY = bookOffsetY + hoverOffset
                                     this.scaleX = bounceScale
                                     this.scaleY = bounceScale
                                 }
                         ) {
-                            RealisticBookSpine(
-                                book = book,
-                                onClick = { onBookTap(book) },
-                                onLongPressRemove = { onRemoveBook(book.id) },
-                                onDragStart = { onDragStart(book) },
-                                onDragEnd = onDragEnd
-                            )
+                            if (showCover) {
+                                BookCoverOnShelf(
+                                    book = book,
+                                    onClick = { onBookTap(book) },
+                                    onLongPressRemove = { onRemoveBook(book.id) }
+                                )
+                            } else {
+                                RealisticBookSpine(
+                                    book = book,
+                                    onClick = { onBookTap(book) },
+                                    onLongPressRemove = { onRemoveBook(book.id) },
+                                    onDragStart = { onDragStart(book) },
+                                    onDragEnd = onDragEnd
+                                )
+                            }
                         }
                     }
                 }
@@ -766,57 +831,101 @@ fun WoodenShelf(
 }
 
 @Composable
-fun GridShelf(
-    books: List<ShelfBook>,
-    onBookTap: (ShelfBook) -> Unit
+fun BookCoverOnShelf(
+    book: ShelfBook,
+    onClick: () -> Unit,
+    onLongPressRemove: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
-        if (books.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Estantería vacía — añade libros",
-                    fontFamily = CenturyGotic,
-                    fontSize = 14.sp,
-                    color = Color.Gray.copy(alpha = 0.7f)
+    val coverHeight = when {
+        book.pageCount > 500 -> 170.dp
+        book.pageCount > 300 -> 160.dp
+        book.pageCount > 150 -> 150.dp
+        else -> 140.dp
+    }
+
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        label = "coverScale"
+    )
+    val offsetY by animateFloatAsState(
+        targetValue = if (isPressed) 0f else -4f,
+        label = "coverOffsetY"
+    )
+
+    var showRemoveDialog by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .width(100.dp)
+            .height(coverHeight)
+            .offset(y = offsetY.dp)
+            .scale(scale)
+            .shadow(6.dp, RoundedCornerShape(3.dp))
+            .clip(RoundedCornerShape(3.dp))
+            .drawBehind {
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.2f),
+                            Color.Transparent,
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.05f)
+                        ),
+                        startX = 0f,
+                        endX = size.width
+                    )
                 )
             }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp)
-            ) {
-                items(books) { book ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .clickable { onBookTap(book) },
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = CardDefaults.cardElevation(4.dp)
-                    ) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(book.imageUrl)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = book.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                }
+            .clickable { onClick() }
+            .pointerInput(Unit) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = {},
+                    onDrag = { change, _ -> change.consume() },
+                    onDragEnd = { showRemoveDialog = true },
+                    onDragCancel = {}
+                )
             }
-        }
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(book.imageUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = book.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(4.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.25f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+    }
+
+    if (showRemoveDialog) {
+        AlertDialog(
+            onDismissRequest = { showRemoveDialog = false },
+            title = { Text("¿Quitar de la estantería?", fontFamily = GuardianCity, fontWeight = FontWeight.Bold) },
+            text = { Text("¿Quieres quitar \"${book.title}\" de esta estantería?", fontFamily = CenturyGotic) },
+            confirmButton = {
+                TextButton(onClick = { showRemoveDialog = false; onLongPressRemove() }) {
+                    Text("Quitar", color = Color.Red, fontFamily = CenturyGotic)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRemoveDialog = false }) { Text("Cancelar", fontFamily = CenturyGotic) }
+            }
+        )
     }
 }
 

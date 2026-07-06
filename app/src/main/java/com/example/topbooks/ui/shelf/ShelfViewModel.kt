@@ -49,6 +49,7 @@ data class ShelvesState(
     val searchQuery: String = "",
     val sortBy: SortOption = SortOption.CUSTOM,
     val viewMode: ViewMode = ViewMode.SPINES,
+    val perspectiveMode: PerspectiveMode = PerspectiveMode.ORTHO,
     val recentlyAddedBookId: String? = null,
     val draggingBook: ShelfBook? = null,
     val draggingFromShelfId: String? = null,
@@ -56,7 +57,8 @@ data class ShelvesState(
 )
 
 enum class SortOption { CUSTOM, TITLE, AUTHOR, PAGES }
-enum class ViewMode { SPINES, GRID }
+enum class ViewMode { SPINES, COVERS, MIXED }
+enum class PerspectiveMode { FLAT, ORTHO, ISO }
 
 class ShelfViewModel(
     private val shelfRepo: ShelfRepository = ShelfRepositoryImpl(),
@@ -272,7 +274,31 @@ class ShelfViewModel(
 
     fun toggleViewMode() {
         _uiState.update {
-            it.copy(viewMode = if (it.viewMode == ViewMode.SPINES) ViewMode.GRID else ViewMode.SPINES)
+            val next = when (it.viewMode) {
+                ViewMode.SPINES -> ViewMode.COVERS
+                ViewMode.COVERS -> ViewMode.MIXED
+                ViewMode.MIXED -> ViewMode.SPINES
+            }
+            it.copy(viewMode = next)
+        }
+    }
+
+    fun setViewMode(mode: ViewMode) {
+        _uiState.update { it.copy(viewMode = mode) }
+    }
+
+    fun setPerspectiveMode(mode: PerspectiveMode) {
+        _uiState.update { it.copy(perspectiveMode = mode) }
+    }
+
+    fun cyclePerspective() {
+        _uiState.update {
+            val next = when (it.perspectiveMode) {
+                PerspectiveMode.FLAT -> PerspectiveMode.ORTHO
+                PerspectiveMode.ORTHO -> PerspectiveMode.ISO
+                PerspectiveMode.ISO -> PerspectiveMode.FLAT
+            }
+            it.copy(perspectiveMode = next)
         }
     }
 

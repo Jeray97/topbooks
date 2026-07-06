@@ -102,6 +102,28 @@ object LightThemeColors {
 }
 
 // ============================================================================
+// COLORES LOGIN (Nuevo diseño - Tonos elegantes cálidos)
+// ============================================================================
+object LoginColors {
+    val Background = Color(0xFFFFF8F5)
+    val Surface = Color(0xFFFFFFFF)
+    val SurfaceDim = Color(0xFFE1D8D5)
+    val SurfaceContainer = Color(0xFFF5ECE8)
+    val SurfaceContainerLow = Color(0xFFFBF2EE)
+    val SurfaceContainerHigh = Color(0xFFEFE6E3)
+    val SurfaceTint = Color(0xFF874F4D)
+    val Primary = Color(0xFF30090A)
+    val PrimaryContainer = Color(0xFF4A1D1D)
+    val PrimaryFixedDim = Color(0xFFFDB4B1)
+    val OnPrimary = Color(0xFFFFFFFF)
+    val SecondaryContainer = Color(0xFFFE932C)
+    val OnSurface = Color(0xFF1F1B19)
+    val OnSurfaceVariant = Color(0xFF524343)
+    val OutlineVariant = Color(0xFFD7C2C0)
+    val Outline = Color(0xFF847372)
+}
+
+// ============================================================================
 // ALIAS PARA COMPATIBILIDAD (Mantener código existente funcionando)
 // ============================================================================
 // Estos alias permiten que el código existente siga funcionando sin cambios
