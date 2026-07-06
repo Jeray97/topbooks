@@ -10,7 +10,7 @@
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Firebase](https://img.shields.io/badge/Backend-Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black)](https://firebase.google.com)
-[![License](https://img.shields.io/badge/License-MIT-red?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red?style=flat-square)](#-licencia)
 
 [📱 Descargar APK](#-instalación-del-apk) · [✨ Funcionalidades](#-funcionalidades) · [🚀 Configuración](#-configuración-del-entorno)
 
@@ -268,6 +268,18 @@ Para instalar directamente sin compilar:
 - [ ] Importación de biblioteca desde Goodreads
 - [ ] Panel de administrador
 - [ ] Publicación en Google Play
+
+---
+
+## 📄 Licencia
+
+**All Rights Reserved**
+
+Copyright © 2026 Jeray Reyes Morales. Todos los derechos reservados.
+
+Este software y su código fuente son propiedad exclusiva del autor. No se permite la reproducción, distribución, modificación ni uso comercial o no comercial sin autorización expresa por escrito.
+
+Para solicitudes de licencia o permisos, contactar a través de [GitHub](https://github.com/Jeray97).
 
 ---
 
