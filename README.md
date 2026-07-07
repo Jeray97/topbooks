@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src=".github/ic_launcher-playstore.png" width="120" alt="TopBooks Logo"/>
+<img src="app/src/main/ic_launcher-playstore.png" width="120" alt="TopBooks Logo"/>
 
 # TopBooks
 
@@ -10,9 +10,9 @@
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Firebase](https://img.shields.io/badge/Backend-Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black)](https://firebase.google.com)
-[![License](https://img.shields.io/badge/License-MIT-red?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red?style=flat-square)](#-licencia)
 
-[📱 Descargar APK](#instalación) · [✨ Funcionalidades](#funcionalidades) · [🚀 Configuración](#configuración-del-entorno)
+[📱 Descargar APK](#-instalación-del-apk) · [✨ Funcionalidades](#-funcionalidades) · [🚀 Configuración](#-configuración-del-entorno)
 
 </div>
 
@@ -22,30 +22,54 @@
 
 TopBooks es una aplicación Android nativa para amantes de los libros. Permite descubrir nuevas lecturas mediante búsqueda inteligente en dos APIs externas, gestionar tu biblioteca personal y conectar con otros lectores a través de reseñas, comentarios y un feed social.
 
-Desarrollada como Proyecto Final de Grado del ciclo **DAM 25-26**.
+Proyecto personal desarrollado por [Jeray Reyes Morales](https://github.com/Jeray97).
 
 ---
 
 ## ✨ Funcionalidades
 
-### 📚 Biblioteca
-- Búsqueda híbrida en **Google Books API** y **Open Library API** simultáneamente
-- Escáner de **código ISBN** con la cámara del móvil
-- Organización en listas: **Favoritos**, **Leídos** y **Pendientes**
-- Exploración por categorías y géneros
+### 📚 Biblioteca personal
+- Estanterías personalizables con colores, visibilidad pública/privada y reordenación por drag-and-drop
+- **Diario de lectura** con valoraciones multi-eje (romance, felicidad, tristeza, picante), playlists, citas y notas
+- Seguimiento de libros leídos, pendientes y favoritos
+- Marcadores con cita, página y capítulo
 
-### 👤 Perfil y comunidad
-- Registro con **email/contraseña** o **Google Sign-In**
-- **Diario de lectura** privado por libro (notas, puntuaciones por tropos, citas)
-- **Reseñas públicas** con sistema de estrellas
-- **Comentarios por capítulo** con hilos de respuestas
-- Sistema de **amigos** con feed de actividad social
+### 🔍 Descubrimiento
+- Búsqueda híbrida con 5 filtros (general, título, autor, ISBN, saga) combinando **Google Books API** + **Open Library API** + catálogo comunitario
+- Escáner de **código ISBN** con CameraX + ML Kit para libros físicos
+- Motor de recomendaciones en 4 fases (similitud de favoritos, hidratación por género, populares, fallback)
+- 16 géneros literarios con nombres localizados (ES/EN)
 
-### 🌟 Funcionalidades únicas
-- **Edición colaborativa de sagas**: la comunidad puede proponer y votar el nombre y número de una saga en cualquier libro
-- **Notificaciones push** con Deep Linking directo a la pantalla correspondiente
-- **Onboarding personalizado** con selección de géneros y libros favoritos en la primera ejecución
-- **Tour guiado** interactivo sobre el menú principal
+### 👥 Comunidad
+- Feed social con 3 modos: amigos, algorítmico y top
+- **Historias efímeras** de 24h (portadas, citas, estado de lectura)
+- Posts: reseñas, citas, "terminé de leer", "estoy leyendo"
+- Reacciones, likes, guardados y respuestas en hilos
+- **Edición colaborativa de sagas** con sistema de votos
+
+### 📖 Clubes de lectura
+- Crear, unirse y gestionar clubes
+- Debates por capítulo con flag de spoilers
+- Recordatorio semanal automático vía Cloud Functions
+
+### 🌐 Social
+- Sistema de amigos con búsqueda y sugerencias
+- Muro de actividad social (global y por amigo)
+- Perfiles con avatares de capibara, bio, estadísticas y estanterías públicas
+- **Notificaciones push** (FCM) con deep-linking directo a la pantalla correspondiente
+
+### 📴 Modo offline
+- Caché local con Room (libros 24h, posts 30min, usuarios 1h)
+- Limpieza automática cada 6h vía WorkManager
+- `NetworkMonitor` con `ConnectivityManager` para fallback transparente
+
+### 🌙 Modo oscuro
+- Tema oscuro/claro completo con paletas de colores cálidos
+- Persistido en DataStore, aplicado reactivamente
+
+### 🎯 Onboarding
+- Tutorial interactivo de 3 pasos (géneros, libros favoritos, confirmación)
+- Tour guiado con spotlight animado sobre el menú principal
 
 ---
 
@@ -64,9 +88,13 @@ Desarrollada como Proyecto Final de Grado del ciclo **DAM 25-26**.
 ├──────────────────────┬──────────────────────────────┤
 │    Remote (APIs)     │    Remote (Firebase)         │
 │  Google Books API    │  Firestore · Auth · FCM      │
-│  Open Library API    │                              │
+│  Open Library API    │  Cloud Functions · Analytics │
 │  Retrofit 2 + Gson   │                              │
-└──────────────────────┴──────────────────────────────┘
+├──────────────────────┴──────────────────────────────┤
+│                  Local Layer                        │
+│   Room (caché offline) · DataStore (preferencias)   │
+│   WorkManager (sync background)                     │
+└─────────────────────────────────────────────────────┘
 ```
 
 | Capa | Tecnología |
@@ -74,11 +102,62 @@ Desarrollada como Proyecto Final de Grado del ciclo **DAM 25-26**.
 | UI | Jetpack Compose + Material 3 |
 | Estado | ViewModel + StateFlow |
 | Navegación | Navigation Compose |
-| Red | Retrofit 2 + Gson |
+| Red | Retrofit 2.11 + Gson |
 | Base de datos | Firebase Firestore |
-| Autenticación | Firebase Auth |
+| BD local | Room 2.6.1 (KSP) |
+| Autenticación | Firebase Auth + Google Sign-In |
 | Notificaciones | Firebase Cloud Messaging |
-| Imágenes | Coil |
+| Background | WorkManager 2.9 |
+| Imágenes | Coil 2.5 |
+| Cámara/QR | CameraX 1.4.1 + ML Kit Barcode 17.3 |
+| Preferencias | Jetpack DataStore |
+
+---
+
+## 📁 Estructura del proyecto
+
+```
+app/src/main/java/com/example/topbooks/
+├── data/
+│   ├── local/          # Room (AppDatabase, DAOs, Entities, Mappers)
+│   ├── model/          # Book, User, Post, Club, Journal, Shelf…
+│   ├── network/        # RetrofitClient, BooksApiService, FCM Service
+│   ├── preferences/    # SettingsManager (DataStore)
+│   └── repository/     # Auth, Books, Club, Community, Journal,
+│                       # Post, Progress, Shelf, SocialFeed, Story, User
+├── ui/
+│   ├── auth/           # Login, Register, Google Sign-In
+│   ├── book/           # BookDetail, ReadingJournal
+│   ├── category/       # Categories, CategoryDetail
+│   ├── club/           # Clubes, debates, creación
+│   ├── community/      # Feed social, posts, historias
+│   ├── components/     # BookItem, TopBar, SearchBar, fondos decorativos
+│   ├── config/         # Ajustes (modo oscuro, idioma, géneros, cuenta)
+│   ├── friends/        # Amigos, actividad social
+│   ├── home/           # Inicio, recomendaciones
+│   ├── navigation/     # BottomNavItem
+│   ├── profile/        # Perfil, listas de usuario
+│   ├── progress/       # Biblioteca (diarios, favoritos, pendientes, leídos)
+│   ├── reviews/        # Reseñas, comentarios en tiempo real
+│   ├── scanner/        # Escáner QR/ISBN
+│   ├── search/         # Búsqueda con debounce
+│   ├── shelf/          # Estanterías propias y de amigos
+│   ├── theme/          # Colores, tipografía, tema Material 3
+│   └── tutorial/       # Onboarding (3 pasos)
+└── utils/              # AvatarHelper, CategoryProvider, HtmlCleaner,
+                        # SeriesDetector, Resource
+```
+
+### ⚡ Backend (Cloud Functions)
+
+| Función | Tipo | Descripción |
+|---|---|---|
+| `notificarNuevoSeguidor` | Firestore trigger | Push al seguir a un usuario |
+| `enviarNotificacionRespuesta` | HTTPS callable | Push al responder una reseña |
+| `enviarNotificacionRespuestaPost` | HTTPS callable | Push al responder un post |
+| `notificarNuevaDiscusion` | HTTPS callable | Multicast a miembros del club |
+| `limpiarStoriesExpiradas` | Scheduled (1h) | Borra historias >24h |
+| `recordatorioSemanalClubes` | Scheduled (lun 09:00) | Recordatorio a clubes activos |
 
 ---
 
@@ -88,7 +167,7 @@ Desarrollada como Proyecto Final de Grado del ciclo **DAM 25-26**.
 |---|---|
 | Android Studio | Hedgehog (2023.1.1) o superior |
 | JDK | 17 (incluido en Android Studio) |
-| Android SDK | API 26 (Android 8.0) |
+| Android SDK | API 24 (Android 7.0) |
 | Google Play Services | Actualizado |
 | Cuenta Firebase | Plan Blaze (Freemium) |
 
@@ -107,15 +186,6 @@ cd topbooks
 
 El archivo `google-services.json` **no está incluido** en el repositorio por seguridad.
 
-Tienes dos opciones:
-
-**Opción A — Usar el archivo de la entrega**
-Copia el `google-services.json` proporcionado en la entrega y pégalo en:
-```
-topbooks/app/src/google-services.json
-```
-
-**Opción B — Crear tu propio proyecto Firebase**
 1. Ve a [console.firebase.google.com](https://console.firebase.google.com) y crea un proyecto
 2. Añade una app Android con el paquete `com.example.topbooks`
 3. Descarga el `google-services.json` y colócalo en `app/src/`
@@ -123,7 +193,22 @@ topbooks/app/src/google-services.json
 5. Activa **Firestore Database** en modo producción
 6. Activa **Cloud Messaging**
 
-### 3. Sincronizar y ejecutar
+### 3. Configurar API Key
+
+Crea o edita `local.properties` en la raíz:
+```properties
+GOOGLE_BOOKS_API_KEY=tu_clave_aqui
+```
+
+### 4. Desplegar Cloud Functions
+
+```bash
+cd functions
+npm install
+firebase deploy --only functions
+```
+
+### 5. Sincronizar y ejecutar
 
 1. Abre el proyecto en **Android Studio**
 2. Espera a que **Gradle** sincronice las dependencias
@@ -147,19 +232,7 @@ Para instalar directamente sin compilar:
 
 ---
 
-## 🔑 Cuentas de prueba
-
-| Rol | Email | Contraseña | Notas |
-|---|---|---|---|
-| Usuario estándar | `test1@topbooks.com` | `TopBooks2024!` | Email verificado, todas las funcionalidades activas |
-| Usuario nuevo | `test2@topbooks.com` | `TopBooks2024!` | Para probar el onboarding |
-| Usuario con reseñas | `reviewer@topbooks.com` | `TopBooks2024!` | Con reseñas y comentarios ya creados |
-
----
-
 ## 🧪 Tests
-
-El proyecto incluye **40 tests de unidad** y **2 tests de integración**.
 
 ```bash
 # Ejecutar tests de unidad (no requiere dispositivo)
@@ -178,35 +251,6 @@ El proyecto incluye **40 tests de unidad** y **2 tests de integración**.
 
 ---
 
-## 📁 Estructura del proyecto
-
-```
-app/src/main/java/com/example/topbooks/
-├── data/
-│   ├── model/          # Book, User, Review, Comment, Journal…
-│   ├── network/        # RetrofitClient, BooksApiService, FCM Service
-│   ├── preferences/    # SettingsManager (DataStore)
-│   └── repository/     # Auth, Books, Progress, Journal, Community…
-├── ui/
-│   ├── auth/           # Login, Register, AuthViewModel
-│   ├── book/           # BookDetail, ReadingJournal
-│   ├── category/       # Categories, CategoryDetail
-│   ├── friends/        # Friends, SocialActivity, FriendsActivity
-│   ├── home/           # Home, Recommended, RecommendedSection
-│   ├── profile/        # Profile, UserList
-│   ├── progress/       # Progress screen
-│   ├── reviews/        # Reviews, SingleComment
-│   ├── scanner/        # QR/ISBN Scanner
-│   ├── search/         # Search
-│   ├── tutorial/       # Onboarding
-│   ├── config/         # Settings
-│   ├── theme/          # Colors, Typography, Theme
-│   └── components/     # Shared composables
-└── utils/              # AvatarHelper, CategoryProvider, HtmlCleaner, SeriesDetector
-```
-
----
-
 ## 🔒 Permisos
 
 | Permiso | Uso |
@@ -217,29 +261,31 @@ app/src/main/java/com/example/topbooks/
 
 ---
 
-## ⚠️ Funcionalidades pendientes
-
-- **Modo offline completo** — el caché de Firestore está parcialmente implementado
-- **Panel de administrador** — supervisión de usuarios, reportes y sugerencias
-- **Notificaciones de nuevos lanzamientos**
-- **Modo oscuro**
-- **Publicación en Google Play**
-
----
-
 ## 🛣️ Roadmap
 
 - [ ] Paginación con Jetpack Paging 3
-- [ ] Tests de UI con Espresso
-- [ ] Soporte de Dark Mode
 - [ ] Widget de pantalla de inicio con el libro en progreso
 - [ ] Importación de biblioteca desde Goodreads
+- [ ] Panel de administrador
+- [ ] Publicación en Google Play
+
+---
+
+## 📄 Licencia
+
+**All Rights Reserved**
+
+Copyright © 2026 Jeray Reyes Morales. Todos los derechos reservados.
+
+Este software y su código fuente son propiedad exclusiva del autor. No se permite la reproducción, distribución, modificación ni uso comercial o no comercial sin autorización expresa por escrito.
+
+Para solicitudes de licencia o permisos, contactar a través de [GitHub](https://github.com/Jeray97).
 
 ---
 
 ## 👤 Autor
 
-**Jeray Reyes Morales** — Proyecto Final de Grado DAM 25-26
+**Jeray Reyes Morales** — [GitHub](https://github.com/Jeray97)
 
 ---
 

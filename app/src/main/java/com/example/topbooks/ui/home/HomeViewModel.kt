@@ -87,8 +87,8 @@ class HomeViewModel(
 
                 if (uid != null) {
                     val userDoc = db.collection("users").document(uid).get().await()
-                    val favoriteGenres = userDoc.get("favoriteGenres") as? List<String> ?: emptyList()
-                    val favoriteBookIds = userDoc.get("favoriteBooks") as? List<String> ?: emptyList()
+                    val favoriteGenres = (userDoc.get("favoriteGenres") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                    val favoriteBookIds = (userDoc.get("favoriteBooks") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
 
                     // 1️ HIDRATACIÓN POR SIMILITUD: Buscamos libros similares a los que ya le gustan
                     val booksFromFavorites = coroutineScope {

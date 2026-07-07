@@ -330,6 +330,16 @@ fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
 /**
  * PROCESADOR DE FOTOGRAMAS.
  */
+private val barcodeScanner by lazy {
+    val options = BarcodeScannerOptions.Builder()
+        .setBarcodeFormats(
+            Barcode.FORMAT_EAN_13,
+            Barcode.FORMAT_EAN_8
+        )
+        .build()
+    BarcodeScanning.getClient(options)
+}
+
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 private fun processImageProxy(
     imageProxy: ImageProxy,
@@ -339,16 +349,7 @@ private fun processImageProxy(
     if (mediaImage != null) {
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
-        val options = BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(
-                Barcode.FORMAT_EAN_13,
-                Barcode.FORMAT_EAN_8
-            )
-            .build()
-
-        val scanner = BarcodeScanning.getClient(options)
-
-        scanner.process(image)
+        barcodeScanner.process(image)
             .addOnSuccessListener { barcodes ->
                 for (barcode in barcodes) {
                     barcode.rawValue?.let { value ->

@@ -1,7 +1,13 @@
 package com.example.topbooks.data.repository
 
+import android.content.Context
 import android.util.Log
 import com.example.topbooks.BuildConfig
+import com.example.topbooks.data.local.AppDatabase
+import com.example.topbooks.data.local.BookDao
+import com.example.topbooks.data.local.NetworkMonitor
+import com.example.topbooks.data.local.toDomain
+import com.example.topbooks.data.local.toEntity
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.network.RetrofitClient
 import com.google.firebase.firestore.FieldValue
@@ -21,15 +27,20 @@ import java.net.URL
  * Repositorio central encargado de la gestión, búsqueda y filtrado de Libros.
  * * Implementa una arquitectura híbrida: prioriza los datos guardados por la comunidad
  * en Firebase Firestore y utiliza Google Books y Open Library como respaldo (Fallback).
+ * * Modo offline: Cache local con Room para acceso sin conexión.
  */
-class BooksRepository {
+class BooksRepository(context: Context? = null) {
 
     private val apiService = RetrofitClient.instance
     private val API_KEY = BuildConfig.API_KEY
-    private val db = FirebaseFirestore.getInstance() //Conexión a tu Base de Datos
+    private val db = FirebaseFirestore.getInstance()
+
+    private val bookDao: BookDao? = context?.let { AppDatabase.getInstance(it).bookDao() }
+    private val networkMonitor: NetworkMonitor? = context?.let { NetworkMonitor(it) }
+
     companion object {
-        // Caché global para pasar el libro del escáner a los detalles sin recargar la API
         var lastScannedBook: Book? = null
+        private const val CACHE_VALIDITY_MS = 24 * 60 * 60 * 1000L // 24 horas
     }
 
     /**
@@ -45,6 +56,13 @@ class BooksRepository {
         limit: Int = 20
     ): Result<List<Book>> {
         return try {
+            val isOnline = networkMonitor?.isCurrentlyOnline() ?: true
+
+            val cachedBooks = bookDao?.searchBooks(query, limit) ?: emptyList()
+            if (!isOnline && cachedBooks.isNotEmpty()) {
+                return Result.success(cachedBooks.map { it.toDomain() })
+            }
+
             val currentYear = Calendar.getInstance().get(Calendar.YEAR)
 
             // ====================================================================
@@ -63,6 +81,7 @@ class BooksRepository {
             // Si nuestra comunidad ya ha guardado al menos 4 libros de esta categoría...
             // ¡Nos ahorramos llamar a Google y mostramos los nuestros!
             if (localBooks.size >= 4) {
+                bookDao?.insertBooks(localBooks.map { it.toEntity() })
                 return Result.success(localBooks.take(limit))
             }
 
@@ -132,6 +151,7 @@ class BooksRepository {
                     books = fallbackBooks.sortedByDescending { it.ratingsCount }
                 }
 
+                bookDao?.insertBooks(books.take(limit).map { it.toEntity() })
                 Result.success(books.take(limit))
             } else {
                 Result.failure(Exception("Google API Error: ${response.code()}"))
@@ -151,7 +171,7 @@ class BooksRepository {
                 val id = doc.getString("id") ?: doc.id
                 val title = doc.getString("title") ?: ""
                 val subtitle = doc.getString("subtitle") ?: ""
-                val authors = doc.get("authors") as? List<String> ?: emptyList()
+                val authors = (doc.get("authors") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
 
                 // SANITIZACIÓN: Limpiamos por si se guardó sucio
                 val rawDescription = doc.getString("description") ?: ""
@@ -163,7 +183,7 @@ class BooksRepository {
                 val ratingsCount = doc.getLong("ratingsCount")?.toInt() ?: 0
                 val pageCount = doc.getLong("pageCount")?.toInt() ?: 0
                 val isMature = doc.getBoolean("isMature") ?: false
-                val categories = doc.get("categories") as? List<String> ?: emptyList()
+                val categories = (doc.get("categories") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
 
                 val seriesName = doc.getString("seriesName") ?: ""
                 val seriesIndex = doc.getLong("seriesIndex")?.toInt() ?: 0
@@ -302,6 +322,17 @@ class BooksRepository {
      */
     suspend fun getBookDetail(id: String): Result<Book> {
         return try {
+            val cachedBook = bookDao?.getBookById(id)
+            val isOnline = networkMonitor?.isCurrentlyOnline() ?: true
+
+            if (cachedBook != null && (!isOnline || System.currentTimeMillis() - cachedBook.cachedAt < CACHE_VALIDITY_MS)) {
+                return Result.success(cachedBook.toDomain())
+            }
+
+            if (!isOnline && cachedBook != null) {
+                return Result.success(cachedBook.toDomain())
+            }
+
             // 1. Firebase (Prioridad 1)
             val snapshot = db.collection("books").document(id).get().await()
             if (snapshot.exists()) {
@@ -318,7 +349,7 @@ class BooksRepository {
                     id = id,
                     title = snapshot.getString("title") ?: "",
                     subtitle = snapshot.getString("subtitle") ?: "",
-                    authors = snapshot.get("authors") as? List<String> ?: emptyList(),
+                    authors = (snapshot.get("authors") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                     description = cleanDescription,
                     imageUrl = snapshot.getString("imageUrl") ?: "",
                     lanzamiento = snapshot.getString("lanzamiento") ?: "",
@@ -326,11 +357,14 @@ class BooksRepository {
                     ratingsCount = snapshot.getLong("ratingsCount")?.toInt() ?: 0,
                     pageCount = snapshot.getLong("pageCount")?.toInt() ?: 0,
                     isMature = snapshot.getBoolean("isMature") ?: false,
-                    categories = snapshot.get("categories") as? List<String> ?: emptyList(),
+                    categories = (snapshot.get("categories") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                     seriesName = snapshot.getString("seriesName") ?: "",
                     seriesIndex = snapshot.getLong("seriesIndex")?.toInt() ?: 0
                 )
-                if (isDescriptionValid) return Result.success(book)
+                if (isDescriptionValid) {
+                    bookDao?.insertBook(book.toEntity())
+                    return Result.success(book)
+                }
             }
 
             // 2. Fetch de API (Google u OpenLibrary)
@@ -378,7 +412,10 @@ class BooksRepository {
                 if (response.isSuccessful) finalBook = response.body()?.toDomain()
             }
 
-            if (finalBook != null) Result.success(finalBook)
+            if (finalBook != null) {
+                bookDao?.insertBook(finalBook.toEntity())
+                Result.success(finalBook)
+            }
             else Result.failure(Exception("Libro no encontrado"))
 
         } catch (e: Exception) {
@@ -496,7 +533,7 @@ class BooksRepository {
                     id = doc.getString("id") ?: doc.id,
                     title = doc.getString("title") ?: "",
                     subtitle = doc.getString("subtitle") ?: "",
-                    authors = doc.get("authors") as? List<String> ?: emptyList(),
+                    authors = (doc.get("authors") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                     description = description,
                     imageUrl = doc.getString("imageUrl") ?: "",
                     lanzamiento = doc.getString("publishedDate") ?: doc.getString("lanzamiento")
@@ -505,7 +542,7 @@ class BooksRepository {
                     ratingsCount = doc.getLong("ratingsCount")?.toInt() ?: 0,
                     pageCount = doc.getLong("pageCount")?.toInt() ?: 0,
                     isMature = doc.getBoolean("isMature") ?: false,
-                    categories = doc.get("categories") as? List<String> ?: emptyList(),
+                    categories = (doc.get("categories") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                     seriesName = doc.getString("seriesName") ?: "",
                     seriesIndex = doc.getLong("seriesIndex")?.toInt() ?: 0
                 )

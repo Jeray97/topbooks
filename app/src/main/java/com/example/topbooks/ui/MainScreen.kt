@@ -74,7 +74,13 @@ fun MainScreen(
     onNavigateToFriendsActivity: () -> Unit,
     onNavigateToFriendProfile: (String) -> Unit,
     onNavigateToList: (String, String) -> Unit,
-    onNavigateToJournal: (String) -> Unit
+    onNavigateToJournal: (String) -> Unit,
+    onNavigateToCreateStory: () -> Unit = {},
+    onNavigateToStoryViewer: (userId: String) -> Unit = {},
+    onNavigateToPostDetail: (postId: String) -> Unit = {},
+    onNavigateToCreatePost: () -> Unit = {},
+    onNavigateToClubs: () -> Unit = {},
+    onNavigateToShelves: () -> Unit = {}
 ) {
     // NavController específico para las pestañas de la barra inferior
     val bottomNavController = rememberNavController()
@@ -189,21 +195,27 @@ fun MainScreen(
                             // Generamos un ID temporal para diarios de libros no registrados en la API
                             val customBookId = "custom_${UUID.randomUUID()}"
                             onNavigateToJournal(customBookId)
-                        }
+                        },
+                        onNavigateToShelves = onNavigateToShelves
                     )
                 }
 
                 composable(BottomNavItem.Friends.route) {
                     FriendsScreen(
                         onNavigateToProfile = onNavigateToFriendProfile,
-                        onNavigateToActivity = onNavigateToFriendsActivity
+                        onNavigateToActivity = onNavigateToFriendsActivity,
+                        onNavigateToClubs = onNavigateToClubs
                     )
                 }
 
                 composable(BottomNavItem.Reviews.route) {
                     ReviewsScreen(
                         onBackClick = { bottomNavController.popBackStack() },
-                        onBookClick = onNavigateToBookDetail
+                        onBookClick = onNavigateToBookDetail,
+                        onPostClick = onNavigateToPostDetail,
+                        onCreateStoryClick = onNavigateToCreateStory,
+                        onStoryClick = onNavigateToStoryViewer,
+                        onCreatePostClick = onNavigateToCreatePost
                     )
                 }
 

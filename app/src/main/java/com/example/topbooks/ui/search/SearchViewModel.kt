@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.repository.BooksRepository
+import com.example.topbooks.ui.community.SearchFilter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,8 +29,20 @@ class SearchViewModel(private val repository: BooksRepository = BooksRepository(
     /** Flujo público que indica si hay una búsqueda en curso. */
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    // Estado interno para el filtro de búsqueda activo
+    private val _searchFilter = MutableStateFlow(SearchFilter.GENERAL)
+    /** Flujo público del filtro de búsqueda activo. */
+    val searchFilter: StateFlow<SearchFilter> = _searchFilter.asStateFlow()
+
     // Referencia al trabajo de búsqueda actual para permitir su cancelación
     private var searchJob: Job? = null
+
+    /**
+     * Actualiza el filtro de búsqueda activo y re-ejecuta la búsqueda si hay texto.
+     */
+    fun setSearchFilter(filter: SearchFilter) {
+        _searchFilter.value = filter
+    }
 
     /**
      * Procesa el cambio en la consulta de búsqueda.
@@ -52,8 +65,17 @@ class SearchViewModel(private val repository: BooksRepository = BooksRepository(
             delay(800)
             _isLoading.value = true
 
+            // Aplicar filtro de búsqueda según el tipo seleccionado
+            val filteredQuery = when (_searchFilter.value) {
+                SearchFilter.GENERAL -> query
+                SearchFilter.TITLE -> "intitle:$query"
+                SearchFilter.AUTHOR -> "inauthor:$query"
+                SearchFilter.ISBN -> "isbn:$query"
+                SearchFilter.SERIES -> "subject:$query"
+            }
+
             // Ejecución de búsqueda híbrida (combina fuentes de datos)
-            val result = repository.searchHybrid(query)
+            val result = repository.searchHybrid(filteredQuery)
 
             if (result.isSuccess) {
                 val books = result.getOrDefault(emptyList())

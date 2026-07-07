@@ -11,46 +11,48 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.example.topbooks.data.preferences.SettingsManager
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-    // Aquí definirás tus colores oscuros en el futuro (ej: background = ColorDarkGray)
+    primary = DarkThemeColors.ArcDarkBrown,
+    secondary = DarkThemeColors.ArcMediumBrown,
+    tertiary = DarkThemeColors.JournalRomance,
+    background = DarkThemeColors.Background,
+    surface = DarkThemeColors.ComponentBackground,
+    onPrimary = Color(0xFFFFFFFF),
+    onSecondary = Color(0xFFFFFFFF),
+    onTertiary = Color(0xFFFFFFFF),
+    onBackground = DarkThemeColors.TextPrimary,
+    onSurface = DarkThemeColors.TextPrimary
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-    // Aquí puedes enlazar tus colores diurnos si decides usar MaterialTheme.colorScheme
+    primary = LightThemeColors.ArcDarkBrown,
+    secondary = LightThemeColors.ArcMediumBrown,
+    tertiary = LightThemeColors.JournalRomance,
+    background = LightThemeColors.Background,
+    surface = LightThemeColors.ComponentBackground,
+    onPrimary = Color(0xFFFFFFFF),
+    onSecondary = Color(0xFFFFFFFF),
+    onTertiary = Color(0xFFFFFFFF),
+    onBackground = LightThemeColors.TextPrimary,
+    onSurface = LightThemeColors.TextPrimary
 )
 
 @Composable
 fun TopBooksTheme(
-    // Dinamic color adapta los colores al fondo de pantalla del usuario (Android 12+).
-    // Lo pongo en 'false' por defecto para que respeten colores marrones y beige de la marca.
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
 
-    // 1. Instanciamos el SettingsManager para leer las preferencias
     val settingsManager = remember { SettingsManager(context) }
 
-    // 2. Leemos la preferencia del usuario en tiempo real.
-    // Si no ha elegido nada, usamos la preferencia del sistema por defecto.
     val isDarkModeEnabledByUser by settingsManager.darkModeFlow.collectAsState(initial = isSystemInDarkTheme())
 
-    // ------------------------------------------------------------------
-    // INTERRUPTOR DE SEGURIDAD: MODO OSCURO EN CONSTRUCCIÓN
-    // ------------------------------------------------------------------
-    // Actualmente forzamos 'false' para que siempre se vea el modo diurno.
-    // val useDarkTheme = isDarkModeEnabledByUser
-    val useDarkTheme = false
-    // ------------------------------------------------------------------
+    val useDarkTheme = isDarkModeEnabledByUser
 
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {

@@ -1,0 +1,143 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═══════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    function isMemberOfClub(clubId) {
+      return isAuth() && request.auth.uid in get(/databases/$(database)/documents/clubs/$(clubId)).data.memberIds;
+    }
+
+    function isClubCreator(clubId) {
+      return isAuth() && get(/databases/$(database)/documents/clubs/$(clubId)).data.createdBy == request.auth.uid;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // USERS (ya existente - sin cambios)
+    // ═══════════════════════════════════════════════════════════
+
+    match /users/{userId} {
+      allow read: if isAuth();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+
+      match /favorites/{bookId} {
+        allow read: if isAuth();
+        allow write: if isOwner(userId);
+      }
+
+      match /friends/{friendUid} {
+        allow read: if isAuth();
+        allow write: if isOwner(userId);
+      }
+
+      match /journals/{bookId} {
+        allow read: if isAuth() && (isOwner(userId) || resource.data.isPublic == true);
+        allow write: if isOwner(userId);
+      }
+
+      match /read_books/{bookId} {
+        allow read: if isAuth();
+        allow write: if isOwner(userId);
+      }
+
+      match /bookmarks/{bookId} {
+        allow read: if isAuth() && (isOwner(userId) || resource.data.isPublic == true);
+        allow write: if isOwner(userId);
+      }
+
+    match /shelves/{shelfId} {
+      allow read: if isOwner(userId) || resource.data.isPublic == true;
+      allow write: if isOwner(userId);
+    }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // POSTS (nuevo - feed social)
+    // ═══════════════════════════════════════════════════════════
+
+    match /posts/{postId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuth();
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // STORIES (nuevo - historias 24h)
+    // ═══════════════════════════════════════════════════════════
+
+    match /stories/{storyId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuth();
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CLUBS (nuevo - clubes de lectura)
+    // ═══════════════════════════════════════════════════════════
+
+    match /clubs/{clubId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth();
+      allow delete: if isAuth() && resource.data.createdBy == request.auth.uid;
+
+      match /discussions/{discussionId} {
+        allow read: if isMemberOfClub(clubId);
+        allow create: if isMemberOfClub(clubId) && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isMemberOfClub(clubId);
+        allow delete: if isAuth() && resource.data.createdBy == request.auth.uid;
+      }
+
+      match /members/{userId} {
+        allow read: if isMemberOfClub(clubId);
+        allow write: if isOwner(userId);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // BOOKS (ya existente - sin cambios)
+    // ═══════════════════════════════════════════════════════════
+
+    match /books/{bookId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REVIEWS (ya existente - sin cambios)
+    // ═══════════════════════════════════════════════════════════
+
+    match /reviews/{reviewId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuth() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // COMMENTS (ya existente - sin cambios)
+    // ═══════════════════════════════════════════════════════════
+
+    match /comments/{commentId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuth();
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

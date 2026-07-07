@@ -1,74 +1,140 @@
 package com.example.topbooks.utils
 
-/**
- * UTILIDAD DE DETECCIÓN DE SAGAS Y SERIES.
- * * Analiza títulos de libros mediante expresiones regulares para identificar si
- * pertenecen a una serie y extraer su posición cronológica.
- */
 object SeriesDetector {
 
-    /**
-     * Información estructurada de la serie detectada.
-     * @property name Nombre normalizado de la saga.
-     * @property index Número del volumen dentro de la serie.
-     */
     data class SeriesInfo(
         val name: String,
         val index: Int
     )
 
-    /**
-     * Intenta detectar metadatos de serie en un título de libro.
-     * * Procesa formatos comunes como:
-     * - "Título (Saga 3)"
-     * - "Título - Saga #3"
-     * - "Título (Libro 3)"
-     * - "Título Vol. 3"
-     * * @param title El título completo del libro a analizar.
-     * @return [SeriesInfo] si se detecta un patrón válido, de lo contrario null.
-     */
+    private val ROMAN_MAP = mapOf(
+        "i" to 1, "ii" to 2, "iii" to 3, "iv" to 4, "v" to 5,
+        "vi" to 6, "vii" to 7, "viii" to 8, "ix" to 9, "x" to 10,
+        "xi" to 11, "xii" to 12, "xiii" to 13, "xiv" to 14, "xv" to 15
+    )
+
+    private val SERIES_KEYWORDS = listOf(
+        "saga", "serie", "series", "trilogía", "trilogia", "trilogy",
+        "duología", "duologia", "duology", "tetralogía", "tetralogia", "tetralogy",
+        "crónicas", "cronicas", "chronicles", "ciclo", "cycle",
+        "colección", "coleccion", "collection"
+    )
+
+    private val YEAR_REGEX = Regex("\\b(19|20)\\d{2}\\b")
+
     fun detect(title: String): SeriesInfo? {
-        val cleanTitle = title.lowercase().trim()
+        val cleanTitle = title.trim()
+        val lowerTitle = cleanTitle.lowercase()
 
-        // LISTA DE PATRONES ORDENADOS POR PRIORIDAD
+        if (YEAR_REGEX.containsMatchIn(cleanTitle)) {
+            val withoutYears = YEAR_REGEX.replace(cleanTitle, "").replace("()", "").trim()
+            val result = matchPatterns(withoutYears)
+            if (result != null) return result
+        }
+
+        val result = matchPatterns(cleanTitle)
+        if (result != null) return result
+
+        return detectByKeywords(lowerTitle)
+    }
+
+    private fun matchPatterns(title: String): SeriesInfo? {
+        val lowerTitle = title.lowercase()
+
         val patterns = listOf(
-            // 1. Busca "(NombreSaga 3)" en cualquier parte del título
+            Regex("\\(([^()]+?)\\s*[,;]\\s*(?:book|libro|vol\\.?|volume|#)\\s*(\\d+)\\)", RegexOption.IGNORE_CASE),
+            Regex("\\((?:book|libro|vol\\.?|volume)\\s*(\\d+)\\s+(?:of\\s+)?([^()]+)\\)", RegexOption.IGNORE_CASE),
+            Regex("(?:book|libro)\\s+(\\d+)\\s+(?:of(?:\\s+the)?|de(?:\\s+la)?)\\s+(.+?)(?:\\s*(?:series|saga|trilogy|trilogía|trilogia)|[\\s,;:!?\\-–—]|$)", RegexOption.IGNORE_CASE),
+            Regex("(?:book|libro)\\s+(\\d+)\\s*[-–—:]\\s*(.+?)(?:\\s*(?:series|saga)|[\\s,;:!?\\-–—]|$)", RegexOption.IGNORE_CASE),
+            Regex("(.+?)\\s*[-–—]\\s*(?:book|libro)\\s+(\\d+)", RegexOption.IGNORE_CASE),
+            Regex("(.+?)\\s*[-–—]\\s*(?:vol\\.?|volume)\\s+(\\d+)", RegexOption.IGNORE_CASE),
+            Regex("(.+?)\\s*[-–—]\\s*#(\\d+)", RegexOption.IGNORE_CASE),
             Regex("\\((.+?)\\s+(\\d+)\\)"),
-
-            // 2. Busca "- NombreSaga #3"
-            Regex("-\\s*(.+?)\\s*#(\\d+)"),
-
-            // 3. Busca "(Book 3)" o "(Libro 3)"
-            Regex("(.*)\\s*\\((?:book|libro)\\s*(\\d+)\\)", RegexOption.IGNORE_CASE),
-
-            // 4. Busca "Texto #3" al final de la cadena
-            Regex("(.*)\\s*#(\\d+)"),
-
-            // 5. Busca "Texto Vol 3" o "Volume 3" al final
-            Regex("(.*)\\s(vol\\.?|volume)\\s*(\\d+)", RegexOption.IGNORE_CASE)
+            Regex("(.+?)\\s+(\\d+)\\s+(?:of\\s+\\d+|de\\s+\\d+)"),
+            Regex("\\((.+?)\\s+(i{1,3}|iv|vi{0,3}|ix|xi{0,3}|xiv|xv)\\)", RegexOption.IGNORE_CASE),
+            Regex("(.+?)\\s+(i{1,3}|iv|vi{0,3}|ix|xi{0,3}|xiv|xv)\\s*$", RegexOption.IGNORE_CASE),
+            Regex("(.+?)\\s+(?:vol\\.?|volume)\\s+(\\d+)", RegexOption.IGNORE_CASE),
+            Regex("(.+?)\\s*#(\\d+)\\s*$"),
+            Regex("(.+?)\\s+(\\d+)\\s*$")
         )
 
         for (regex in patterns) {
-            val match = regex.find(cleanTitle)
+            val match = regex.find(lowerTitle) ?: continue
 
-            if (match != null) {
-                // Limpieza del nombre: eliminamos restos de separadores y espacios
-                var name = match.groupValues[1].replace(Regex(".*-\\s*"), "").trim()
-                val index = match.groupValues.last().toIntOrNull() ?: 0
+            val groups = match.groupValues
+            var name: String
+            var index: Int
 
-                // FILTRO DE SEGURIDAD
-                // Si el nombre extraído es demasiado corto o es puramente numérico (como un año), se ignora
-                if (name.length < 2 || name.matches(Regex("\\d+"))) {
-                    continue
+            val g1 = groups.getOrNull(1)?.trim() ?: ""
+            val g2 = groups.getOrNull(2)?.trim() ?: ""
+
+            val g1AsRoman = ROMAN_MAP[g1.lowercase()]
+            val g2AsRoman = ROMAN_MAP[g2.lowercase()]
+            val g1AsInt = g1.toIntOrNull()
+            val g2AsInt = g2.toIntOrNull()
+
+            when {
+                g2AsInt != null -> {
+                    name = g1
+                    index = g2AsInt
                 }
-
-                return SeriesInfo(
-                    name.replaceFirstChar { it.uppercase() },
-                    index
-                )
+                g1AsInt != null && g2.isNotBlank() -> {
+                    name = g2
+                    index = g1AsInt
+                }
+                g2AsRoman != null -> {
+                    name = g1
+                    index = g2AsRoman
+                }
+                g1AsRoman != null && g2.isNotBlank() -> {
+                    name = g2
+                    index = g1AsRoman
+                }
+                else -> continue
             }
+
+            name = cleanSeriesName(name)
+
+            if (name.length < 2 || name.matches(Regex("^\\d+$"))) continue
+            if (YEAR_REGEX.matches(name)) continue
+
+            return SeriesInfo(
+                name = name.replaceFirstChar { it.uppercase() },
+                index = index
+            )
         }
 
         return null
+    }
+
+    private fun detectByKeywords(lowerTitle: String): SeriesInfo? {
+        for (keyword in SERIES_KEYWORDS) {
+            val regex = Regex("(?:$keyword)\\s+(?:de\\s+|of\\s+(?:the\\s+)?)?(.+?)(?:\\s*[,;#(\\-–—]|\\s+\\d+\\s*$|$)", RegexOption.IGNORE_CASE)
+            val match = regex.find(lowerTitle) ?: continue
+
+            var name = match.groupValues[1].trim()
+            name = cleanSeriesName(name)
+
+            if (name.length < 2) continue
+
+            val indexMatch = Regex("(?:book|libro|vol\\.?|#)\\s*(\\d+)", RegexOption.IGNORE_CASE).find(lowerTitle)
+            val index = indexMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+
+            return SeriesInfo(
+                name = name.replaceFirstChar { it.uppercase() },
+                index = index
+            )
+        }
+        return null
+    }
+
+    private fun cleanSeriesName(name: String): String {
+        var cleaned = name
+        cleaned = cleaned.replace(Regex("^[-–—:,;\\s]+"), "")
+        cleaned = cleaned.replace(Regex("[-–—:,;\\s]+$"), "")
+        cleaned = cleaned.replace(Regex("\\(.*?\\)"), "")
+        cleaned = cleaned.replace(Regex("^\\s*(?:the|la|el|los|las)\\s+", RegexOption.IGNORE_CASE), "")
+        cleaned = cleaned.trim()
+        return cleaned
     }
 }

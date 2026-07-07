@@ -8,7 +8,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -20,6 +19,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.R
+import com.example.topbooks.ui.theme.LoginColors
 
 /**
  * Componente visual reutilizable que representa un libro en forma de tarjeta vertical.
@@ -34,69 +34,47 @@ fun BookItem(
     book: Book,
     onClick: () -> Unit
 ) {
-    // Un diseño en columna vertical: Portada arriba, Título y metadatos abajo
     Column(
         modifier = Modifier
-            .width(120.dp) // Ancho fijo para mantener uniformidad en las estanterías
+            .width(140.dp)
             .padding(end = 16.dp)
     ) {
-
-        // 1. La Tarjeta con la Imagen (Portada)
         Card(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(8.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             modifier = Modifier
-                .height(180.dp)
+                .height(210.dp)
                 .fillMaxWidth()
-                // Activamos el clic en toda la superficie de la portada
                 .clickable { onClick() }
         ) {
-            // Utilizamos Coil para cargar imágenes asíncronas desde internet
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(book.imageUrl)
-                    .crossfade(true) // Animación suave al aparecer la imagen
-                    // Imagen de seguridad por si la API no nos devuelve ninguna portada
+                    .crossfade(true)
                     .error(R.drawable.icon_codigodebarras)
                     .build(),
                 contentDescription = book.title,
-                contentScale = ContentScale.Crop, // Recorta la imagen para que llene la tarjeta sin deformarse
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 2. Título del Libro
         Text(
             text = book.title,
-            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            // Restringimos a 2 líneas máximo. Si es más largo, se añaden puntos suspensivos (...)
-            maxLines = 2,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            color = Color.Black
+            color = LoginColors.PrimaryContainer
         )
 
-        // 3. Autor
-        // Solo mostramos el autor si la lista no está vacía
         if (book.authors.isNotEmpty()) {
             Text(
-                // Extraemos únicamente el primer autor para ahorrar espacio visual
                 text = book.authors.first(),
                 fontSize = 12.sp,
-                color = Color.Gray,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        // 4. Fecha de lanzamiento
-        if(book.lanzamiento.isNotEmpty()) {
-            Text(
-                text = book.lanzamiento,
-                fontSize = 12.sp,
-                color = Color.Gray,
+                color = LoginColors.PrimaryContainer.copy(alpha = 0.8f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

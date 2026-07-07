@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -22,7 +23,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -34,46 +34,30 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.topbooks.R
-import com.example.topbooks.ui.components.TopBar
 import com.example.topbooks.ui.theme.*
 import com.example.topbooks.utils.AvatarHelper
 import com.example.topbooks.utils.CategoryProvider
 
-/**
- * PANTALLA DE PERFIL (Stateful Composable).
- * Esta pantalla es polimórfica: se adapta para mostrar el perfil del usuario actual (con opciones de edición)
- * o el perfil de un tercero (con opciones de red social como añadir amigo).
- *
- * @param userId ID del usuario a visualizar. Si es null, se asume el perfil del usuario autenticado.
- * @param onNavigateToSettings Navega a la configuración de la app.
- * @param onNavigateToDetail Navega al detalle de un libro específico.
- * @param onNavigateToList Navega a listas filtradas (reseñas, diarios, etc.).
- * @param onBackClick Acción para regresar.
- * @param viewModel Lógica de negocio y gestión de estado del perfil.
- */
 @Composable
 fun ProfileScreen(
     userId: String? = null,
     onNavigateToSettings: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToList: (String, String) -> Unit,
+    onNavigateToFriendShelves: (String, String) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {},
     viewModel: ProfileViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
     val user = state.user
 
-    // Disparar la carga del perfil cada vez que el userId cambie
     LaunchedEffect(userId) {
         viewModel.loadProfile(userId)
     }
 
-    // Estados para el control de diálogos de edición
     var showAvatarDialog by remember { mutableStateOf(false) }
     var showEditProfileDialog by remember { mutableStateOf(false) }
 
-
-    // --- DIÁLOGOS DE EDICIÓN (Solo activos si es MI perfil) ---
     if (showAvatarDialog && state.isMe) {
         AvatarSelectionDialog(
             currentAvatar = user.photoURL,
@@ -92,23 +76,53 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = LoginColors.Background,
         topBar = {
-            Box(contentAlignment = Alignment.CenterEnd) {
-                TopBar(onBackClick = onBackClick)
-                // Mostrar botón de ajustes solo en el perfil propio
-                if (state.isMe) {
-                    IconButton(onClick = onNavigateToSettings, modifier = Modifier.padding(end = 8.dp)) {
-                        Icon(Icons.Default.Settings, null, tint = ColorArcDarkBrown, modifier = Modifier.size(28.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(LoginColors.Background)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = LoginColors.Primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        fontFamily = GuardianCity,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LoginColors.Primary
+                    )
+                    if (state.isMe) {
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(
+                                Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = LoginColors.OnSurfaceVariant,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.size(48.dp))
                     }
                 }
             }
         }
     ) { padding ->
         if (state.isLoading) {
-            // Pantalla de carga centralizada
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = ColorArcMediumBrown)
+                CircularProgressIndicator(color = LoginColors.Primary)
             }
         } else {
             Column(
@@ -119,48 +133,58 @@ fun ProfileScreen(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // --- 1. SECCIÓN: AVATAR ---
                 Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .border(2.dp, ColorArcMediumBrown, CircleShape)
-                        // El clic para editar solo funciona si es Mi Perfil
-                        .clickable(enabled = state.isMe) { showAvatarDialog = true },
-                    contentAlignment = Alignment.Center
+                    modifier = Modifier.size(144.dp),
+                    contentAlignment = Alignment.BottomEnd
                 ) {
-                    ProfileImage(user.photoURL)
+                    Box(
+                        modifier = Modifier
+                            .size(144.dp)
+                            .clip(CircleShape)
+                            .background(LoginColors.SurfaceContainer)
+                            .border(3.dp, LoginColors.OutlineVariant, CircleShape)
+                            .clickable(enabled = state.isMe) { showAvatarDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ProfileImage(user.photoURL)
+                    }
+
                     if (state.isMe) {
-                        // Icono de edición flotante
-                        Icon(
-                            Icons.Default.Edit, null, tint = ColorArcMediumBrown,
+                        Box(
                             modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .background(Color.White, CircleShape)
-                                .padding(4.dp)
-                                .size(18.dp)
-                        )
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(LoginColors.Primary)
+                                .clickable { showAvatarDialog = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit Avatar",
+                                tint = LoginColors.OnPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // --- 2. SECCIÓN: NOMBRE Y BIO ---
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.clickable(enabled = state.isMe) { showEditProfileDialog = true }
                 ) {
                     Text(
                         text = user.displayName.ifEmpty { stringResource(R.string.profile_anonymous_reader) },
                         fontFamily = GuardianCity,
                         fontSize = 28.sp,
-                        color = ColorTituloTopBooks,
+                        color = LoginColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
                     if (state.isMe) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        Icon(Icons.Default.Edit, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Edit, null, tint = LoginColors.Outline, modifier = Modifier.size(20.dp))
                     }
                 }
 
@@ -168,18 +192,22 @@ fun ProfileScreen(
 
                 Text(
                     text = user.bio.ifEmpty { stringResource(R.string.profile_no_bio_yet) },
-                    fontFamily = GuardianCity, fontSize = 14.sp, color = Color.Gray, fontStyle = FontStyle.Italic, textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 32.dp).clickable(enabled = state.isMe) { showEditProfileDialog = true }
+                    fontSize = 16.sp,
+                    color = LoginColors.OnSurfaceVariant,
+                    fontStyle = FontStyle.Italic,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(horizontal = 32.dp)
+                        .clickable(enabled = state.isMe) { showEditProfileDialog = true }
                 )
 
-                // --- 3. SECCIÓN: RED SOCIAL (Solo visible en perfiles ajenos) ---
                 if (!state.isMe) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(24.dp))
-                            .background(if (state.isFriend) Color.LightGray.copy(alpha = 0.3f) else ColorArcMediumBrown.copy(alpha = 0.1f))
+                            .background(if (state.isFriend) LoginColors.OutlineVariant.copy(alpha = 0.3f) else LoginColors.Primary.copy(alpha = 0.1f))
                             .clickable { viewModel.toggleFriend(user.uid, user.displayName, user.photoURL) }
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
@@ -193,19 +221,114 @@ fun ProfileScreen(
                             text = if (state.isFriend) stringResource(R.string.profile_remove_friend) else stringResource(R.string.profile_add_friend),
                             fontFamily = GuardianCity,
                             fontWeight = FontWeight.Bold,
-                            color = if (state.isFriend) Color.Gray else ColorArcMediumBrown
+                            color = if (state.isFriend) LoginColors.Outline else LoginColors.Primary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(LoginColors.Primary.copy(alpha = 0.1f))
+                            .clickable { onNavigateToFriendShelves(user.uid, user.displayName) }
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                            contentDescription = null,
+                            tint = LoginColors.Primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Ver estanterías",
+                            fontFamily = GuardianCity,
+                            fontWeight = FontWeight.Bold,
+                            color = LoginColors.Primary
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // --- 4. SECCIÓN: GÉNEROS FAVORITOS ---
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = LoginColors.OutlineVariant.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(0.dp)
+                        )
+                        .padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "0",
+                            fontFamily = GuardianCity,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LoginColors.Primary
+                        )
+                        Text(
+                            text = "BOOKS",
+                            fontSize = 12.sp,
+                            color = LoginColors.OnSurfaceVariant,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(40.dp)
+                            .background(LoginColors.OutlineVariant.copy(alpha = 0.3f))
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "0",
+                            fontFamily = GuardianCity,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LoginColors.Primary
+                        )
+                        Text(
+                            text = "REVIEWS",
+                            fontSize = 12.sp,
+                            color = LoginColors.OnSurfaceVariant,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(40.dp)
+                            .background(LoginColors.OutlineVariant.copy(alpha = 0.3f))
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "0",
+                            fontFamily = GuardianCity,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LoginColors.Primary
+                        )
+                        Text(
+                            text = "FOLLOWERS",
+                            fontSize = 12.sp,
+                            color = LoginColors.OnSurfaceVariant,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
                 ProfileGenresSection(user.favoriteGenres)
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // --- 5. GRID DE ACCESOS DIRECTOS (DASHBOARD) ---
                 ProfileDashboardGrid(state, user.uid, onNavigateToList)
 
                 Spacer(modifier = Modifier.height(80.dp))
@@ -214,10 +337,6 @@ fun ProfileScreen(
     }
 }
 
-/**
- * Componente que renderiza la imagen del perfil.
- * Diferencia automáticamente entre una URL de red (Google) o un avatar local (Capibara).
- */
 @Composable
 fun ProfileImage(photoUrl: String) {
     if (photoUrl.startsWith("http")) {
@@ -237,29 +356,55 @@ fun ProfileImage(photoUrl: String) {
     }
 }
 
-/**
- * Sección horizontal que muestra los géneros favoritos del usuario utilizando iconos temáticos.
- */
 @Composable
 fun ProfileGenresSection(genres: List<String>) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.5f)), shape = RoundedCornerShape(16.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(stringResource(R.string.profile_favorite_genres), fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontSize = 16.sp)
-            Spacer(modifier = Modifier.height(16.dp))
-            if (genres.isEmpty()) {
-                Text(stringResource(R.string.profile_no_genres_selected), fontSize = 12.sp, color = Color.Gray)
-            } else {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    items(genres) { ProfileGenreItem(it) }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Text(
+                text = stringResource(R.string.profile_favorite_genres),
+                fontFamily = GuardianCity,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = LoginColors.Primary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = LoginColors.Surface),
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, LoginColors.OutlineVariant.copy(alpha = 0.4f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (genres.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.profile_no_genres_selected),
+                        fontSize = 16.sp,
+                        color = LoginColors.OnSurfaceVariant.copy(alpha = 0.7f),
+                        fontStyle = FontStyle.Italic,
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        items(genres) { ProfileGenreItem(it) }
+                    }
                 }
             }
         }
     }
 }
 
-/**
- * Representa un ícono de género individual dentro del perfil.
- */
 @Composable
 fun ProfileGenreItem(genreCode: String) {
     val categoryData = CategoryProvider.getCategoryResources(genreCode)
@@ -269,14 +414,14 @@ fun ProfileGenreItem(genreCode: String) {
             modifier = Modifier
                 .size(50.dp)
                 .clip(CircleShape)
-                .background(Color.White)
-                .border(1.dp, ColorArcMediumBrown, CircleShape),
+                .background(LoginColors.Surface)
+                .border(1.dp, LoginColors.Primary, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 painter = painterResource(id = categoryData.iconRes),
                 contentDescription = null,
-                tint = Color.Unspecified,
+                tint = androidx.compose.ui.graphics.Color.Unspecified,
                 modifier = Modifier.size(28.dp)
             )
         }
@@ -285,7 +430,7 @@ fun ProfileGenreItem(genreCode: String) {
             text = if (categoryData.nameRes != null) stringResource(id = categoryData.nameRes)
             else CategoryProvider.formatFallbackName(genreCode),
             fontSize = 11.sp,
-            color = ColorArcDarkBrown,
+            color = LoginColors.Primary,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
             lineHeight = 12.sp,
@@ -294,67 +439,105 @@ fun ProfileGenreItem(genreCode: String) {
     }
 }
 
-/**
- * Rejilla de botones del dashboard (Diarios, Marcadores, Reseñas, Comentarios).
- */
 @Composable
 fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList: (String, String) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             DashboardItem(
                 title = if(state.isMe) stringResource(R.string.profile_my_journals) else stringResource(R.string.profile_their_journals),
+                subtitle = "0 entries recorded",
+                icon = Icons.Default.Book,
+                iconBackgroundColor = LoginColors.Primary.copy(alpha = 0.1f),
+                iconColor = LoginColors.Primary,
                 onClick = { onNavigateToList("journals", userId) }
-            ) {
-                Icon(Icons.Default.Book, null, tint = Color(0xFF9575CD), modifier = Modifier.size(32.dp))
-            }
+            )
             DashboardItem(
                 title = if(state.isMe) stringResource(R.string.profile_my_bookmarks) else stringResource(R.string.profile_their_bookmarks),
+                subtitle = "0 bookmarks saved",
+                icon = Icons.Default.Bookmark,
+                iconBackgroundColor = LoginColors.SecondaryContainer.copy(alpha = 0.2f),
+                iconColor = LoginColors.SecondaryContainer,
                 onClick = { onNavigateToList("bookmarks", userId) }
-            ) {
-                Icon(Icons.Default.Bookmark, null, tint = Color(0xFFFFD54F), modifier = Modifier.size(32.dp))
-            }
+            )
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             DashboardItem(
                 title = if(state.isMe) stringResource(R.string.profile_my_reviews) else stringResource(R.string.profile_their_reviews),
+                subtitle = "0 reviews written",
+                icon = Icons.Default.Star,
+                iconBackgroundColor = LoginColors.SecondaryContainer.copy(alpha = 0.2f),
+                iconColor = LoginColors.SecondaryContainer,
                 onClick = { onNavigateToList("reviews", userId) }
-            ) {
-                Row { repeat(3) { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD54F), modifier = Modifier.size(24.dp)) } }
-            }
+            )
             DashboardItem(
                 title = if(state.isMe) stringResource(R.string.profile_my_comments) else stringResource(R.string.profile_their_comments),
+                subtitle = "0 comments posted",
+                icon = Icons.AutoMirrored.Filled.Comment,
+                iconBackgroundColor = LoginColors.Primary.copy(alpha = 0.1f),
+                iconColor = LoginColors.Primary,
                 onClick = { onNavigateToList("comments", userId) }
+            )
+        }
+    }
+}
+
+@Composable
+fun DashboardItem(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconBackgroundColor: androidx.compose.ui.graphics.Color,
+    iconColor: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = LoginColors.Surface),
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, LoginColors.OutlineVariant.copy(alpha = 0.4f))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(iconBackgroundColor),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.AutoMirrored.Filled.Comment, null, tint = Color(0xFF9575CD), modifier = Modifier.size(32.dp))
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            Column {
+                Text(
+                    text = title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = LoginColors.Primary
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = LoginColors.OnSurfaceVariant.copy(alpha = 0.8f)
+                )
             }
         }
     }
 }
 
-/**
- * Componente individual para los botones del Dashboard.
- */
-@Composable
-fun DashboardItem(title: String, onClick: () -> Unit, content: @Composable () -> Unit) {
-    Surface(
-        color = Color.White,
-        shape = RoundedCornerShape(12.dp),
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth().height(95.dp).clickable { onClick() }
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(title, color = ColorArcDarkBrown, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
-        }
-    }
-}
-
-/**
- * Diálogo interactivo para seleccionar un nuevo avatar de la colección local.
- */
 @Composable
 fun AvatarSelectionDialog(currentAvatar: String, onDismiss: () -> Unit, onSelect: (String) -> Unit) {
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.profile_choose_avatar)) },
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.profile_choose_avatar), color = LoginColors.Primary) },
         text = {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
@@ -362,30 +545,69 @@ fun AvatarSelectionDialog(currentAvatar: String, onDismiss: () -> Unit, onSelect
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(AvatarHelper.avatars) { (name, res) ->
-                    Image(painterResource(res), null, Modifier.size(60.dp).clip(CircleShape)
-                        .border(if(currentAvatar==name) 3.dp else 0.dp, ColorArcMediumBrown, CircleShape)
-                        .clickable { onSelect(name); onDismiss() })
+                    Image(
+                        painterResource(res),
+                        null,
+                        Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .border(
+                                if (currentAvatar == name) 3.dp else 0.dp,
+                                LoginColors.Primary,
+                                CircleShape
+                            )
+                            .clickable {
+                                onSelect(name)
+                                onDismiss()
+                            }
+                    )
                 }
             }
-        }, confirmButton = {}
+        },
+        confirmButton = {},
+        containerColor = LoginColors.Surface
     )
 }
 
-/**
- * Diálogo de edición para actualizar el nombre público y la biografía del lector.
- */
 @Composable
 fun EditProfileDialog(currentName: String, currentBio: String, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
     var n by remember { mutableStateOf(currentName) }
     var b by remember { mutableStateOf(currentBio) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.profile_edit_profile_title)) },
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.profile_edit_profile_title), color = LoginColors.Primary) },
         text = {
             Column {
-                OutlinedTextField(value = n, onValueChange = { n = it }, label = { Text(stringResource(R.string.profile_edit_name_label)) })
+                OutlinedTextField(
+                    value = n,
+                    onValueChange = { n = it },
+                    label = { Text(stringResource(R.string.profile_edit_name_label)) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = LoginColors.Primary,
+                        unfocusedBorderColor = LoginColors.OutlineVariant
+                    )
+                )
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = b, onValueChange = { b = it }, label = { Text(stringResource(R.string.profile_edit_bio_label)) })
+                OutlinedTextField(
+                    value = b,
+                    onValueChange = { b = it },
+                    label = { Text(stringResource(R.string.profile_edit_bio_label)) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = LoginColors.Primary,
+                        unfocusedBorderColor = LoginColors.OutlineVariant
+                    )
+                )
             }
         },
-        confirmButton = { Button(onClick = { onSave(n, b); onDismiss() }) { Text(stringResource(R.string.profile_edit_save_button)) } }
+        confirmButton = {
+            Button(
+                onClick = { onSave(n, b); onDismiss() },
+                colors = ButtonDefaults.buttonColors(containerColor = LoginColors.Primary)
+            ) {
+                Text(stringResource(R.string.profile_edit_save_button), color = LoginColors.OnPrimary)
+            }
+        },
+        containerColor = LoginColors.Surface
     )
 }
