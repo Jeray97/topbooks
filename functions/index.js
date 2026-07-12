@@ -1,4 +1,4 @@
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onCall } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
@@ -6,7 +6,10 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 // --- FUNCIÓN 1: SEGUIDORES ---
-exports.notificarNuevoSeguidor = onDocumentCreated('users/{miUid}/friends/{amigoUid}', async (event) => {
+exports.notificarNuevoSeguidor = onDocumentCreated({
+  document: 'users/{miUid}/friends/{amigoUid}',
+  region: 'europe-west1'
+}, async (event) => {
     const seguidorId = event.params.miUid;
     const usuarioSeguidoId = event.params.amigoUid;
 
@@ -248,5 +251,488 @@ exports.recordatorioSemanalClubes = onSchedule("every monday 09:00", async (even
 
     } catch (error) {
         console.error("Error en recordatorioSemanalClubes:", error);
+    }
+});
+
+// --- FUNCIÓN 7: LIKE EN POST ---
+exports.notificarLikePost = onDocumentUpdated('posts/{postId}', async (event) => {
+    const beforeData = event.data.before.data();
+    const afterData = event.data.after.data();
+    const postId = event.params.postId;
+
+    const beforeLikes = beforeData?.likedBy || [];
+    const afterLikes = afterData?.likedBy || [];
+
+    // Detectar nuevos likes
+    const newLikes = afterLikes.filter(uid => !beforeLikes.includes(uid));
+
+    if (newLikes.length === 0) return;
+
+    const postAuthorId = afterData?.userId;
+    if (!postAuthorId) return;
+
+    try {
+        const authorDoc = await admin.firestore().collection('users').doc(postAuthorId).get();
+        const fcmToken = authorDoc.data()?.fcmToken;
+        const authorName = authorDoc.data()?.displayName || "Alguien";
+
+        if (!fcmToken) return;
+
+        // Obtener nombre del usuario que dio like
+        const likerId = newLikes[0];
+        const likerDoc = await admin.firestore().collection('users').doc(likerId).get();
+        const likerName = likerDoc.data()?.displayName || "Un usuario";
+
+        // No notificar si el autor se dio like a sí mismo
+        if (likerId === postAuthorId) return;
+
+        const mensaje = {
+            notification: {
+                title: "¡Nuevo like en tu post! ❤️",
+                body: `${likerName} le dio like a tu publicación`
+            },
+            data: {
+                type: "POST_LIKE",
+                postId: postId
+            },
+            token: fcmToken
+        };
+
+        await admin.messaging().send(mensaje);
+        console.log(`Notificación de like en post enviada a ${postAuthorId}`);
+
+    } catch (error) {
+        console.error("Error en notificarLikePost:", error);
+    }
+});
+
+// --- FUNCIÓN 8: LIKE EN RESEÑA ---
+exports.notificarLikeResena = onDocumentUpdated('reviews/{reviewId}', async (event) => {
+    const beforeData = event.data.before.data();
+    const afterData = event.data.after.data();
+    const reviewId = event.params.reviewId;
+
+    const beforeLikes = beforeData?.likedBy || [];
+    const afterLikes = afterData?.likedBy || [];
+
+    const newLikes = afterLikes.filter(uid => !beforeLikes.includes(uid));
+
+    if (newLikes.length === 0) return;
+
+    const reviewAuthorId = afterData?.userId;
+    if (!reviewAuthorId) return;
+
+    try {
+        const authorDoc = await admin.firestore().collection('users').doc(reviewAuthorId).get();
+        const fcmToken = authorDoc.data()?.fcmToken;
+
+        if (!fcmToken) return;
+
+        const likerId = newLikes[0];
+        const likerDoc = await admin.firestore().collection('users').doc(likerId).get();
+        const likerName = likerDoc.data()?.displayName || "Un usuario";
+
+        if (likerId === reviewAuthorId) return;
+
+        const mensaje = {
+            notification: {
+                title: "¡Nuevo like en tu reseña! ⭐",
+                body: `${likerName} le dio like a tu reseña`
+            },
+            data: {
+                type: "REVIEW_LIKE",
+                reviewId: reviewId,
+                bookId: afterData?.bookId || ""
+            },
+            token: fcmToken
+        };
+
+        await admin.messaging().send(mensaje);
+        console.log(`Notificación de like en reseña enviada a ${reviewAuthorId}`);
+
+    } catch (error) {
+        console.error("Error en notificarLikeResena:", error);
+    }
+});
+
+// --- FUNCIÓN 9: AMIGO TERMINÓ LIBRO ---
+exports.notificarAmigoTerminoLibro = onDocumentCreated('users/{userId}/read_books/{bookId}', async (event) => {
+    const userId = event.params.userId;
+    const bookId = event.params.bookId;
+    const bookData = event.data.data();
+
+    try {
+        // Obtener amigos del usuario
+        const friendsSnap = await admin.firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('friends')
+            .get();
+
+        if (friendsSnap.empty) return;
+
+        const friendIds = friendsSnap.docs.map(doc => doc.id);
+
+        // Obtener tokens de amigos
+        const friendDocs = await Promise.all(
+            friendIds.map(id => admin.firestore().collection('users').doc(id).get())
+        );
+
+        const tokens = friendDocs
+            .map(doc => doc.data()?.fcmToken)
+            .filter(token => token);
+
+        if (tokens.length === 0) return;
+
+        // Obtener nombre del usuario
+        const userDoc = await admin.firestore().collection('users').doc(userId).get();
+        const userName = userDoc.data()?.displayName || "Un amigo";
+
+        // Obtener título del libro
+        const bookTitle = bookData?.title || "un libro";
+
+        const mensaje = {
+            notification: {
+                title: "¡Tu amigo terminó un libro! 📚",
+                body: `${userName} terminó de leer "${bookTitle}"`
+            },
+            data: {
+                type: "FRIEND_FINISHED_BOOK",
+                userId: userId,
+                bookId: bookId
+            },
+            tokens: tokens
+        };
+
+        const response = await admin.messaging().sendEachForMulticast(mensaje);
+        console.log(`Notificaciones de libro terminado: ${response.successCount}/${tokens.length}`);
+
+    } catch (error) {
+        console.error("Error en notificarAmigoTerminoLibro:", error);
+    }
+});
+
+// --- FUNCIÓN 10: AMIGO AGREGÓ A FAVORITOS ---
+exports.notificarAmigoFavorito = onDocumentCreated('users/{userId}/favorites/{bookId}', async (event) => {
+    const userId = event.params.userId;
+    const bookId = event.params.bookId;
+    const favoriteData = event.data.data();
+
+    try {
+        const friendsSnap = await admin.firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('friends')
+            .get();
+
+        if (friendsSnap.empty) return;
+
+        const friendIds = friendsSnap.docs.map(doc => doc.id);
+
+        const friendDocs = await Promise.all(
+            friendIds.map(id => admin.firestore().collection('users').doc(id).get())
+        );
+
+        const tokens = friendDocs
+            .map(doc => doc.data()?.fcmToken)
+            .filter(token => token);
+
+        if (tokens.length === 0) return;
+
+        const userDoc = await admin.firestore().collection('users').doc(userId).get();
+        const userName = userDoc.data()?.displayName || "Un amigo";
+
+        const bookTitle = favoriteData?.title || "un libro";
+
+        const mensaje = {
+            notification: {
+                title: "¡Nuevo favorito! ❤️",
+                body: `${userName} agregó "${bookTitle}" a favoritos`
+            },
+            data: {
+                type: "FRIEND_FAVORITE",
+                userId: userId,
+                bookId: bookId
+            },
+            tokens: tokens
+        };
+
+        const response = await admin.messaging().sendEachForMulticast(mensaje);
+        console.log(`Notificaciones de favorito: ${response.successCount}/${tokens.length}`);
+
+    } catch (error) {
+        console.error("Error en notificarAmigoFavorito:", error);
+    }
+});
+
+// --- FUNCIÓN 11: NUEVO MIEMBRO EN CLUB ---
+exports.notificarNuevoMiembroClub = onDocumentCreated('clubs/{clubId}/members/{userId}', async (event) => {
+    const clubId = event.params.clubId;
+    const newMemberId = event.params.userId;
+
+    try {
+        const clubDoc = await admin.firestore().collection('clubs').doc(clubId).get();
+        const clubData = clubDoc.data();
+        const creatorId = clubData?.createdBy;
+
+        // Solo notificar al creador del club
+        if (!creatorId || creatorId === newMemberId) return;
+
+        const creatorDoc = await admin.firestore().collection('users').doc(creatorId).get();
+        const fcmToken = creatorDoc.data()?.fcmToken;
+
+        if (!fcmToken) return;
+
+        const newMemberDoc = await admin.firestore().collection('users').doc(newMemberId).get();
+        const newMemberName = newMemberDoc.data()?.displayName || "Un usuario";
+
+        const clubName = clubData?.name || "tu club";
+
+        const mensaje = {
+            notification: {
+                title: "¡Nuevo miembro en tu club! 🎉",
+                body: `${newMemberName} se unió a "${clubName}"`
+            },
+            data: {
+                type: "NEW_CLUB_MEMBER",
+                clubId: clubId,
+                userId: newMemberId
+            },
+            token: fcmToken
+        };
+
+        await admin.messaging().send(mensaje);
+        console.log(`Notificación de nuevo miembro enviada a ${creatorId}`);
+
+    } catch (error) {
+        console.error("Error en notificarNuevoMiembroClub:", error);
+    }
+});
+
+// --- FUNCIÓN 12: RECORDATORIO DE INACTIVIDAD ---
+exports.recordatorioInactividad = onSchedule("every day 10:00", async (event) => {
+    console.log("Ejecutando recordatorio de inactividad");
+
+    try {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const users = await admin.firestore()
+            .collection('users')
+            .where('lastLogin', '<', sevenDaysAgo)
+            .get();
+
+        let totalNotified = 0;
+
+        for (const userDoc of users.docs) {
+            const userData = userDoc.data();
+            const fcmToken = userData?.fcmToken;
+
+            if (!fcmToken) continue;
+
+            const mensaje = {
+                notification: {
+                    title: "¡Te extrañamos! 👋",
+                    body: "Hace 7 días que no registras lectura. ¿Qué estás leyendo?"
+                },
+                data: {
+                    type: "INACTIVITY_REMINDER"
+                },
+                token: fcmToken
+            };
+
+            try {
+                await admin.messaging().send(mensaje);
+                totalNotified++;
+            } catch (sendError) {
+                console.error(`Error enviando a ${userDoc.id}:`, sendError);
+            }
+        }
+
+        console.log(`Recordatorios de inactividad enviados: ${totalNotified}`);
+
+    } catch (error) {
+        console.error("Error en recordatorioInactividad:", error);
+    }
+});
+
+// --- FUNCIÓN 13: RECOMENDACIÓN SEMANAL ---
+exports.recomendacionSemanal = onSchedule("every sunday 11:00", async (event) => {
+    console.log("Ejecutando recomendaciones semanales");
+
+    try {
+        const users = await admin.firestore()
+            .collection('users')
+            .where('favoriteGenres', '!=', [])
+            .get();
+
+        let totalNotified = 0;
+
+        for (const userDoc of users.docs) {
+            const userData = userDoc.data();
+            const fcmToken = userData?.fcmToken;
+            const favoriteGenres = userData?.favoriteGenres || [];
+
+            if (!fcmToken || favoriteGenres.length === 0) continue;
+
+            // Seleccionar un género aleatorio de los favoritos
+            const randomGenre = favoriteGenres[Math.floor(Math.random() * favoriteGenres.length)];
+
+            const mensaje = {
+                notification: {
+                    title: "📚 Recomendación semanal",
+                    body: `Descubre nuevos libros de ${randomGenre} que te pueden gustar`
+                },
+                data: {
+                    type: "WEEKLY_RECOMMENDATION",
+                    genre: randomGenre
+                },
+                token: fcmToken
+            };
+
+            try {
+                await admin.messaging().send(mensaje);
+                totalNotified++;
+            } catch (sendError) {
+                console.error(`Error enviando recomendación a ${userDoc.id}:`, sendError);
+            }
+        }
+
+        console.log(`Recomendaciones semanales enviadas: ${totalNotified}`);
+
+    } catch (error) {
+        console.error("Error en recomendacionSemanal:", error);
+    }
+});
+
+// --- FUNCIÓN 14: RACHA DE LECTURA ---
+exports.notificarRachaLectura = onSchedule("every day 20:00", async (event) => {
+    console.log("Ejecutando notificación de racha de lectura");
+
+    try {
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Buscar usuarios que leyeron ayer
+        const users = await admin.firestore()
+            .collection('users')
+            .get();
+
+        let totalNotified = 0;
+
+        for (const userDoc of users.docs) {
+            const userData = userDoc.data();
+            const fcmToken = userData?.fcmToken;
+            const readingStreak = userData?.readingStreak || 0;
+
+            if (!fcmToken || readingStreak < 3) continue;
+
+            // Solo notificar en múltiplos de 7 días
+            if (readingStreak % 7 !== 0) continue;
+
+            const mensaje = {
+                notification: {
+                    title: "¡Increíble racha! 🔥",
+                    body: `Llevas ${readingStreak} días seguidos leyendo. ¡Sigue así!`
+                },
+                data: {
+                    type: "READING_STREAK",
+                    streak: readingStreak.toString()
+                },
+                token: fcmToken
+            };
+
+            try {
+                await admin.messaging().send(mensaje);
+                totalNotified++;
+            } catch (sendError) {
+                console.error(`Error enviando racha a ${userDoc.id}:`, sendError);
+            }
+        }
+
+        console.log(`Notificaciones de racha enviadas: ${totalNotified}`);
+
+    } catch (error) {
+        console.error("Error en notificarRachaLectura:", error);
+    }
+});
+
+// --- FUNCIÓN 15: RESUMEN SEMANAL ---
+exports.resumenSemanal = onSchedule("every monday 08:00", async (event) => {
+    console.log("Ejecutando resumen semanal");
+
+    try {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+        const users = await admin.firestore()
+            .collection('users')
+            .get();
+
+        let totalNotified = 0;
+
+        for (const userDoc of users.docs) {
+            const userData = userDoc.data();
+            const fcmToken = userData?.fcmToken;
+            const userId = userDoc.id;
+
+            if (!fcmToken) continue;
+
+            // Contar actividad de amigos en la última semana
+            const friendsSnap = await admin.firestore()
+                .collection('users')
+                .doc(userId)
+                .collection('friends')
+                .get();
+
+            if (friendsSnap.empty) continue;
+
+            const friendIds = friendsSnap.docs.map(doc => doc.id);
+
+            // Contar libros terminados por amigos
+            let booksFinished = 0;
+            for (const friendId of friendIds.slice(0, 10)) { // Limitar a 10 amigos
+                const readBooks = await admin.firestore()
+                    .collection('users')
+                    .doc(friendId)
+                    .collection('read_books')
+                    .where('readAt', '>', oneWeekAgo)
+                    .get();
+                booksFinished += readBooks.size;
+            }
+
+            // Contar nuevas reseñas en el feed
+            const newPosts = await admin.firestore()
+                .collection('posts')
+                .where('userId', 'in', friendIds.slice(0, 10))
+                .where('createdAt', '>', oneWeekAgo)
+                .get();
+
+            if (booksFinished === 0 && newPosts.size === 0) continue;
+
+            const mensaje = {
+                notification: {
+                    title: "📊 Tu resumen semanal",
+                    body: `Esta semana: ${booksFinished} libros terminados y ${newPosts.size} nuevas publicaciones de tus amigos`
+                },
+                data: {
+                    type: "WEEKLY_SUMMARY"
+                },
+                token: fcmToken
+            };
+
+            try {
+                await admin.messaging().send(mensaje);
+                totalNotified++;
+            } catch (sendError) {
+                console.error(`Error enviando resumen a ${userId}:`, sendError);
+            }
+        }
+
+        console.log(`Resúmenes semanales enviados: ${totalNotified}`);
+
+    } catch (error) {
+        console.error("Error en resumenSemanal:", error);
     }
 });

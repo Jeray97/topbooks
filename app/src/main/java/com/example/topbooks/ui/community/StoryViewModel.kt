@@ -92,6 +92,7 @@ class StoryViewModel(
             _uiState.update { it.copy(isCreating = true, errorMessage = null) }
             try {
                 val book = booksRepository.getBookDetail(bookId).getOrNull()
+                val userProfile = userRepository.getUserProfile(myUid).getOrNull()
                 val story = Story(
                     bookId = bookId,
                     bookTitle = book?.title ?: "",
@@ -99,7 +100,9 @@ class StoryViewModel(
                     bookImageUrl = book?.imageUrl ?: "",
                     type = type.name,
                     text = text,
-                    backgroundColor = backgroundColor
+                    backgroundColor = backgroundColor,
+                    userName = userProfile?.displayName ?: "",
+                    userPhotoUrl = userProfile?.photoURL ?: "capibara_1"
                 )
                 storyRepository.createStory(story).fold(
                     onSuccess = {

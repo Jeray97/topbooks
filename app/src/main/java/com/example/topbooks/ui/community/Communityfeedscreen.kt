@@ -27,9 +27,11 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -47,6 +49,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -64,14 +69,24 @@ fun CommunityFeedScreen(
     viewModel: CommunityViewModel = viewModel(factory = CommunityViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val state by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    LaunchedEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshStories()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+    }
 
     Scaffold(
-        containerColor = LoginColors.Background,
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onCreatePostClick,
-                containerColor = LoginColors.Primary,
-                contentColor = LoginColors.OnPrimary,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("Compartir", fontWeight = FontWeight.SemiBold) },
                 shape = RoundedCornerShape(12.dp)
@@ -108,7 +123,7 @@ fun CommunityFeedScreen(
                             .padding(40.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = LoginColors.Primary)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 }
             } else if (state.posts.isEmpty()) {
@@ -142,14 +157,14 @@ private fun HeaderSection(newPostsCount: Int) {
             fontFamily = GuardianCity,
             fontWeight = FontWeight.Bold,
             fontSize = 28.sp,
-            color = LoginColors.Primary
+            color = MaterialTheme.colorScheme.primary
         )
         if (newPostsCount > 0) {
             Text(
                 text = if (newPostsCount == 1) "1 nueva reseña hoy"
                 else "$newPostsCount nuevas reseñas hoy",
                 fontSize = 12.sp,
-                color = LoginColors.OnSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
@@ -193,11 +208,11 @@ private fun TabPill(
     onClick: () -> Unit
 ) {
     val bgColor by animateColorAsState(
-        if (isActive) LoginColors.Primary else LoginColors.SurfaceContainer,
+        if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
         label = "tabBg"
     )
     val textColor by animateColorAsState(
-        if (isActive) LoginColors.OnPrimary else LoginColors.OnSurface,
+        if (isActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
         label = "tabText"
     )
 
@@ -207,7 +222,7 @@ private fun TabPill(
             .clip(RoundedCornerShape(9999.dp))
             .background(bgColor)
             .then(
-                if (!isActive) Modifier.border(1.dp, LoginColors.OutlineVariant, RoundedCornerShape(9999.dp))
+                if (!isActive) Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(9999.dp))
                 else Modifier
             )
             .clickable(onClick = onClick)
@@ -267,14 +282,14 @@ private fun AddYourReadingStory(onClick: () -> Unit) {
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .border(2.dp, LoginColors.SurfaceTint, CircleShape)
-                .background(LoginColors.SurfaceContainerLow),
+                .border(2.dp, MaterialTheme.colorScheme.surfaceTint, CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerLow),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = null,
-                tint = LoginColors.SurfaceTint,
+                tint = MaterialTheme.colorScheme.surfaceTint,
                 modifier = Modifier.size(28.dp)
             )
         }
@@ -282,7 +297,7 @@ private fun AddYourReadingStory(onClick: () -> Unit) {
         Text(
             text = "Tu lectura",
             fontSize = 12.sp,
-            color = LoginColors.OnSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -301,7 +316,7 @@ private fun StoryAvatar(story: StoryItem, onClick: () -> Unit) {
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .border(2.dp, LoginColors.Surface, CircleShape)
+                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
                 .clip(CircleShape)
         ) {
             val avatarRes = AvatarHelper.getDrawableId(story.author.photoUrl)
@@ -316,7 +331,7 @@ private fun StoryAvatar(story: StoryItem, onClick: () -> Unit) {
         Text(
             text = story.author.displayName.split(" ").first(),
             fontSize = 14.sp,
-            color = LoginColors.OnSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -325,7 +340,7 @@ private fun StoryAvatar(story: StoryItem, onClick: () -> Unit) {
                 text = if (story.hasFinished) "✓ Terminó"
                 else "📖 ${book.title.take(8)}",
                 fontSize = 12.sp,
-                color = LoginColors.Outline,
+                color = MaterialTheme.colorScheme.outline,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -349,7 +364,7 @@ private fun EmptyFeedMessage(tab: FeedTab) {
         Text(
             text = message,
             fontSize = 16.sp,
-            color = LoginColors.OnSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontStyle = FontStyle.Italic
         )
     }
@@ -367,8 +382,8 @@ private fun PostCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(LoginColors.Surface)
-            .border(1.dp, LoginColors.OutlineVariant, RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
             .clickable(onClick = onCardClick)
             .padding(16.dp)
     ) {
@@ -385,7 +400,7 @@ private fun PostCard(
                     Text(
                         text = post.body,
                         fontSize = 16.sp,
-                        color = LoginColors.OnSurface,
+                        color = MaterialTheme.colorScheme.onSurface,
                         lineHeight = 24.sp,
                         maxLines = 4,
                         overflow = TextOverflow.Ellipsis
@@ -418,7 +433,7 @@ private fun PostHeader(post: Post) {
                     text = post.author.displayName,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = LoginColors.OnSurface,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
@@ -432,13 +447,13 @@ private fun PostHeader(post: Post) {
                 Text(
                     text = formatRelativeTime(post.createdAtMillis),
                     fontSize = 12.sp,
-                    color = LoginColors.OnSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 post.rating?.let { stars ->
                     Text(
                         text = " · ",
                         fontSize = 12.sp,
-                        color = LoginColors.OnSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     StarRow(stars)
                 }
@@ -451,7 +466,7 @@ private fun PostHeader(post: Post) {
 
 @Composable
 private fun AvatarWithRing(author: PostAuthor, size: androidx.compose.ui.unit.Dp) {
-    val ringColor = if (author.isFriend) LoginColors.SecondaryContainer else LoginColors.OutlineVariant
+    val ringColor = if (author.isFriend) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.outlineVariant
     Box(
         modifier = Modifier
             .size(size + 4.dp)
@@ -476,13 +491,13 @@ private fun VerifiedBadge() {
         modifier = Modifier
             .size(14.dp)
             .clip(CircleShape)
-            .background(LoginColors.SurfaceTint),
+            .background(MaterialTheme.colorScheme.surfaceTint),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = "✓",
             fontSize = 9.sp,
-            color = LoginColors.OnPrimary,
+            color = MaterialTheme.colorScheme.onPrimary,
             fontWeight = FontWeight.Bold
         )
     }
@@ -495,7 +510,7 @@ private fun StarRow(stars: Int) {
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = null,
-                tint = LoginColors.SecondaryContainer,
+                tint = MaterialTheme.colorScheme.secondaryContainer,
                 modifier = Modifier.size(14.dp)
             )
         }
@@ -505,9 +520,9 @@ private fun StarRow(stars: Int) {
 @Composable
 private fun ActionTag(type: PostType) {
     val (bg, fg) = when (type) {
-        PostType.REVIEW -> Color(0xFFFFDAD8) to LoginColors.PrimaryContainer
+        PostType.REVIEW -> Color(0xFFFFDAD8) to MaterialTheme.colorScheme.primaryContainer
         PostType.FINISHED -> Color(0xFFE3F0D8) to Color(0xFF4A8520)
-        PostType.QUOTE -> LoginColors.SurfaceContainer to LoginColors.OnSurfaceVariant
+        PostType.QUOTE -> MaterialTheme.colorScheme.surfaceContainer to MaterialTheme.colorScheme.onSurfaceVariant
         PostType.READING -> Color(0xFFE5EDFA) to Color(0xFF1E5BB8)
     }
     Box(
@@ -531,9 +546,9 @@ private fun BookStrip(book: PostBook, rating: Int?) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(LoginColors.SurfaceContainer)
-            .border(1.dp, LoginColors.OutlineVariant, RoundedCornerShape(8.dp))
-            .drawLeftBorder(LoginColors.Primary, 4.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+            .drawLeftBorder(MaterialTheme.colorScheme.primary, 4.dp)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -563,14 +578,14 @@ private fun BookStrip(book: PostBook, rating: Int?) {
                 text = book.title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = LoginColors.OnSurface,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = book.author,
                 fontSize = 12.sp,
-                color = LoginColors.OnSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp)
@@ -589,8 +604,8 @@ private fun QuoteContent(post: Post) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(LoginColors.SurfaceContainer)
-            .drawLeftBorder(LoginColors.Primary, 4.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .drawLeftBorder(MaterialTheme.colorScheme.primary, 4.dp)
             .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp)
     ) {
         Text(
@@ -598,7 +613,7 @@ private fun QuoteContent(post: Post) {
             fontFamily = GuardianCity,
             fontStyle = FontStyle.Italic,
             fontSize = 16.sp,
-            color = LoginColors.OnSurface,
+            color = MaterialTheme.colorScheme.onSurface,
             lineHeight = 24.sp
         )
         post.quoteSource?.let { source ->
@@ -606,7 +621,7 @@ private fun QuoteContent(post: Post) {
             Text(
                 text = "— $source",
                 fontSize = 12.sp,
-                color = LoginColors.OnSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
         }
@@ -637,7 +652,7 @@ private fun PostActions(
         modifier = Modifier
             .fillMaxWidth()
             .height(1.dp)
-            .background(LoginColors.OutlineVariant.copy(alpha = 0.3f))
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
     )
     Spacer(Modifier.height(12.dp))
 
@@ -649,7 +664,7 @@ private fun PostActions(
         ActionButton(
             icon = if (post.isLikedByMe) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
             label = if (post.likeCount > 0) post.likeCount.toString() else "Me gusta",
-            tint = if (post.isLikedByMe) LoginColors.SurfaceTint else LoginColors.OnSurfaceVariant,
+            tint = if (post.isLikedByMe) MaterialTheme.colorScheme.surfaceTint else MaterialTheme.colorScheme.onSurfaceVariant,
             onClick = onLikeClick,
             isHighlighted = post.isLikedByMe
         )
@@ -657,14 +672,14 @@ private fun PostActions(
         ActionButton(
             icon = Icons.Default.ChatBubbleOutline,
             label = if (post.commentCount > 0) post.commentCount.toString() else "Responder",
-            tint = LoginColors.OnSurfaceVariant,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             onClick = onCommentClick
         )
 
         ActionButton(
             icon = if (post.isSavedByMe) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
             label = if (post.isSavedByMe) "Guardada" else "Guardar",
-            tint = if (post.isSavedByMe) LoginColors.SurfaceTint else LoginColors.OnSurfaceVariant,
+            tint = if (post.isSavedByMe) MaterialTheme.colorScheme.surfaceTint else MaterialTheme.colorScheme.onSurfaceVariant,
             onClick = onSaveClick,
             isHighlighted = post.isSavedByMe
         )
@@ -674,7 +689,7 @@ private fun PostActions(
         Icon(
             imageVector = Icons.Default.MoreHoriz,
             contentDescription = null,
-            tint = LoginColors.OnSurfaceVariant,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .size(20.dp)
                 .clickable { }

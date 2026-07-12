@@ -136,6 +136,40 @@ class MainActivity : ComponentActivity() {
                     pendingRoute = "club_detail/$clubId"
                 }
             }
+            "POST_LIKE" -> {
+                val postId = intent.getStringExtra("postId")
+                if (!postId.isNullOrEmpty()) {
+                    pendingRoute = "post_detail/$postId"
+                }
+            }
+            "REVIEW_LIKE" -> {
+                val bookId = intent.getStringExtra("bookId")
+                if (!bookId.isNullOrEmpty()) {
+                    pendingRoute = "reviews_thread/$bookId"
+                }
+            }
+            "FRIEND_FINISHED_BOOK", "FRIEND_FAVORITE" -> {
+                val userId = intent.getStringExtra("userId")
+                val bookId = intent.getStringExtra("bookId")
+                if (!userId.isNullOrEmpty()) {
+                    pendingRoute = "profile/$userId"
+                }
+            }
+            "NEW_CLUB_MEMBER" -> {
+                val clubId = intent.getStringExtra("clubId")
+                if (!clubId.isNullOrEmpty()) {
+                    pendingRoute = "club_detail/$clubId"
+                }
+            }
+            "WEEKLY_RECOMMENDATION" -> {
+                val genre = intent.getStringExtra("genre")
+                if (!genre.isNullOrEmpty()) {
+                    pendingRoute = "category_detail/$genre/$genre"
+                }
+            }
+            "INACTIVITY_REMINDER", "READING_STREAK", "WEEKLY_SUMMARY" -> {
+                pendingRoute = "home_tab"
+            }
         }
 
         // Limpieza de metadatos del Intent para evitar procesamientos duplicados
@@ -145,5 +179,8 @@ class MainActivity : ComponentActivity() {
         intent.removeExtra("commentId")
         intent.removeExtra("postId")
         intent.removeExtra("clubId")
+        intent.removeExtra("userId")
+        intent.removeExtra("genre")
+        intent.removeExtra("streak")
     }
 }

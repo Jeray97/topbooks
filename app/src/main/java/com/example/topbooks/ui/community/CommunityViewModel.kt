@@ -148,6 +148,10 @@ class CommunityViewModel(
         selectTab(_uiState.value.activeTab)
     }
 
+    fun refreshStories() {
+        loadStories()
+    }
+
     private suspend fun enrichPosts(posts: List<DataPost>): List<Post> {
         return posts.map { dataPost ->
             viewModelScope.async {

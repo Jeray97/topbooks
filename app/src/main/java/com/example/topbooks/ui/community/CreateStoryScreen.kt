@@ -231,15 +231,19 @@ fun CreateStoryScreen(
 
             Button(
                 onClick = {
+                    android.util.Log.d("STORY_DEBUG", "Botón clickeado - selectedBook: $selectedBook")
                     selectedBook?.let { book ->
+                        android.util.Log.d("STORY_DEBUG", "Creando historia para libro: ${book.id}")
                         viewModel.createStory(
                             bookId = book.id,
                             type = selectedType,
                             text = storyText,
                             backgroundColor = selectedColor,
-                            onSuccess = { }
+                            onSuccess = { 
+                                android.util.Log.d("STORY_DEBUG", "Historia creada exitosamente")
+                            }
                         )
-                    }
+                    } ?: android.util.Log.e("STORY_DEBUG", "No hay libro seleccionado")
                 },
                 modifier = Modifier
                     .fillMaxWidth()
