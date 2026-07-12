@@ -37,7 +37,7 @@ fun TopBar(
             Text(
                 text = title ?: stringResource(R.string.app_name),
                 fontFamily = GuardianCity,
-                color = ColorTitleCategoryDetail,
+                color = ColorTitleCategoryDetail(),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Left
@@ -50,13 +50,13 @@ fun TopBar(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.desc_back_icon),
-                    tint = ColorTextPrimary
+                    tint = ColorTextPrimary()
                 )
             }
         },
         // Configuramos el color de fondo para que coincida con el tema general de las pantallas
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = ColorHeaderBeige
+            containerColor = ColorHeaderBeige()
         )
     )
 }

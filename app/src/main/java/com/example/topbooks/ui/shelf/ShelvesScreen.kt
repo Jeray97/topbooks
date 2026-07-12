@@ -146,7 +146,7 @@ fun ShelvesScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = {
             TopAppBar(
                 title = {
@@ -155,12 +155,12 @@ fun ShelvesScreen(
                         fontFamily = GuardianCity,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ColorTituloTopBooks
+                        color = ColorTituloTopBooks()
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = ColorArcDarkBrown)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = ColorArcDarkBrown())
                     }
                 },
                 actions = {
@@ -172,7 +172,7 @@ fun ShelvesScreen(
                                 ViewMode.MIXED -> Icons.Default.ViewColumn
                             },
                             contentDescription = "Cambiar vista",
-                            tint = ColorArcDarkBrown
+                            tint = ColorArcDarkBrown()
                         )
                     }
                     IconButton(onClick = { viewModel.cyclePerspective() }) {
@@ -183,13 +183,13 @@ fun ShelvesScreen(
                                 PerspectiveMode.ISO -> Icons.AutoMirrored.Filled.RotateRight
                             },
                             contentDescription = "Cambiar perspectiva",
-                            tint = ColorArcDarkBrown
+                            tint = ColorArcDarkBrown()
                         )
                     }
                     var showSortMenu by remember { mutableStateOf(false) }
                     Box {
                         IconButton(onClick = { showSortMenu = true }) {
-                            Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Ordenar", tint = ColorArcDarkBrown)
+                            Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Ordenar", tint = ColorArcDarkBrown())
                         }
                         DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
                             DropdownMenuItem(
@@ -197,7 +197,7 @@ fun ShelvesScreen(
                                 onClick = { viewModel.updateSortBy(SortOption.CUSTOM); showSortMenu = false },
                                 leadingIcon = {
                                     if (state.sortBy == SortOption.CUSTOM) {
-                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorArcMediumBrown)
+                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorArcMediumBrown())
                                     }
                                 }
                             )
@@ -206,7 +206,7 @@ fun ShelvesScreen(
                                 onClick = { viewModel.updateSortBy(SortOption.TITLE); showSortMenu = false },
                                 leadingIcon = {
                                     if (state.sortBy == SortOption.TITLE) {
-                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorArcMediumBrown)
+                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorArcMediumBrown())
                                     }
                                 }
                             )
@@ -215,7 +215,7 @@ fun ShelvesScreen(
                                 onClick = { viewModel.updateSortBy(SortOption.AUTHOR); showSortMenu = false },
                                 leadingIcon = {
                                     if (state.sortBy == SortOption.AUTHOR) {
-                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorArcMediumBrown)
+                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorArcMediumBrown())
                                     }
                                 }
                             )
@@ -224,20 +224,20 @@ fun ShelvesScreen(
                                 onClick = { viewModel.updateSortBy(SortOption.PAGES); showSortMenu = false },
                                 leadingIcon = {
                                     if (state.sortBy == SortOption.PAGES) {
-                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorArcMediumBrown)
+                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ColorArcMediumBrown())
                                     }
                                 }
                             )
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorBackGroundGeneral)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorBackGroundGeneral())
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.showCreateDialog() },
-                containerColor = ColorArcMediumBrown,
+                containerColor = ColorArcMediumBrown(),
                 contentColor = Color.White
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Crear estantería")
@@ -252,18 +252,18 @@ fun ShelvesScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 placeholder = { Text("Buscar en mis estanterías...", fontFamily = CenturyGotic) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = ColorArcMediumBrown) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = ColorArcMediumBrown()) },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ColorArcMediumBrown,
-                    unfocusedBorderColor = ColorArcMediumBrown.copy(alpha = 0.5f)
+                    focusedBorderColor = ColorArcMediumBrown(),
+                    unfocusedBorderColor = ColorArcMediumBrown().copy(alpha = 0.5f)
                 )
             )
 
             if (state.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = ColorArcMediumBrown)
+                    CircularProgressIndicator(color = ColorArcMediumBrown())
                 }
             } else if (state.shelves.isEmpty()) {
                 Box(
@@ -278,7 +278,7 @@ fun ShelvesScreen(
                             fontFamily = GuardianCity,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ColorArcDarkBrown
+                            color = ColorArcDarkBrown()
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
@@ -334,7 +334,7 @@ fun ShelvesScreen(
                                 }
                                 .then(
                                     if (isDropTarget) {
-                                        Modifier.background(ColorArcMediumBrown.copy(alpha = 0.2f))
+                                        Modifier.background(ColorArcMediumBrown().copy(alpha = 0.2f))
                                     } else Modifier
                                 )
                         ) {
@@ -430,14 +430,14 @@ fun ShelfRow(
                         fontFamily = GuardianCity,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ColorArcDarkBrown
+                        color = ColorArcDarkBrown()
                     )
                     if (shelf.isPublic) {
                         Spacer(Modifier.width(8.dp))
                         Icon(
                             imageVector = Icons.Default.Public,
                             contentDescription = "Pública",
-                            tint = ColorArcMediumBrown,
+                            tint = ColorArcMediumBrown(),
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -461,7 +461,7 @@ fun ShelfRow(
             }
             Box {
                 IconButton(onClick = { showMenu = true }, modifier = Modifier.size(40.dp)) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = ColorArcDarkBrown)
+                    Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = ColorArcDarkBrown())
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     DropdownMenuItem(
@@ -1140,7 +1140,7 @@ fun CreateEditShelfDialog(
                 text = if (existingShelf != null) "Editar estantería" else "Nueva estantería",
                 fontFamily = GuardianCity,
                 fontWeight = FontWeight.Bold,
-                color = ColorArcDarkBrown
+                color = ColorArcDarkBrown()
             )
         },
         text = {
@@ -1152,12 +1152,12 @@ fun CreateEditShelfDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorArcMediumBrown,
-                        focusedLabelColor = ColorArcMediumBrown
+                        focusedBorderColor = ColorArcMediumBrown(),
+                        focusedLabelColor = ColorArcMediumBrown()
                     )
                 )
                 Spacer(Modifier.height(20.dp))
-                Text("Color del estante", fontFamily = CenturyGotic, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown)
+                Text("Color del estante", fontFamily = CenturyGotic, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown())
                 Spacer(Modifier.height(10.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(SHELF_COLORS.size) { index ->
@@ -1186,7 +1186,7 @@ fun CreateEditShelfDialog(
         confirmButton = {
             Button(
                 onClick = { if (name.isNotBlank()) onConfirm(name.trim(), SHELF_COLORS[selectedColorIndex]) },
-                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
+                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown()),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(if (existingShelf != null) "Guardar" else "Crear", fontFamily = CenturyGotic, fontWeight = FontWeight.Bold)
@@ -1214,7 +1214,7 @@ fun MultiSelectAddBookDialog(
                     text = "Añadir libros",
                     fontFamily = GuardianCity,
                     fontWeight = FontWeight.Bold,
-                    color = ColorArcDarkBrown,
+                    color = ColorArcDarkBrown(),
                     modifier = Modifier.weight(1f)
                 )
                 if (selectedIds.isNotEmpty()) {
@@ -1222,7 +1222,7 @@ fun MultiSelectAddBookDialog(
                         text = "${selectedIds.size} seleccionados",
                         fontFamily = CenturyGotic,
                         fontSize = 12.sp,
-                        color = ColorArcMediumBrown
+                        color = ColorArcMediumBrown()
                     )
                 }
             }
@@ -1276,7 +1276,7 @@ fun MultiSelectAddBookDialog(
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(
-                                        if (isSelected) ColorArcMediumBrown.copy(alpha = 0.15f)
+                                        if (isSelected) ColorArcMediumBrown().copy(alpha = 0.15f)
                                         else Color.Transparent
                                     )
                                     .clickable {
@@ -1292,7 +1292,7 @@ fun MultiSelectAddBookDialog(
                                 Icon(
                                     imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                                     contentDescription = null,
-                                    tint = if (isSelected) ColorArcMediumBrown else Color.Gray,
+                                    tint = if (isSelected) ColorArcMediumBrown() else Color.Gray,
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(Modifier.width(10.dp))
@@ -1336,7 +1336,7 @@ fun MultiSelectAddBookDialog(
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
-                                        color = ColorArcDarkBrown
+                                        color = ColorArcDarkBrown()
                                     )
                                     if (book.authors.isNotEmpty()) {
                                         Text(
@@ -1358,7 +1358,7 @@ fun MultiSelectAddBookDialog(
             Button(
                 onClick = { if (selectedIds.isNotEmpty()) onAddBooks(selectedIds.toList()) },
                 enabled = selectedIds.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
+                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown()),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(

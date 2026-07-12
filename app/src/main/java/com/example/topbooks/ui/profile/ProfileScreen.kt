@@ -76,12 +76,12 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        containerColor = LoginColors.Background,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(LoginColors.Background)
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Row(
@@ -93,7 +93,7 @@ fun ProfileScreen(
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Back",
-                            tint = LoginColors.Primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -102,14 +102,14 @@ fun ProfileScreen(
                         fontFamily = GuardianCity,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = LoginColors.Primary
+                        color = MaterialTheme.colorScheme.primary
                     )
                     if (state.isMe) {
                         IconButton(onClick = onNavigateToSettings) {
                             Icon(
                                 Icons.Default.Settings,
                                 contentDescription = "Settings",
-                                tint = LoginColors.OnSurfaceVariant,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -122,7 +122,7 @@ fun ProfileScreen(
     ) { padding ->
         if (state.isLoading) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = LoginColors.Primary)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
             Column(
@@ -141,8 +141,8 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(144.dp)
                             .clip(CircleShape)
-                            .background(LoginColors.SurfaceContainer)
-                            .border(3.dp, LoginColors.OutlineVariant, CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
+                            .border(3.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                             .clickable(enabled = state.isMe) { showAvatarDialog = true },
                         contentAlignment = Alignment.Center
                     ) {
@@ -154,14 +154,14 @@ fun ProfileScreen(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(LoginColors.Primary)
+                                .background(MaterialTheme.colorScheme.primary)
                                 .clickable { showAvatarDialog = true },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = "Edit Avatar",
-                                tint = LoginColors.OnPrimary,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -179,12 +179,12 @@ fun ProfileScreen(
                         text = user.displayName.ifEmpty { stringResource(R.string.profile_anonymous_reader) },
                         fontFamily = GuardianCity,
                         fontSize = 28.sp,
-                        color = LoginColors.Primary,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
                     )
                     if (state.isMe) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        Icon(Icons.Default.Edit, null, tint = LoginColors.Outline, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
                     }
                 }
 
@@ -193,7 +193,7 @@ fun ProfileScreen(
                 Text(
                     text = user.bio.ifEmpty { stringResource(R.string.profile_no_bio_yet) },
                     fontSize = 16.sp,
-                    color = LoginColors.OnSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontStyle = FontStyle.Italic,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
@@ -207,7 +207,7 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(24.dp))
-                            .background(if (state.isFriend) LoginColors.OutlineVariant.copy(alpha = 0.3f) else LoginColors.Primary.copy(alpha = 0.1f))
+                            .background(if (state.isFriend) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                             .clickable { viewModel.toggleFriend(user.uid, user.displayName, user.photoURL) }
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
@@ -221,7 +221,7 @@ fun ProfileScreen(
                             text = if (state.isFriend) stringResource(R.string.profile_remove_friend) else stringResource(R.string.profile_add_friend),
                             fontFamily = GuardianCity,
                             fontWeight = FontWeight.Bold,
-                            color = if (state.isFriend) LoginColors.Outline else LoginColors.Primary
+                            color = if (state.isFriend) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
                         )
                     }
 
@@ -230,22 +230,22 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(24.dp))
-                            .background(LoginColors.Primary.copy(alpha = 0.1f))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                             .clickable { onNavigateToFriendShelves(user.uid, user.displayName) }
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                            contentDescription = null,
-                            tint = LoginColors.Primary,
-                            modifier = Modifier.size(24.dp)
-                        )
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Ver estanterías",
                             fontFamily = GuardianCity,
                             fontWeight = FontWeight.Bold,
-                            color = LoginColors.Primary
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -257,7 +257,7 @@ fun ProfileScreen(
                         .fillMaxWidth()
                         .border(
                             width = 1.dp,
-                            color = LoginColors.OutlineVariant.copy(alpha = 0.3f),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                             shape = RoundedCornerShape(0.dp)
                         )
                         .padding(vertical = 16.dp),
@@ -270,12 +270,12 @@ fun ProfileScreen(
                             fontFamily = GuardianCity,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = LoginColors.Primary
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Text(
                             text = "BOOKS",
                             fontSize = 12.sp,
-                            color = LoginColors.OnSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 1.sp
                         )
                     }
@@ -283,7 +283,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .width(1.dp)
                             .height(40.dp)
-                            .background(LoginColors.OutlineVariant.copy(alpha = 0.3f))
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                     )
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
@@ -291,12 +291,12 @@ fun ProfileScreen(
                             fontFamily = GuardianCity,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = LoginColors.Primary
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Text(
                             text = "REVIEWS",
                             fontSize = 12.sp,
-                            color = LoginColors.OnSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 1.sp
                         )
                     }
@@ -304,7 +304,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .width(1.dp)
                             .height(40.dp)
-                            .background(LoginColors.OutlineVariant.copy(alpha = 0.3f))
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                     )
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
@@ -312,12 +312,12 @@ fun ProfileScreen(
                             fontFamily = GuardianCity,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = LoginColors.Primary
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Text(
                             text = "FOLLOWERS",
                             fontSize = 12.sp,
-                            color = LoginColors.OnSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 1.sp
                         )
                     }
@@ -369,7 +369,7 @@ fun ProfileGenresSection(genres: List<String>) {
                 fontFamily = GuardianCity,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = LoginColors.Primary
+                color = MaterialTheme.colorScheme.primary
             )
         }
 
@@ -377,9 +377,9 @@ fun ProfileGenresSection(genres: List<String>) {
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = LoginColors.Surface),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, LoginColors.OutlineVariant.copy(alpha = 0.4f))
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
         ) {
             Column(
                 modifier = Modifier
@@ -391,7 +391,7 @@ fun ProfileGenresSection(genres: List<String>) {
                     Text(
                         text = stringResource(R.string.profile_no_genres_selected),
                         fontSize = 16.sp,
-                        color = LoginColors.OnSurfaceVariant.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         fontStyle = FontStyle.Italic,
                         textAlign = TextAlign.Center
                     )
@@ -414,8 +414,8 @@ fun ProfileGenreItem(genreCode: String) {
             modifier = Modifier
                 .size(50.dp)
                 .clip(CircleShape)
-                .background(LoginColors.Surface)
-                .border(1.dp, LoginColors.Primary, CircleShape),
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -430,7 +430,7 @@ fun ProfileGenreItem(genreCode: String) {
             text = if (categoryData.nameRes != null) stringResource(id = categoryData.nameRes)
             else CategoryProvider.formatFallbackName(genreCode),
             fontSize = 11.sp,
-            color = LoginColors.Primary,
+            color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
             lineHeight = 12.sp,
@@ -447,16 +447,16 @@ fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList
                 title = if(state.isMe) stringResource(R.string.profile_my_journals) else stringResource(R.string.profile_their_journals),
                 subtitle = "0 entries recorded",
                 icon = Icons.Default.Book,
-                iconBackgroundColor = LoginColors.Primary.copy(alpha = 0.1f),
-                iconColor = LoginColors.Primary,
+                iconBackgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                iconColor = MaterialTheme.colorScheme.primary,
                 onClick = { onNavigateToList("journals", userId) }
             )
             DashboardItem(
                 title = if(state.isMe) stringResource(R.string.profile_my_bookmarks) else stringResource(R.string.profile_their_bookmarks),
                 subtitle = "0 bookmarks saved",
                 icon = Icons.Default.Bookmark,
-                iconBackgroundColor = LoginColors.SecondaryContainer.copy(alpha = 0.2f),
-                iconColor = LoginColors.SecondaryContainer,
+                iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f),
+                iconColor = MaterialTheme.colorScheme.secondaryContainer,
                 onClick = { onNavigateToList("bookmarks", userId) }
             )
         }
@@ -465,16 +465,16 @@ fun ProfileDashboardGrid(state: ProfileUiState, userId: String, onNavigateToList
                 title = if(state.isMe) stringResource(R.string.profile_my_reviews) else stringResource(R.string.profile_their_reviews),
                 subtitle = "0 reviews written",
                 icon = Icons.Default.Star,
-                iconBackgroundColor = LoginColors.SecondaryContainer.copy(alpha = 0.2f),
-                iconColor = LoginColors.SecondaryContainer,
+                iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f),
+                iconColor = MaterialTheme.colorScheme.secondaryContainer,
                 onClick = { onNavigateToList("reviews", userId) }
             )
             DashboardItem(
                 title = if(state.isMe) stringResource(R.string.profile_my_comments) else stringResource(R.string.profile_their_comments),
                 subtitle = "0 comments posted",
                 icon = Icons.AutoMirrored.Filled.Comment,
-                iconBackgroundColor = LoginColors.Primary.copy(alpha = 0.1f),
-                iconColor = LoginColors.Primary,
+                iconBackgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                iconColor = MaterialTheme.colorScheme.primary,
                 onClick = { onNavigateToList("comments", userId) }
             )
         }
@@ -494,9 +494,9 @@ fun DashboardItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = LoginColors.Surface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, LoginColors.OutlineVariant.copy(alpha = 0.4f))
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -519,14 +519,15 @@ fun DashboardItem(
             Column {
                 Text(
                     text = title,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = LoginColors.Primary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = subtitle,
-                    fontSize = 12.sp,
-                    color = LoginColors.OnSurfaceVariant.copy(alpha = 0.8f)
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }
@@ -537,7 +538,7 @@ fun DashboardItem(
 fun AvatarSelectionDialog(currentAvatar: String, onDismiss: () -> Unit, onSelect: (String) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.profile_choose_avatar), color = LoginColors.Primary) },
+        title = { Text(stringResource(R.string.profile_choose_avatar), color = MaterialTheme.colorScheme.primary) },
         text = {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
@@ -553,7 +554,7 @@ fun AvatarSelectionDialog(currentAvatar: String, onDismiss: () -> Unit, onSelect
                             .clip(CircleShape)
                             .border(
                                 if (currentAvatar == name) 3.dp else 0.dp,
-                                LoginColors.Primary,
+                                MaterialTheme.colorScheme.primary,
                                 CircleShape
                             )
                             .clickable {
@@ -565,7 +566,7 @@ fun AvatarSelectionDialog(currentAvatar: String, onDismiss: () -> Unit, onSelect
             }
         },
         confirmButton = {},
-        containerColor = LoginColors.Surface
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 
@@ -576,7 +577,7 @@ fun EditProfileDialog(currentName: String, currentBio: String, onDismiss: () -> 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.profile_edit_profile_title), color = LoginColors.Primary) },
+        title = { Text(stringResource(R.string.profile_edit_profile_title), color = MaterialTheme.colorScheme.primary) },
         text = {
             Column {
                 OutlinedTextField(
@@ -584,8 +585,8 @@ fun EditProfileDialog(currentName: String, currentBio: String, onDismiss: () -> 
                     onValueChange = { n = it },
                     label = { Text(stringResource(R.string.profile_edit_name_label)) },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = LoginColors.Primary,
-                        unfocusedBorderColor = LoginColors.OutlineVariant
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                     )
                 )
                 Spacer(Modifier.height(8.dp))
@@ -594,8 +595,8 @@ fun EditProfileDialog(currentName: String, currentBio: String, onDismiss: () -> 
                     onValueChange = { b = it },
                     label = { Text(stringResource(R.string.profile_edit_bio_label)) },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = LoginColors.Primary,
-                        unfocusedBorderColor = LoginColors.OutlineVariant
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                     )
                 )
             }
@@ -603,11 +604,11 @@ fun EditProfileDialog(currentName: String, currentBio: String, onDismiss: () -> 
         confirmButton = {
             Button(
                 onClick = { onSave(n, b); onDismiss() },
-                colors = ButtonDefaults.buttonColors(containerColor = LoginColors.Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text(stringResource(R.string.profile_edit_save_button), color = LoginColors.OnPrimary)
+                Text(stringResource(R.string.profile_edit_save_button), color = MaterialTheme.colorScheme.onPrimary)
             }
         },
-        containerColor = LoginColors.Surface
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }

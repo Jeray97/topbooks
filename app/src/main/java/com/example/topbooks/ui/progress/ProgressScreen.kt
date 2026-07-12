@@ -48,7 +48,7 @@ fun ProgressScreen(
         viewModel.loadProgressData()
     }
 
-    Scaffold(containerColor = LoginColors.Background) { padding ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -62,7 +62,7 @@ fun ProgressScreen(
                 fontFamily = GuardianCity,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = LoginColors.PrimaryContainer
+                color = MaterialTheme.colorScheme.primaryContainer
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -82,8 +82,8 @@ fun ProgressScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(LoginColors.SurfaceContainerLow)
-                    .border(1.dp, LoginColors.Primary.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
                     .clickable { onNavigateToShelves() }
                     .padding(24.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -92,13 +92,13 @@ fun ProgressScreen(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(LoginColors.Primary.copy(alpha = 0.05f)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.MenuBook,
                         contentDescription = "Estanterías",
-                        tint = LoginColors.Primary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -108,18 +108,18 @@ fun ProgressScreen(
                         text = "Mis Estanterías",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = LoginColors.Primary
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = "Organiza tus libros en estanterías personalizadas",
                         fontSize = 12.sp,
-                        color = LoginColors.OnSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
-                    tint = LoginColors.Primary,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -128,7 +128,7 @@ fun ProgressScreen(
 
             if (state.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = LoginColors.Primary)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else {
                 LazyColumn(
@@ -187,12 +187,12 @@ fun StatItem(value: String, label: String) {
             fontFamily = GuardianCity,
             fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
-            color = LoginColors.Primary
+            color = MaterialTheme.colorScheme.primary
         )
         Text(
             text = label,
             fontSize = 12.sp,
-            color = LoginColors.OnSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = 1.sp
         )
     }
@@ -218,25 +218,25 @@ fun ProgressSection(
                 text = title,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = LoginColors.PrimaryContainer
+                color = MaterialTheme.colorScheme.primaryContainer
             )
 
             Row {
                 if (onAddClick != null) {
                     IconButton(onClick = onAddClick, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.progress_desc_add), tint = LoginColors.SurfaceTint)
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.progress_desc_add), tint = MaterialTheme.colorScheme.surfaceTint)
                     }
                 }
 
                 IconButton(onClick = onSeeAllClick, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(R.string.progress_desc_see_all), tint = LoginColors.SurfaceTint)
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(R.string.progress_desc_see_all), tint = MaterialTheme.colorScheme.surfaceTint)
                 }
             }
         }
 
         HorizontalDivider(
             modifier = Modifier.padding(vertical = 8.dp),
-            color = LoginColors.Primary.copy(alpha = 0.2f)
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
         )
 
         if (books.isEmpty()) {
@@ -249,7 +249,7 @@ fun ProgressSection(
                 Text(
                     text = stringResource(R.string.progress_empty_message),
                     fontSize = 16.sp,
-                    color = LoginColors.Outline,
+                    color = MaterialTheme.colorScheme.outline,
                     fontStyle = FontStyle.Italic
                 )
             }
@@ -280,7 +280,7 @@ fun ProgressBookItem(book: SimpleBook, onClick: () -> Unit) {
             modifier = Modifier
                 .size(90.dp, 130.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(LoginColors.SurfaceContainer),
+                .background(MaterialTheme.colorScheme.surfaceContainer),
             contentScale = ContentScale.Crop
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -288,7 +288,7 @@ fun ProgressBookItem(book: SimpleBook, onClick: () -> Unit) {
             text = book.title,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            color = LoginColors.Primary,
+            color = MaterialTheme.colorScheme.primary,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center

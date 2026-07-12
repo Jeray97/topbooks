@@ -312,7 +312,7 @@ private fun BookCoverStory(story: Story) {
                 modifier = Modifier
                     .size(width = 200.dp, height = 300.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(ColorArcMediumBrown),
+                    .background(ColorArcMediumBrown()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -470,7 +470,7 @@ private fun parseStoryColor(hex: String): Color {
     return try {
         Color(android.graphics.Color.parseColor(hex))
     } catch (e: Exception) {
-        ColorArcDarkBrown
+        Color(0xFF8D5B4C)
     }
 }
 

@@ -35,6 +35,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -74,7 +75,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
 
 private val SUB_TEXT = Color(0xFF8D5B4C)
-private val CARD_BG = Color.White
+@Composable
+private fun CARD_BG() = MaterialTheme.colorScheme.surface
 private val CARD_BORDER = Color(0xFFECDDD2)
 
 @Composable
@@ -94,7 +96,7 @@ fun ClubDetailScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         when {
@@ -105,7 +107,7 @@ fun ClubDetailScreen(
                         .padding(padding),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = ColorArcMediumBrown)
+                    CircularProgressIndicator(color = ColorArcMediumBrown())
                 }
             }
             state.club == null -> {
@@ -221,7 +223,7 @@ private fun ClubHeader(club: com.example.topbooks.data.model.Club, onBookClick: 
             fontFamily = GuardianCity,
             fontWeight = FontWeight.Bold,
             fontSize = 24.sp,
-            color = ColorArcDarkBrown
+            color = ColorArcDarkBrown()
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -262,7 +264,7 @@ private fun ClubHeader(club: com.example.topbooks.data.model.Club, onBookClick: 
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF6E6DD))
+                            .background(ColorBackGroundGeneral())
                     .clickable { onBookClick() }
                     .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -281,10 +283,10 @@ private fun ClubHeader(club: com.example.topbooks.data.model.Club, onBookClick: 
                         modifier = Modifier
                             .size(width = 44.dp, height = 66.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(ColorArcMediumBrown.copy(alpha = 0.3f)),
+                            .background(ColorArcMediumBrown().copy(alpha = 0.3f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Book, null, tint = ColorArcMediumBrown, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Book, null, tint = ColorArcMediumBrown(), modifier = Modifier.size(20.dp))
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -294,7 +296,7 @@ private fun ClubHeader(club: com.example.topbooks.data.model.Club, onBookClick: 
                         fontFamily = CenturyGotic,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
-                        color = ColorTextPrimary,
+                        color = ColorTextPrimary(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -328,11 +330,11 @@ private fun DetailTabsRow(selectedTab: Int, onTabClick: (Int) -> Unit) {
         tabs.forEach { (label, icon, index) ->
             val isActive = selectedTab == index
             val bgColor by animateColorAsState(
-                if (isActive) Color(0xFF8D5B4C) else Color.White.copy(alpha = 0.6f),
+                if (isActive) ColorArcDarkBrown() else Color.White.copy(alpha = 0.6f),
                 label = "tabBg"
             )
             val textColor by animateColorAsState(
-                if (isActive) ColorBackGroundGeneral else SUB_TEXT,
+                if (isActive) ColorBackGroundGeneral() else SUB_TEXT,
                 label = "tabText"
             )
             Row(
@@ -371,14 +373,14 @@ private fun InfoSection(club: com.example.topbooks.data.model.Club) {
                 fontFamily = CenturyGotic,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp,
-                color = ColorArcDarkBrown
+                color = ColorArcDarkBrown()
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = club.description,
                 fontFamily = CenturyGotic,
                 fontSize = 13.sp,
-                color = ColorTextPrimary,
+                color = ColorTextPrimary(),
                 lineHeight = 20.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -389,7 +391,7 @@ private fun InfoSection(club: com.example.topbooks.data.model.Club) {
             fontFamily = CenturyGotic,
             fontWeight = FontWeight.Medium,
             fontSize = 14.sp,
-            color = ColorArcDarkBrown
+            color = ColorArcDarkBrown()
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
@@ -401,7 +403,7 @@ private fun InfoSection(club: com.example.topbooks.data.model.Club) {
             },
             fontFamily = CenturyGotic,
             fontSize = 13.sp,
-            color = ColorTextPrimary
+            color = ColorTextPrimary()
         )
 
         if (club.genres.isNotEmpty()) {
@@ -411,7 +413,7 @@ private fun InfoSection(club: com.example.topbooks.data.model.Club) {
                 fontFamily = CenturyGotic,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp,
-                color = ColorArcDarkBrown
+                color = ColorArcDarkBrown()
             )
             Spacer(modifier = Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -419,7 +421,7 @@ private fun InfoSection(club: com.example.topbooks.data.model.Club) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFF6E6DD))
+                    .background(ColorBackGroundGeneral())
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
@@ -448,14 +450,14 @@ private fun DiscussionsHeader(canCreate: Boolean, onCreateClick: () -> Unit) {
             fontFamily = CenturyGotic,
             fontWeight = FontWeight.Medium,
             fontSize = 14.sp,
-            color = ColorArcDarkBrown,
+            color = ColorArcDarkBrown(),
             modifier = Modifier.weight(1f)
         )
         if (canCreate) {
             TextButton(onClick = onCreateClick) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = ColorArcMediumBrown)
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = ColorArcMediumBrown())
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Nueva", fontFamily = CenturyGotic, fontSize = 12.sp, color = ColorArcMediumBrown)
+                Text("Nueva", fontFamily = CenturyGotic, fontSize = 12.sp, color = ColorArcMediumBrown())
             }
         }
     }
@@ -467,7 +469,7 @@ private fun DiscussionCard(discussion: Discussion, onClick: () -> Unit, modifier
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(CARD_BG)
+            .background(CARD_BG())
             .border(1.dp, CARD_BORDER, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(12.dp)
@@ -487,7 +489,7 @@ private fun DiscussionCard(discussion: Discussion, onClick: () -> Unit, modifier
                 fontFamily = CenturyGotic,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp,
-                color = ColorTextPrimary,
+                color = ColorTextPrimary(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
@@ -538,7 +540,7 @@ private fun MembersSection(club: com.example.topbooks.data.model.Club) {
             fontFamily = CenturyGotic,
             fontWeight = FontWeight.Medium,
             fontSize = 14.sp,
-            color = ColorArcDarkBrown
+            color = ColorArcDarkBrown()
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -587,7 +589,7 @@ private fun MembershipButton(
                 .height(48.dp),
             enabled = !isJoining,
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (isMember) Color(0xFFE57373) else ColorArcDarkBrown,
+                containerColor = if (isMember) Color(0xFFE57373) else ColorArcDarkBrown(),
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(14.dp)
@@ -628,7 +630,7 @@ private fun CreateDiscussionDialog(
                 text = "Nueva discusión",
                 fontFamily = GuardianCity,
                 fontWeight = FontWeight.Bold,
-                color = ColorArcDarkBrown
+                color = ColorArcDarkBrown()
             )
         },
         text = {
@@ -639,7 +641,7 @@ private fun CreateDiscussionDialog(
                     label = { Text("Título", fontFamily = CenturyGotic) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown)
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown())
                 )
                 OutlinedTextField(
                     value = chapter,
@@ -647,7 +649,7 @@ private fun CreateDiscussionDialog(
                     label = { Text("Capítulo (opcional)", fontFamily = CenturyGotic) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown)
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ColorArcMediumBrown())
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     androidx.compose.material3.Checkbox(
@@ -659,7 +661,7 @@ private fun CreateDiscussionDialog(
                         text = "Contiene spoilers",
                         fontFamily = CenturyGotic,
                         fontSize = 13.sp,
-                        color = ColorTextPrimary
+                        color = ColorTextPrimary()
                     )
                 }
             }
@@ -668,7 +670,7 @@ private fun CreateDiscussionDialog(
             Button(
                 onClick = { if (title.isNotBlank()) onConfirm(title, chapter, isSpoiler) },
                 enabled = title.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
+                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown()),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Crear", fontFamily = CenturyGotic)
@@ -679,7 +681,7 @@ private fun CreateDiscussionDialog(
                 Text("Cancelar", fontFamily = CenturyGotic, color = Color.Gray)
             }
         },
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(24.dp)
     )
 }

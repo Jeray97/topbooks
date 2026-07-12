@@ -50,7 +50,7 @@ fun TutorialScreen(
     val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
 
-    Scaffold(containerColor = ColorBackGroundGeneral) { padding ->
+    Scaffold(containerColor = ColorBackGroundGeneral()) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -61,7 +61,7 @@ fun TutorialScreen(
             LinearProgressIndicator(
                 progress = { (pagerState.currentPage + 1) / 3f },
                 modifier = Modifier.fillMaxWidth().height(6.dp),
-                color = ColorArcMediumBrown,
+                color = ColorArcMediumBrown(),
                 trackColor = Color.LightGray.copy(alpha = 0.3f)
             )
 
@@ -100,7 +100,7 @@ fun TutorialScreen(
                     TextButton(onClick = {
                         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
                     }) {
-                        Text(stringResource(R.string.tutorial_btn_back), color = ColorArcDarkBrown, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.tutorial_btn_back), color = ColorArcDarkBrown(), fontWeight = FontWeight.SemiBold)
                     }
                 } else {
                     Spacer(modifier = Modifier.width(60.dp))
@@ -118,7 +118,7 @@ fun TutorialScreen(
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
+                    colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown()),
                     shape = RoundedCornerShape(12.dp),
                     // Validación: Impedir avanzar en la pág de géneros si no hay ninguno elegido
                     enabled = (pagerState.currentPage != 1 || uiState.selectedGenres.isNotEmpty()) && !uiState.isSaving
@@ -148,7 +148,7 @@ fun WelcomePage() {
             modifier = Modifier.size(140.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Star, null, Modifier.size(80.dp), ColorArcMediumBrown)
+                Icon(Icons.Default.Star, null, Modifier.size(80.dp), ColorArcMediumBrown())
             }
         }
         Spacer(Modifier.height(32.dp))
@@ -156,7 +156,7 @@ fun WelcomePage() {
             stringResource(R.string.tutorial_welcome_title),
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
-            color = ColorArcDarkBrown,
+            color = ColorArcDarkBrown(),
             textAlign = TextAlign.Center,
             fontFamily = GuardianCity
         )
@@ -178,7 +178,7 @@ fun GenresPage(selected: Set<String>, available: List<String>, onGenreClick: (St
         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(stringResource(R.string.tutorial_genres_title), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontFamily = GuardianCity)
+        Text(stringResource(R.string.tutorial_genres_title), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown(), fontFamily = GuardianCity)
         Text(stringResource(R.string.tutorial_genres_subtitle), fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 16.dp))
 
         LazyVerticalGrid(
@@ -195,7 +195,7 @@ fun GenresPage(selected: Set<String>, available: List<String>, onGenreClick: (St
                 Surface(
                     onClick = { onGenreClick(genre) },
                     shape = RoundedCornerShape(12.dp),
-                    color = if (isSel) ColorArcMediumBrown else Color.White,
+                    color = if (isSel) ColorArcMediumBrown() else Color.White,
                     modifier = Modifier.height(50.dp),
                     shadowElevation = if(isSel) 4.dp else 1.dp,
                     border = if(!isSel) androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(0.4f)) else null
@@ -203,7 +203,7 @@ fun GenresPage(selected: Set<String>, available: List<String>, onGenreClick: (St
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             text = displayName,
-                            color = if (isSel) Color.White else ColorArcDarkBrown,
+                            color = if (isSel) Color.White else ColorArcDarkBrown(),
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp
                         )
@@ -223,12 +223,12 @@ fun BooksPage(
     onBookClick: (String) -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
-        Text(stringResource(R.string.tutorial_books_title), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontFamily = GuardianCity)
+        Text(stringResource(R.string.tutorial_books_title), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown(), fontFamily = GuardianCity)
         Text(stringResource(R.string.tutorial_books_subtitle), fontSize = 14.sp, color = Color.Gray)
         Spacer(Modifier.height(16.dp))
 
         if (isLoading) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = ColorArcMediumBrown) }
+            Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = ColorArcMediumBrown()) }
         } else if (books.isEmpty()) {
             Box(Modifier.fillMaxSize(), Alignment.Center) { Text(stringResource(R.string.tutorial_books_empty), color = Color.Gray) }
         } else {
@@ -254,7 +254,7 @@ fun BooksPage(
                                     .height(110.dp)
                                     .width(80.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .border(if (isSel) 3.dp else 0.dp, ColorArcMediumBrown, RoundedCornerShape(8.dp)),
+                                    .border(if (isSel) 3.dp else 0.dp, ColorArcMediumBrown(), RoundedCornerShape(8.dp)),
                                 contentScale = ContentScale.Crop
                             )
                             if (isSel) {
@@ -264,7 +264,7 @@ fun BooksPage(
                                     Modifier
                                         .align(Alignment.TopEnd)
                                         .padding(4.dp)
-                                        .background(ColorArcMediumBrown, CircleShape)
+                                        .background(ColorArcMediumBrown(), CircleShape)
                                         .padding(2.dp)
                                         .size(12.dp),
                                     Color.White

@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -88,7 +89,7 @@ fun DiscussionScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = {
             TopBar(
                 onBackClick = onBackClick,
@@ -119,7 +120,7 @@ fun DiscussionScreen(
                         .padding(padding),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = ColorArcMediumBrown)
+                    CircularProgressIndicator(color = ColorArcMediumBrown())
                 }
             }
             state.discussion == null -> {
@@ -199,7 +200,7 @@ private fun DiscussionHeader(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MESSAGE_BORDER, RoundedCornerShape(14.dp))
             .padding(14.dp)
     ) {
@@ -218,7 +219,7 @@ private fun DiscussionHeader(
                 fontFamily = GuardianCity,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
-                color = ColorArcDarkBrown,
+                color = ColorArcDarkBrown(),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -266,7 +267,7 @@ private fun MessageBubble(message: DiscussionMessage) {
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
                 .border(1.dp, Color.LightGray.copy(alpha = 0.3f), CircleShape),
             contentScale = ContentScale.Crop
         )
@@ -280,7 +281,7 @@ private fun MessageBubble(message: DiscussionMessage) {
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Medium,
                     fontSize = 12.sp,
-                    color = ColorArcDarkBrown,
+                    color = ColorArcDarkBrown(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
@@ -312,7 +313,7 @@ private fun MessageBubble(message: DiscussionMessage) {
                     text = message.text,
                     fontFamily = CenturyGotic,
                     fontSize = 13.sp,
-                    color = ColorTextPrimary,
+                    color = ColorTextPrimary(),
                     lineHeight = 20.sp
                 )
             }
@@ -330,7 +331,7 @@ private fun MessageComposeBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MESSAGE_BORDER)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -347,8 +348,8 @@ private fun MessageComposeBar(
                 )
             },
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFF6E6DD),
-                unfocusedContainerColor = Color(0xFFF6E6DD),
+                focusedContainerColor = ColorBackGroundGeneral(),
+                unfocusedContainerColor = ColorBackGroundGeneral(),
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent
             ),
@@ -365,7 +366,7 @@ private fun MessageComposeBar(
                 .size(40.dp)
                 .clip(CircleShape)
                 .background(
-                    if (text.isNotBlank() && !isSending) ColorArcDarkBrown
+                    if (text.isNotBlank() && !isSending) ColorArcDarkBrown()
                     else Color.LightGray
                 )
         ) {

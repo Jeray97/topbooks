@@ -36,6 +36,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -240,7 +241,7 @@ fun CreatePostScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         Column(
@@ -256,7 +257,7 @@ fun CreatePostScreen(
                 fontFamily = GuardianCity,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
-                color = ColorArcDarkBrown
+                color = ColorArcDarkBrown()
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -265,7 +266,7 @@ fun CreatePostScreen(
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
-                    color = ColorTextPrimary
+                    color = ColorTextPrimary()
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -309,14 +310,14 @@ fun CreatePostScreen(
                         fontFamily = CenturyGotic,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
-                        color = ColorTextPrimary
+                        color = ColorTextPrimary()
                     )
                     if (selectedBook == null) {
                         Text(
                             text = "Buscar por",
                             fontFamily = CenturyGotic,
                             fontSize = 12.sp,
-                            color = Color(0xFF8D5B4C),
+                            color = ColorArcDarkBrown(),
                             modifier = Modifier.padding(top = 4.dp)
                         )
                         Row(
@@ -379,8 +380,8 @@ fun CreatePostScreen(
                             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = ColorArcMediumBrown,
-                                unfocusedBorderColor = ColorArcMediumBrown.copy(alpha = 0.3f)
+                                focusedBorderColor = ColorArcMediumBrown(),
+                                unfocusedBorderColor = ColorArcMediumBrown().copy(alpha = 0.3f)
                             )
                         )
 
@@ -389,7 +390,7 @@ fun CreatePostScreen(
                                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator(color = ColorArcMediumBrown, modifier = Modifier.size(24.dp))
+                                CircularProgressIndicator(color = ColorArcMediumBrown(), modifier = Modifier.size(24.dp))
                             }
                         }
 
@@ -423,7 +424,7 @@ fun CreatePostScreen(
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
-                    color = ColorTextPrimary
+                    color = ColorTextPrimary()
                 )
                 OutlinedTextField(
                     value = postText,
@@ -444,8 +445,8 @@ fun CreatePostScreen(
                     maxLines = 6,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorArcMediumBrown,
-                        unfocusedBorderColor = ColorArcMediumBrown.copy(alpha = 0.3f)
+                        focusedBorderColor = ColorArcMediumBrown(),
+                        unfocusedBorderColor = ColorArcMediumBrown().copy(alpha = 0.3f)
                     )
                 )
             }
@@ -457,7 +458,7 @@ fun CreatePostScreen(
                         fontFamily = CenturyGotic,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
-                        color = ColorTextPrimary
+                        color = ColorTextPrimary()
                     )
                     OutlinedTextField(
                         value = quoteSource,
@@ -466,8 +467,8 @@ fun CreatePostScreen(
                         placeholder = { Text("Ej: Gabriel García Márquez", fontFamily = CenturyGotic) },
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = ColorArcMediumBrown,
-                            unfocusedBorderColor = ColorArcMediumBrown.copy(alpha = 0.3f)
+                            focusedBorderColor = ColorArcMediumBrown(),
+                            unfocusedBorderColor = ColorArcMediumBrown().copy(alpha = 0.3f)
                         )
                     )
                 }
@@ -480,7 +481,7 @@ fun CreatePostScreen(
                         fontFamily = CenturyGotic,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
-                        color = ColorTextPrimary
+                        color = ColorTextPrimary()
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -527,7 +528,7 @@ fun CreatePostScreen(
                     .height(56.dp),
                 enabled = postText.isNotBlank() && !state.isCreating,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ColorArcDarkBrown,
+                    containerColor = ColorArcDarkBrown(),
                     contentColor = Color.White,
                     disabledContainerColor = Color.LightGray
                 ),
@@ -570,10 +571,10 @@ private fun PostTypeCard(
         modifier = modifier
             .height(72.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) ColorArcMediumBrown else Color.White)
+            .background(if (isSelected) ColorArcMediumBrown() else Color.White)
             .border(
                 width = 1.dp,
-                color = if (isSelected) ColorArcMediumBrown else ColorArcMediumBrown.copy(alpha = 0.3f),
+                color = if (isSelected) ColorArcMediumBrown() else ColorArcMediumBrown().copy(alpha = 0.3f),
                 shape = RoundedCornerShape(12.dp)
             )
             .clickable(onClick = onClick)
@@ -587,7 +588,7 @@ private fun PostTypeCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) Color.White else ColorArcMediumBrown,
+                tint = if (isSelected) Color.White else ColorArcMediumBrown(),
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -595,7 +596,7 @@ private fun PostTypeCard(
                 text = label,
                 fontFamily = CenturyGotic,
                 fontSize = 10.sp,
-                color = if (isSelected) Color.White else ColorTextPrimary
+                color = if (isSelected) Color.White else ColorTextPrimary()
             )
         }
     }
@@ -610,8 +611,8 @@ private fun BookSearchResultItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
-            .border(1.dp, ColorArcMediumBrown.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, ColorArcMediumBrown().copy(alpha = 0.2f), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -630,10 +631,10 @@ private fun BookSearchResultItem(
                 modifier = Modifier
                     .size(width = 40.dp, height = 60.dp)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(ColorArcMediumBrown.copy(alpha = 0.2f)),
+                    .background(ColorArcMediumBrown().copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Book, contentDescription = null, tint = ColorArcMediumBrown)
+                Icon(Icons.Default.Book, contentDescription = null, tint = ColorArcMediumBrown())
             }
         }
         Spacer(modifier = Modifier.width(12.dp))
@@ -643,14 +644,14 @@ private fun BookSearchResultItem(
                 fontFamily = CenturyGotic,
                 fontWeight = FontWeight.Medium,
                 fontSize = 13.sp,
-                color = ColorTextPrimary,
+                color = ColorTextPrimary(),
                 maxLines = 1
             )
             Text(
                 text = book.authors.joinToString(),
                 fontFamily = CenturyGotic,
                 fontSize = 11.sp,
-                color = Color(0xFF8D5B4C),
+                color = ColorArcDarkBrown(),
                 maxLines = 1
             )
         }
@@ -666,7 +667,7 @@ private fun SelectedBookCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFFF6E6DD))
+            .background(ColorBackGroundGeneral())
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -684,10 +685,10 @@ private fun SelectedBookCard(
                 modifier = Modifier
                     .size(width = 40.dp, height = 60.dp)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(ColorArcMediumBrown.copy(alpha = 0.2f)),
+                    .background(ColorArcMediumBrown().copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Book, contentDescription = null, tint = ColorArcMediumBrown)
+                Icon(Icons.Default.Book, contentDescription = null, tint = ColorArcMediumBrown())
             }
         }
         Spacer(modifier = Modifier.width(12.dp))
@@ -697,19 +698,19 @@ private fun SelectedBookCard(
                 fontFamily = CenturyGotic,
                 fontWeight = FontWeight.Medium,
                 fontSize = 13.sp,
-                color = ColorTextPrimary,
+                color = ColorTextPrimary(),
                 maxLines = 1
             )
             Text(
                 text = book.authors.joinToString(),
                 fontFamily = CenturyGotic,
                 fontSize = 11.sp,
-                color = Color(0xFF8D5B4C),
+                color = ColorArcDarkBrown(),
                 maxLines = 1
             )
         }
         IconButton(onClick = onRemove) {
-            Icon(Icons.Default.Close, contentDescription = "Quitar libro", tint = ColorArcMediumBrown)
+            Icon(Icons.Default.Close, contentDescription = "Quitar libro", tint = ColorArcMediumBrown())
         }
     }
 }
@@ -726,10 +727,10 @@ private fun FilterChip(
         modifier = modifier
             .height(36.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(if (isSelected) ColorArcMediumBrown else Color.White)
+            .background(if (isSelected) ColorArcMediumBrown() else Color.White)
             .border(
                 width = 1.dp,
-                color = if (isSelected) ColorArcMediumBrown else ColorArcMediumBrown.copy(alpha = 0.3f),
+                color = if (isSelected) ColorArcMediumBrown() else ColorArcMediumBrown().copy(alpha = 0.3f),
                 shape = RoundedCornerShape(18.dp)
             )
             .clickable(onClick = onClick)
@@ -743,7 +744,7 @@ private fun FilterChip(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) Color.White else ColorArcMediumBrown,
+                tint = if (isSelected) Color.White else ColorArcMediumBrown(),
                 modifier = Modifier.size(14.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
@@ -751,7 +752,7 @@ private fun FilterChip(
                 text = label,
                 fontFamily = CenturyGotic,
                 fontSize = 10.sp,
-                color = if (isSelected) Color.White else ColorTextPrimary,
+                color = if (isSelected) Color.White else ColorTextPrimary(),
                 maxLines = 1
             )
         }

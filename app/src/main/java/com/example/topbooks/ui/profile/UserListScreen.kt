@@ -84,7 +84,7 @@ fun UserListScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
@@ -93,14 +93,14 @@ fun UserListScreen(
                 fontFamily = CenturyGotic,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = ColorTituloTopBooks
+                color = ColorTituloTopBooks()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             if (state.isLoading) {
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    CircularProgressIndicator(color = ColorArcMediumBrown)
+                    CircularProgressIndicator(color = ColorArcMediumBrown())
                 }
             } else {
                 // LISTA OPTIMIZADA (LazyColumn)
@@ -181,7 +181,7 @@ fun JournalListItem(
     if (showDeleteDialog && onDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text(stringResource(R.string.journal_delete_title), fontFamily = CenturyGotic, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+            title = { Text(stringResource(R.string.journal_delete_title), fontFamily = CenturyGotic, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown()) },
             text = { Text(stringResource(R.string.userlist_delete_journal_body), color = Color.DarkGray) },
             confirmButton = {
                 Button(
@@ -193,13 +193,13 @@ fun JournalListItem(
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.userlist_action_cancel), color = Color.Gray) }
             },
-            containerColor = Color.White, shape = RoundedCornerShape(24.dp)
+            containerColor = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(24.dp)
         )
     }
 
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onClick(journal.bookId) },
-        colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown),
+        colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown()),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
@@ -262,18 +262,18 @@ fun BookmarkListItem(bookmark: BookmarkUI, onBookClick: (String) -> Unit, viewMo
         modifier = Modifier.fillMaxWidth().clickable {
             if (isMe) showEditDialog = true else onBookClick(bookmark.bookId)
         },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
-            Icon(Icons.Default.Bookmark, contentDescription = null, tint = ColorArcMediumBrown, modifier = Modifier.size(32.dp))
+            Icon(Icons.Default.Bookmark, contentDescription = null, tint = ColorArcMediumBrown(), modifier = Modifier.size(32.dp))
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = bookmark.bookTitle,
                     fontWeight = FontWeight.Bold,
-                    color = ColorArcDarkBrown,
+                    color = ColorArcDarkBrown(),
                     fontSize = 16.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -288,7 +288,7 @@ fun BookmarkListItem(bookmark: BookmarkUI, onBookClick: (String) -> Unit, viewMo
                     val pageText = if (bookmark.page.isNotBlank()) stringResource(R.string.userlist_bookmark_pag, bookmark.page) else ""
                     val combined = listOf(chapText, pageText).filter { it.isNotBlank() }.joinToString(" • ")
 
-                    Text(combined, color = ColorArcMediumBrown, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(combined, color = ColorArcMediumBrown(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
 
                     if (!bookmark.isPublic && isMe) {
                         Icon(Icons.Default.Lock, null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
@@ -311,7 +311,7 @@ fun EditBookmarkDialog(bookmark: BookmarkUI, onDismiss: () -> Unit, onSave: (Boo
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.userlist_edit_bookmark_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+        title = { Text(stringResource(R.string.userlist_edit_bookmark_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown()) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -323,7 +323,7 @@ fun EditBookmarkDialog(bookmark: BookmarkUI, onDismiss: () -> Unit, onSave: (Boo
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(bookmark.copy(page = p, chapter = c, quote = q, isPublic = pub)) }, enabled = p.isNotEmpty() && q.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.userlist_action_save)) }
+            Button(onClick = { onSave(bookmark.copy(page = p, chapter = c, quote = q, isPublic = pub)) }, enabled = p.isNotEmpty() && q.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown()), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.userlist_action_save)) }
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -340,11 +340,11 @@ fun EditBookmarkDialog(bookmark: BookmarkUI, onDismiss: () -> Unit, onSave: (Boo
  */
 @Composable
 fun DialogPrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
-    val pubCol by animateColorAsState(if (isPublic) ColorArcMediumBrown else Color.Transparent)
-    val privCol by animateColorAsState(if (!isPublic) ColorArcMediumBrown else Color.Transparent)
+    val pubCol by animateColorAsState(if (isPublic) ColorArcMediumBrown() else Color.Transparent)
+    val privCol by animateColorAsState(if (!isPublic) ColorArcMediumBrown() else Color.Transparent)
     val pubText by animateColorAsState(if (isPublic) Color.White else Color.Gray)
     val privText by animateColorAsState(if (!isPublic) Color.White else Color.Gray)
-    Surface(modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp), color = ColorHeaderBeige.copy(0.5f), border = androidx.compose.foundation.BorderStroke(1.dp, ColorArcMediumBrown.copy(0.3f))) {
+    Surface(modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp), color = ColorHeaderBeige().copy(0.5f), border = androidx.compose.foundation.BorderStroke(1.dp, ColorArcMediumBrown().copy(0.3f))) {
         Row {
             Box(Modifier.weight(1f).fillMaxHeight().clip(CircleShape).background(pubCol).clickable { onToggle(true) }, Alignment.Center) {
                 Row { Icon(Icons.Default.Call, null, tint = pubText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.userlist_privacy_public), color = pubText, fontWeight = FontWeight.Bold) }
@@ -361,14 +361,14 @@ fun DialogPrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
 fun FriendItem(user: SimpleUser, onClick: (String) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable { if(user.uid.isNotEmpty()) onClick(user.uid) },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(model = user.photo.ifEmpty { "https://via.placeholder.com/150" }, contentDescription = null, modifier = Modifier.size(50.dp).clip(CircleShape), contentScale = ContentScale.Crop)
             Spacer(Modifier.width(12.dp))
-            Text(user.name, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontSize = 16.sp)
+            Text(user.name, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown(), fontSize = 16.sp)
         }
     }
 }
@@ -378,7 +378,7 @@ fun FriendItem(user: SimpleUser, onClick: (String) -> Unit) {
 fun BookItem(book: SimpleBook, onClick: (String) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable { if(book.id.isNotEmpty()) onClick(book.id) },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
@@ -390,7 +390,7 @@ fun BookItem(book: SimpleBook, onClick: (String) -> Unit) {
                 contentScale = ContentScale.Crop
             )
             Spacer(Modifier.width(12.dp))
-            Text(book.title, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, fontSize = 15.sp)
+            Text(book.title, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown(), fontSize = 15.sp)
         }
     }
 }
@@ -408,7 +408,7 @@ fun ReviewListItem(
     if (showDeleteDialog && onDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text(stringResource(R.string.userlist_delete_review_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+            title = { Text(stringResource(R.string.userlist_delete_review_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown()) },
             text = { Text(stringResource(R.string.userlist_delete_review_body)) },
             confirmButton = {
                 Button(
@@ -420,13 +420,13 @@ fun ReviewListItem(
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.userlist_action_cancel), color = Color.Gray) }
             },
-            containerColor = Color.White, shape = RoundedCornerShape(24.dp)
+            containerColor = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(24.dp)
         )
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown),
+        colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown()),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
@@ -476,7 +476,7 @@ fun CommentListItem(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text(stringResource(R.string.userlist_delete_comment_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown) },
+            title = { Text(stringResource(R.string.userlist_delete_comment_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown()) },
             text = { Text(stringResource(R.string.userlist_delete_comment_body)) },
             confirmButton = {
                 Button(
@@ -488,13 +488,13 @@ fun CommentListItem(
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.userlist_action_cancel), color = Color.Gray) }
             },
-            containerColor = Color.White, shape = RoundedCornerShape(24.dp)
+            containerColor = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(24.dp)
         )
     }
 
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onCommentClick(comment.bookId, comment.commentId) },
-        colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown),
+        colors = CardDefaults.cardColors(containerColor = ColorArcMediumBrown()),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {

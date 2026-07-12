@@ -66,7 +66,7 @@ fun SocialActivityScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -76,7 +76,7 @@ fun SocialActivityScreen(
                 fontFamily = CenturyGotic,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = ColorTituloTopBooks,
+                color = ColorTituloTopBooks(),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
             )
 
@@ -85,7 +85,7 @@ fun SocialActivityScreen(
                 is Resource.Loading -> {
                     // Estado de carga: Muestra el spinner circular centrado
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = ColorArcMediumBrown)
+                        CircularProgressIndicator(color = ColorArcMediumBrown())
                     }
                 }
                 is Resource.Success -> {
@@ -133,7 +133,7 @@ fun SocialActivityCard(
     val bubbleColor = when(item.type) {
         ActivityType.FAVORITE -> Color(0xFFFCE4EC) // Tono rosado para Favoritos
         ActivityType.REPLY -> Color(0xFFE3F2FD)    // Tono azulado para Respuestas
-        else -> ColorHeaderBeige.copy(alpha = 0.9f) // Beige por defecto para Reseñas y Comentarios
+        else -> ColorHeaderBeige().copy(alpha = 0.9f) // Beige por defecto para Reseñas y Comentarios
     }
 
     Row(
@@ -193,7 +193,7 @@ fun SocialActivityCard(
                 Text(
                     text = stringResource(R.string.social_action_format, item.friendName, actionText),
                     fontSize = 12.sp,
-                    color = ColorArcDarkBrown,
+                    color = ColorArcDarkBrown(),
                     fontWeight = FontWeight.Bold
                 )
                 Text(
@@ -286,7 +286,7 @@ fun SmallAvatar(photoUrl: String) {
 @Composable
 fun EmptySocialMessage(modifier: Modifier = Modifier) {
     Column(modifier = modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(painter = painterResource(R.drawable.social), contentDescription = null, tint = ColorArcMediumBrown.copy(alpha = 0.4f), modifier = Modifier.size(80.dp))
+        Icon(painter = painterResource(R.drawable.social), contentDescription = null, tint = ColorArcMediumBrown().copy(alpha = 0.4f), modifier = Modifier.size(80.dp))
         Spacer(modifier = Modifier.height(16.dp))
         Text(stringResource(R.string.social_empty_title), fontWeight = FontWeight.Bold, color = Color.Gray)
         Text(stringResource(R.string.social_empty_desc), fontSize = 12.sp, color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center)

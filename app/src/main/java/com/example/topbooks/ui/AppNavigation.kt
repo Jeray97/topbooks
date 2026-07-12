@@ -67,7 +67,7 @@ fun AppNavigation(
     // Estado de guarda: Evita renderizar rutas antes de conocer el perfil del usuario
     if (authState.isLoadingProfile) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = ColorArcMediumBrown)
+            CircularProgressIndicator(color = ColorArcMediumBrown())
         }
         return
     }

@@ -105,7 +105,7 @@ fun RecommendedSectionContent(
                     .weight(1f),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White.copy(alpha = 0.15f)
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.15f)
                 ),
                 elevation = CardDefaults.cardElevation(0.dp)
             ) {

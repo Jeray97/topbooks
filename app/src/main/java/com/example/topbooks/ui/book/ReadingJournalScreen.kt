@@ -40,10 +40,10 @@ import com.example.topbooks.utils.CategoryProvider
 import java.util.UUID
 
 // --- PALETA DE COLORES ESPECÍFICA DEL DIARIO ---
-val JournalDark = ColorTitleCategoryDetail
-val JournalMedium = ColorBackGroundRecommendedSection
+val JournalDark = Color(0xFF8E5D48)
+val JournalMedium = Color(0xFFD9AD9A)
 val JournalLight = Color.White.copy(alpha = 0.6f)
-val JournalGridColor = ColorBackGroundRecommendedSection.copy(alpha = 0.3f)
+val JournalGridColor = Color(0xFFD9AD9A).copy(alpha = 0.3f)
 
 /**
  * PANTALLA DEL DIARIO DE LECTURA (Stateful Composable)
@@ -193,7 +193,7 @@ fun ReadingJournalScreen(
                         Switch(
                             checked = isPublic,
                             onCheckedChange = { isPublic = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = ColorArcMediumBrown, checkedTrackColor = ColorArcMediumBrown.copy(alpha = 0.5f))
+                            colors = SwitchDefaults.colors(checkedThumbColor = ColorArcMediumBrown(), checkedTrackColor = ColorArcMediumBrown().copy(alpha = 0.5f))
                         )
                     }
                 }
@@ -238,7 +238,7 @@ fun ReadingJournalScreen(
                 ) { Text(stringResource(R.string.journal_action_confirm)) }
             },
             dismissButton = { TextButton(onClick = { showSaveDialog = false }) { Text(stringResource(R.string.journal_action_cancel), color = Color.Gray) } },
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(24.dp)
         )
     }
@@ -260,14 +260,14 @@ fun ReadingJournalScreen(
             dismissButton = {
                 TextButton(onClick = { showDeleteJournalDialog = false }) { Text(stringResource(R.string.journal_action_cancel), color = Color.Gray) }
             },
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(24.dp)
         )
     }
 
     // --- INTERFAZ PRINCIPAL DEL DIARIO ---
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -300,16 +300,16 @@ fun ReadingJournalScreen(
 
                                 Row(Modifier.fillMaxWidth(), Arrangement.Center) {
                                     repeat(5) { k ->
-                                        Icon(Icons.Default.Star, null, tint = if (k < mainRating) ColorJournalStar else Color.Gray.copy(alpha = 0.3f), modifier = Modifier.size(18.dp).clickable { mainRating = k + 1 })
+                                        Icon(Icons.Default.Star, null, tint = if (k < mainRating) ColorJournalStar() else Color.Gray.copy(alpha = 0.3f), modifier = Modifier.size(18.dp).clickable { mainRating = k + 1 })
                                     }
                                 }
 
                                 JournalSectionCard(stringResource(R.string.journal_section_classification)) {
                                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        SmallClassificationItem(stringResource(R.string.journal_rating_romance), rRomance, Icons.Default.Favorite, ColorJournalRomance) { rRomance = it }
-                                        SmallClassificationItem(stringResource(R.string.journal_rating_happy), rHappy, Icons.Default.Face, ColorJournalHappy) { rHappy = it }
-                                        SmallClassificationItem(stringResource(R.string.journal_rating_sad), rSad, Icons.Default.Opacity, ColorJournalSad) { rSad = it }
-                                        SmallClassificationItem(stringResource(R.string.journal_rating_spicy), rSpicy, Icons.Default.LocalFireDepartment, ColorJournalSpicy) { rSpicy = it }
+                                        SmallClassificationItem(stringResource(R.string.journal_rating_romance), rRomance, Icons.Default.Favorite, ColorJournalRomance()) { rRomance = it }
+                                        SmallClassificationItem(stringResource(R.string.journal_rating_happy), rHappy, Icons.Default.Face, ColorJournalHappy()) { rHappy = it }
+                                        SmallClassificationItem(stringResource(R.string.journal_rating_sad), rSad, Icons.Default.Opacity, ColorJournalSad()) { rSad = it }
+                                        SmallClassificationItem(stringResource(R.string.journal_rating_spicy), rSpicy, Icons.Default.LocalFireDepartment, ColorJournalSpicy()) { rSpicy = it }
                                     }
                                 }
 
@@ -563,7 +563,7 @@ fun SearchBookDialog(onDismiss: () -> Unit, onBookSelected: (Book) -> Unit, sear
     val isLoading by searchViewModel.isLoading.collectAsState()
 
     Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(12.dp), color = ColorBackGroundGeneral, modifier = Modifier.fillMaxWidth().height(450.dp)) {
+        Surface(shape = RoundedCornerShape(12.dp), color = ColorBackGroundGeneral(), modifier = Modifier.fillMaxWidth().height(450.dp)) {
             Column(Modifier.padding(16.dp)) {
                 OutlinedTextField(
                     value = localQuery,
@@ -581,7 +581,7 @@ fun SearchBookDialog(onDismiss: () -> Unit, onBookSelected: (Book) -> Unit, sear
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(searchResults) { book ->
-                            Card(modifier = Modifier.fillMaxWidth().clickable { onBookSelected(book) }, colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                            Card(modifier = Modifier.fillMaxWidth().clickable { onBookSelected(book) }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                                 Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                                     AsyncImage(model = book.imageUrl, null, Modifier.size(40.dp, 60.dp).clip(RoundedCornerShape(4.dp)), contentScale = ContentScale.Crop)
                                     Spacer(Modifier.width(12.dp))

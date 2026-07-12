@@ -63,7 +63,7 @@ fun ReviewsScreen(
     }
 
     Scaffold(
-        containerColor = LoginColors.Background
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -76,7 +76,7 @@ fun ReviewsScreen(
                     fontFamily = GuardianCity,
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp,
-                    color = LoginColors.Primary,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
@@ -84,7 +84,7 @@ fun ReviewsScreen(
             if (state.isLoading) {
                 item {
                     Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = LoginColors.Primary)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 }
             } else {
@@ -125,22 +125,22 @@ fun ReviewItem(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isHighlighted) 8.dp else 2.dp),
-        border = if (isHighlighted) androidx.compose.foundation.BorderStroke(2.dp, LoginColors.SecondaryContainer) else null,
-        colors = CardDefaults.cardColors(containerColor = LoginColors.Surface)
+        border = if (isHighlighted) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondaryContainer) else null,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             if (isHighlighted) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
-                    Icon(Icons.Default.Star, contentDescription = null, tint = LoginColors.SecondaryContainer, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.reviews_badge_highlighted), color = LoginColors.Primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(stringResource(R.string.reviews_badge_highlighted), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 UserAvatarItem(comment.userPhotoUrl, size = 40.dp)
                 Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
-                    Text(comment.userName, color = LoginColors.OnSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(comment.userName, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
 
                     val subtitleText = if (comment.chapter.isNotBlank()) {
                         stringResource(R.string.reviews_subtitle_with_chapter, comment.bookTitle, comment.chapter)
@@ -150,7 +150,7 @@ fun ReviewItem(
 
                     Text(
                         text = subtitleText,
-                        color = LoginColors.OnSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         modifier = Modifier.clickable { onBookClick() }
                     )
@@ -158,7 +158,7 @@ fun ReviewItem(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Text(comment.text, color = LoginColors.OnSurface, fontSize = 16.sp, lineHeight = 24.sp)
+            Text(comment.text, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, lineHeight = 24.sp)
 
             if (comment.replies.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -168,7 +168,7 @@ fun ReviewItem(
                 ) {
                     comment.replies.forEach { reply ->
                         Surface(
-                            color = LoginColors.SurfaceContainerLow,
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
                             shape = RoundedCornerShape(topStart = 4.dp, topEnd = 12.dp, bottomStart = 12.dp, bottomEnd = 12.dp),
                             modifier = Modifier.padding(start = 16.dp)
                         ) {
@@ -176,10 +176,10 @@ fun ReviewItem(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     UserAvatarItem(reply.userPhotoUrl, size = 24.dp)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(reply.userName, color = LoginColors.OnSurface, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                    Text(reply.userName, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(reply.text, color = LoginColors.OnSurfaceVariant, fontSize = 13.sp, lineHeight = 18.sp)
+                                Text(reply.text, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, lineHeight = 18.sp)
                             }
                         }
                     }
@@ -187,7 +187,7 @@ fun ReviewItem(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = LoginColors.OutlineVariant.copy(alpha = 0.3f), thickness = 1.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), thickness = 1.dp)
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -200,7 +200,7 @@ fun ReviewItem(
                             else Toast.makeText(context, context.getString(R.string.reviews_toast_verify_email), Toast.LENGTH_LONG).show()
                         }
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = LoginColors.Primary)
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Reply, contentDescription = stringResource(R.string.reviews_button_reply), modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
@@ -217,7 +217,7 @@ fun ReplyDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(stringResource(R.string.reviews_dialog_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = LoginColors.Primary)
+            Text(stringResource(R.string.reviews_dialog_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         },
         text = {
             OutlinedTextField(
@@ -228,24 +228,24 @@ fun ReplyDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                 minLines = 3,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = LoginColors.Primary,
-                    unfocusedBorderColor = LoginColors.OutlineVariant
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                 )
             )
         },
         confirmButton = {
             Button(
                 onClick = { if(text.isNotBlank()) onConfirm(text); onDismiss() },
-                colors = ButtonDefaults.buttonColors(containerColor = LoginColors.Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(stringResource(R.string.reviews_dialog_publish), color = LoginColors.OnPrimary)
+                Text(stringResource(R.string.reviews_dialog_publish), color = MaterialTheme.colorScheme.onPrimary)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.reviews_dialog_cancel), color = LoginColors.OnSurfaceVariant) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.reviews_dialog_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         },
-        containerColor = LoginColors.Surface,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(16.dp)
     )
 }
@@ -256,7 +256,7 @@ fun UserAvatarItem(photoUrl: String, size: androidx.compose.ui.unit.Dp = 70.dp) 
     Image(
         painter = painterResource(id = resId),
         contentDescription = null,
-        modifier = Modifier.size(size).clip(CircleShape).background(LoginColors.SurfaceContainer).border(1.dp, LoginColors.OutlineVariant, CircleShape),
+        modifier = Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer).border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
         contentScale = ContentScale.Crop
     )
 }

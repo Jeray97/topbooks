@@ -143,17 +143,17 @@ fun BookDetailScreen(
 
         AlertDialog(
             onDismissRequest = { showEditSeriesDialog = false },
-            title = { Text("Editar Información", fontWeight = FontWeight.Bold, color = LoginColors.Primary) },
+            title = { Text("Editar Información", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
             text = {
                 Column {
-                    Text("Ayuda a la comunidad a mantener los datos correctos.", fontSize = 13.sp, color = LoginColors.OnSurfaceVariant)
+                    Text("Ayuda a la comunidad a mantener los datos correctos.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = isAutoconclusivo,
                             onCheckedChange = { isAutoconclusivo = it },
-                            colors = CheckboxDefaults.colors(checkedColor = LoginColors.Primary)
+                            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
                         )
                         Text("Es un libro autoconclusivo")
                     }
@@ -167,9 +167,9 @@ fun BookDetailScreen(
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = LoginColors.Primary,
-                                focusedLabelColor = LoginColors.Primary,
-                                cursorColor = LoginColors.Primary
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                cursorColor = MaterialTheme.colorScheme.primary
                             )
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -181,9 +181,9 @@ fun BookDetailScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = LoginColors.Primary,
-                                focusedLabelColor = LoginColors.Primary,
-                                cursorColor = LoginColors.Primary
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                cursorColor = MaterialTheme.colorScheme.primary
                             )
                         )
                     }
@@ -199,13 +199,13 @@ fun BookDetailScreen(
                             Toast.makeText(context, "¡Gracias por tu contribución!", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = LoginColors.Primary)
-                ) { Text("Guardar", color = LoginColors.OnPrimary) }
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) { Text("Guardar", color = MaterialTheme.colorScheme.onPrimary) }
             },
             dismissButton = {
-                TextButton(onClick = { showEditSeriesDialog = false }) { Text("Cancelar", color = LoginColors.OnSurfaceVariant) }
+                TextButton(onClick = { showEditSeriesDialog = false }) { Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant) }
             },
-            containerColor = LoginColors.Surface
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -214,21 +214,21 @@ fun BookDetailScreen(
         val book = state.book!!
         AlertDialog(
             onDismissRequest = { showSeriesInfoDialog = false },
-            title = { Text("Sobre este dato", fontWeight = FontWeight.Bold, color = LoginColors.Primary) },
+            title = { Text("Sobre este dato", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
             text = {
                 Column {
                     Text(
                         "Esta información es extraída automáticamente de internet y puede contener errores. Si detectas un fallo, toca el nombre para corregirlo.",
                         fontSize = 14.sp,
-                        color = LoginColors.OnSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     if (!book.seriesEditorName.isNullOrEmpty()) {
                         Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = LoginColors.OutlineVariant)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Text("Última edición por:", fontSize = 12.sp, color = LoginColors.OnSurfaceVariant)
+                        Text("Última edición por:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -238,15 +238,15 @@ fun BookDetailScreen(
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clip(CircleShape)
-                                    .background(LoginColors.SurfaceContainerLow),
+                                    .background(MaterialTheme.colorScheme.surfaceContainerLow),
                                 contentScale = ContentScale.Crop
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(book.seriesEditorName, fontWeight = FontWeight.Bold, color = LoginColors.Primary)
+                            Text(book.seriesEditorName, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("¿Es correcta esta edición?", fontSize = 12.sp, color = LoginColors.OnSurfaceVariant)
+                        Text("¿Es correcta esta edición?", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                             IconButton(onClick = {
@@ -255,7 +255,7 @@ fun BookDetailScreen(
                             }) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(Icons.Default.ThumbUp, contentDescription = "Bien", tint = Color(0xFF4CAF50))
-                                    Text("${book.seriesUpvotes}", fontSize = 12.sp, color = LoginColors.OnSurfaceVariant)
+                                    Text("${book.seriesUpvotes}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                             IconButton(onClick = {
@@ -264,7 +264,7 @@ fun BookDetailScreen(
                             }) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(Icons.Default.ThumbDown, contentDescription = "Mal", tint = Color(0xFFE57373))
-                                    Text("${book.seriesDownvotes}", fontSize = 12.sp, color = LoginColors.OnSurfaceVariant)
+                                    Text("${book.seriesDownvotes}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -273,21 +273,21 @@ fun BookDetailScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showSeriesInfoDialog = false }) {
-                    Text("Entendido", color = LoginColors.Primary, fontWeight = FontWeight.Bold)
+                    Text("Entendido", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
             },
-            containerColor = LoginColors.Surface
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
     // --- ESTRUCTURA VISUAL PRINCIPAL (Scaffold) ---
     Scaffold(
-        containerColor = LoginColors.Background,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(LoginColors.Background)
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(horizontal = 8.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -295,7 +295,7 @@ fun BookDetailScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = LoginColors.Primary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -305,7 +305,7 @@ fun BookDetailScreen(
                     fontFamily = GuardianCity,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = LoginColors.Primary
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         },
@@ -367,14 +367,14 @@ fun BookDetailScreen(
 
                     // Rotación animada del icono "+" principal al desplegarse
                     val rotation by animateFloatAsState(if (isFabExpanded) 45f else 0f)
-                    FloatingActionButton(onClick = { isFabExpanded = !isFabExpanded }, containerColor = LoginColors.Primary, contentColor = LoginColors.OnPrimary, shape = CircleShape) { Icon(Icons.Default.Add, null, modifier = Modifier.rotate(rotation)) }
+                    FloatingActionButton(onClick = { isFabExpanded = !isFabExpanded }, containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary, shape = CircleShape) { Icon(Icons.Default.Add, null, modifier = Modifier.rotate(rotation)) }
                 }
             }
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (state.isLoading) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center), LoginColors.Primary)
+                CircularProgressIndicator(Modifier.align(Alignment.Center), MaterialTheme.colorScheme.primary)
             } else if (state.book != null) {
                 val book = state.book!!
                 LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 100.dp), modifier = Modifier.fillMaxSize()) {
@@ -403,11 +403,11 @@ fun BookDetailScreen(
                     item { SynopsisSection(book.description) }
 
                     // 3. Título de Sección de Reseñas
-                    item { Text(stringResource(R.string.bookdetail_reviews_title), fontFamily = GuardianCity, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = LoginColors.Primary, modifier = Modifier.padding(24.dp, 16.dp)) }
+                    item { Text(stringResource(R.string.bookdetail_reviews_title), fontFamily = GuardianCity, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(24.dp, 16.dp)) }
 
                     // 4. Lista de Reseñas
                     if (state.reviews.isEmpty()) {
-                        item { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text(stringResource(R.string.bookdetail_reviews_empty), color = LoginColors.OnSurfaceVariant) } }
+                        item { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { Text(stringResource(R.string.bookdetail_reviews_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
                     } else {
                         items(state.reviews) { ReviewItem(it) }
                     }
@@ -440,8 +440,8 @@ fun BookHeaderSection(
                 R.drawable.icon_codigodebarras).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
         Spacer(modifier = Modifier.height(24.dp))
-        Text(book.title, fontSize = 24.sp, fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = LoginColors.Primary, textAlign = TextAlign.Center, lineHeight = 28.sp, modifier = Modifier.padding(horizontal = 24.dp))
-        Text(book.authors.joinToString(", "), fontSize = 16.sp, color = LoginColors.OnSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+        Text(book.title, fontSize = 24.sp, fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center, lineHeight = 28.sp, modifier = Modifier.padding(horizontal = 24.dp))
+        Text(book.authors.joinToString(", "), fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -452,13 +452,13 @@ fun BookHeaderSection(
             modifier = Modifier.padding(top = 8.dp)
         ) {
             Surface(
-                color = LoginColors.Primary.copy(alpha = 0.1f),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(9999.dp),
                 modifier = Modifier.clickable { onEditSagaClick() }
             ) {
                 Text(
                     text = seriesText,
-                    color = LoginColors.Primary,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -474,7 +474,7 @@ fun BookHeaderSection(
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = "Información de la Saga",
-                    tint = LoginColors.Outline
+                    tint = MaterialTheme.colorScheme.outline
                 )
             }
         }
@@ -493,11 +493,11 @@ fun BookHeaderSection(
 @Composable
 fun StatusButton(label: String, isActive: Boolean, activeIcon: ImageVector, inactiveIcon: ImageVector, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onClick() }.padding(8.dp)) {
-        Box(modifier = Modifier.size(50.dp).background(color = if (isActive) LoginColors.Primary else LoginColors.Surface, shape = CircleShape).border(width = if (isActive) 0.dp else 1.dp, color = LoginColors.Primary, shape = CircleShape), contentAlignment = Alignment.Center) {
-            Icon(imageVector = if (isActive) activeIcon else inactiveIcon, contentDescription = label, tint = if (isActive) LoginColors.OnPrimary else LoginColors.Primary, modifier = Modifier.size(24.dp))
+        Box(modifier = Modifier.size(50.dp).background(color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface, shape = CircleShape).border(width = if (isActive) 0.dp else 1.dp, color = MaterialTheme.colorScheme.primary, shape = CircleShape), contentAlignment = Alignment.Center) {
+            Icon(imageVector = if (isActive) activeIcon else inactiveIcon, contentDescription = label, tint = if (isActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, fontSize = 11.sp, fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal, color = if (isActive) LoginColors.Primary else LoginColors.OnSurfaceVariant)
+        Text(text = label, fontSize = 11.sp, fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal, color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -505,35 +505,35 @@ fun StatusButton(label: String, isActive: Boolean, activeIcon: ImageVector, inac
 @Composable
 fun SmallFabItem(icon: ImageVector, label: String, onClick: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
-        Surface(color = LoginColors.Surface, shape = RoundedCornerShape(8.dp), shadowElevation = 2.dp, modifier = Modifier.padding(end = 8.dp)) {
-            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LoginColors.Primary, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+        Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(8.dp), shadowElevation = 2.dp, modifier = Modifier.padding(end = 8.dp)) {
+            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
         }
-        SmallFloatingActionButton(onClick = onClick, containerColor = LoginColors.Surface, contentColor = LoginColors.Primary) { Icon(icon, contentDescription = label) }
+        SmallFloatingActionButton(onClick = onClick, containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.primary) { Icon(icon, contentDescription = label) }
     }
 }
 
 @Composable
 fun SynopsisSection(description: String) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp)) {
-        Text(stringResource(R.string.bookdetail_synopsis_title), fontSize = 20.sp, fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = LoginColors.Primary)
+        Text(stringResource(R.string.bookdetail_synopsis_title), fontSize = 20.sp, fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(description.ifBlank { stringResource(R.string.bookdetail_synopsis_empty) }, fontSize = 14.sp, lineHeight = 22.sp, color = LoginColors.OnSurfaceVariant, textAlign = TextAlign.Justify)
+        Text(description.ifBlank { stringResource(R.string.bookdetail_synopsis_empty) }, fontSize = 14.sp, lineHeight = 22.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Justify)
     }
 }
 
 /** Muestra una reseña escrita por la comunidad, incluyendo el avatar del usuario y las estrellas. */
 @Composable
 fun ReviewItem(review: Review) {
-    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), colors = CardDefaults.cardColors(containerColor = LoginColors.Surface), elevation = CardDefaults.cardElevation(2.dp), shape = RoundedCornerShape(12.dp)) {
+    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp), shape = RoundedCornerShape(12.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                val avatarModifier = Modifier.size(40.dp).clip(CircleShape).border(1.dp, LoginColors.OutlineVariant, CircleShape)
+                val avatarModifier = Modifier.size(40.dp).clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                 if (review.userPhotoUrl.isNotEmpty() && review.userPhotoUrl.startsWith("http")) { AsyncImage(model = review.userPhotoUrl, contentDescription = null, modifier = avatarModifier, contentScale = ContentScale.Crop) }
                 else { Image(painter = painterResource(AvatarHelper.getDrawableId(review.userPhotoUrl)), contentDescription = null, modifier = avatarModifier, contentScale = ContentScale.Crop) }
-                Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text(review.userName, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = LoginColors.OnSurface) }
-                Row { repeat(review.rating) { Icon(Icons.Default.Star, null, tint = LoginColors.SecondaryContainer, modifier = Modifier.size(16.dp)) } }
+                Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text(review.userName, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface) }
+                Row { repeat(review.rating) { Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.size(16.dp)) } }
             }
-            if (review.text.isNotEmpty()) { Spacer(Modifier.height(8.dp)); Text(review.text, fontSize = 14.sp, color = LoginColors.OnSurfaceVariant, lineHeight = 20.sp) }
+            if (review.text.isNotEmpty()) { Spacer(Modifier.height(8.dp)); Text(review.text, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 20.sp) }
         }
     }
 }
@@ -542,57 +542,57 @@ fun ReviewItem(review: Review) {
 @Composable
 fun PremiumReviewDialog(onDismiss: () -> Unit, onSubmit: (Int, String) -> Unit) {
     var rating by remember { mutableIntStateOf(0) }; var reviewText by remember { mutableStateOf("") }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.bookdetail_review_dialog_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = LoginColors.Primary) },
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.bookdetail_review_dialog_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                     for (i in 1..5) {
-                        val isSel = i <= rating; val color by animateColorAsState(if (isSel) LoginColors.SecondaryContainer else LoginColors.OutlineVariant.copy(alpha = 0.5f))
+                        val isSel = i <= rating; val color by animateColorAsState(if (isSel) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         IconButton(onClick = { rating = i }) { Icon(if (isSel) Icons.Default.Star else Icons.Outlined.Star, null, tint = color, modifier = Modifier.size(38.dp)) }
                     }
                 }
-                OutlinedTextField(value = reviewText, onValueChange = { reviewText = it }, label = { Text(stringResource(R.string.bookdetail_review_label)) }, modifier = Modifier.fillMaxWidth(), minLines = 4, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = LoginColors.Primary, focusedLabelColor = LoginColors.Primary))
+                OutlinedTextField(value = reviewText, onValueChange = { reviewText = it }, label = { Text(stringResource(R.string.bookdetail_review_label)) }, modifier = Modifier.fillMaxWidth(), minLines = 4, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, focusedLabelColor = MaterialTheme.colorScheme.primary))
             }
         },
-        confirmButton = { Button(onClick = { onSubmit(rating, reviewText) }, enabled = rating > 0 && reviewText.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = LoginColors.Primary), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.bookdetail_action_publish), color = LoginColors.OnPrimary) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.bookdetail_action_cancel), color = LoginColors.OnSurfaceVariant) } }, containerColor = LoginColors.Surface, shape = RoundedCornerShape(16.dp))
+        confirmButton = { Button(onClick = { onSubmit(rating, reviewText) }, enabled = rating > 0 && reviewText.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.bookdetail_action_publish), color = MaterialTheme.colorScheme.onPrimary) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.bookdetail_action_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant) } }, containerColor = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp))
 }
 
 /** Cuadro de diálogo para crear un Marcador (Cita textual + Capítulo y Página). */
 @Composable
 fun PremiumAddBookmarkDialog(onDismiss: () -> Unit, onConfirm: (String, String, String, Boolean) -> Unit) {
     var p by remember { mutableStateOf("") }; var q by remember { mutableStateOf("") }; var c by remember { mutableStateOf("") }; var pub by remember { mutableStateOf(true) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.bookdetail_bookmark_dialog_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = LoginColors.Primary) },
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.bookdetail_bookmark_dialog_title), fontFamily = GuardianCity, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(value = p, onValueChange = { if(it.all { char -> char.isDigit() }) p = it }, label = { Text(stringResource(R.string.bookdetail_bookmark_page)) }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = LoginColors.Primary, focusedLabelColor = LoginColors.Primary))
-                    OutlinedTextField(value = c, onValueChange = { c = it }, label = { Text(stringResource(R.string.bookdetail_bookmark_chapter)) }, modifier = Modifier.weight(2f), singleLine = true, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = LoginColors.Primary, focusedLabelColor = LoginColors.Primary))
+                    OutlinedTextField(value = p, onValueChange = { if(it.all { char -> char.isDigit() }) p = it }, label = { Text(stringResource(R.string.bookdetail_bookmark_page)) }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, focusedLabelColor = MaterialTheme.colorScheme.primary))
+                    OutlinedTextField(value = c, onValueChange = { c = it }, label = { Text(stringResource(R.string.bookdetail_bookmark_chapter)) }, modifier = Modifier.weight(2f), singleLine = true, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, focusedLabelColor = MaterialTheme.colorScheme.primary))
                 }
-                OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text(stringResource(R.string.bookdetail_bookmark_quote)) }, modifier = Modifier.fillMaxWidth(), minLines = 3, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = LoginColors.Primary, focusedLabelColor = LoginColors.Primary))
+                OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text(stringResource(R.string.bookdetail_bookmark_quote)) }, modifier = Modifier.fillMaxWidth(), minLines = 3, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, focusedLabelColor = MaterialTheme.colorScheme.primary))
                 PrivacyToggleButton(isPublic = pub, onToggle = { pub = it })
             }
         },
-        confirmButton = { Button(onClick = { onConfirm(p, q, c, pub) }, enabled = p.isNotEmpty() && q.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = LoginColors.Primary), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.bookdetail_action_save), color = LoginColors.OnPrimary) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.bookdetail_action_cancel), color = LoginColors.OnSurfaceVariant) } }, containerColor = LoginColors.Surface, shape = RoundedCornerShape(16.dp))
+        confirmButton = { Button(onClick = { onConfirm(p, q, c, pub) }, enabled = p.isNotEmpty() && q.isNotEmpty(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.bookdetail_action_save), color = MaterialTheme.colorScheme.onPrimary) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.bookdetail_action_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant) } }, containerColor = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp))
 }
 
 @Composable
 fun PremiumDeleteDialog(listName: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.bookdetail_delete_dialog_title), fontFamily = GuardianCity, color = Color(0xFFBA1A1A)) },
         text = { Text(stringResource(R.string.bookdetail_delete_dialog_body, listName)) },
-        confirmButton = { Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBA1A1A)), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.bookdetail_action_delete), color = LoginColors.OnPrimary) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.bookdetail_action_keep), color = LoginColors.OnSurfaceVariant) } }, containerColor = LoginColors.Surface, shape = RoundedCornerShape(16.dp))
+        confirmButton = { Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBA1A1A)), shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.bookdetail_action_delete), color = MaterialTheme.colorScheme.onPrimary) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.bookdetail_action_keep), color = MaterialTheme.colorScheme.onSurfaceVariant) } }, containerColor = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp))
 }
 
 /** Componente animado que funciona como interruptor (Público / Privado) para un diario o marcador. */
 @Composable
 fun PrivacyToggleButton(isPublic: Boolean, onToggle: (Boolean) -> Unit) {
-    val pubCol by animateColorAsState(if (isPublic) LoginColors.Primary else Color.Transparent)
-    val privCol by animateColorAsState(if (!isPublic) LoginColors.Primary else Color.Transparent)
-    val pubText by animateColorAsState(if (isPublic) LoginColors.OnPrimary else LoginColors.OnSurfaceVariant)
-    val privText by animateColorAsState(if (!isPublic) LoginColors.OnPrimary else LoginColors.OnSurfaceVariant)
-    Surface(modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp), color = LoginColors.SurfaceContainerLow, border = androidx.compose.foundation.BorderStroke(1.dp, LoginColors.Primary.copy(0.3f))) {
+    val pubCol by animateColorAsState(if (isPublic) MaterialTheme.colorScheme.primary else Color.Transparent)
+    val privCol by animateColorAsState(if (!isPublic) MaterialTheme.colorScheme.primary else Color.Transparent)
+    val pubText by animateColorAsState(if (isPublic) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+    val privText by animateColorAsState(if (!isPublic) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+    Surface(modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(0.3f))) {
         Row {
             Box(Modifier.weight(1f).fillMaxHeight().clip(CircleShape).background(pubCol).clickable { onToggle(true) }, Alignment.Center) {
                 Row { Icon(Icons.Default.Call, null, tint = pubText, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.bookdetail_privacy_public), color = pubText, fontWeight = FontWeight.Bold) }
@@ -617,7 +617,7 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Chat,
                     contentDescription = null,
-                    tint = LoginColors.Primary,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -625,7 +625,7 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
                     text = stringResource(R.string.bookdetail_comment_dialog_title),
                     fontFamily = GuardianCity,
                     fontWeight = FontWeight.Bold,
-                    color = LoginColors.Primary,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 22.sp
                 )
             }
@@ -637,7 +637,7 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
             ) {
                 Text(
                     text = stringResource(R.string.bookdetail_comment_dialog_desc),
-                    color = LoginColors.OnSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp,
                     lineHeight = 18.sp
                 )
@@ -647,15 +647,15 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
                     onValueChange = { chapterText = it },
                     label = { Text(stringResource(R.string.bookdetail_comment_chapter_optional)) },
                     leadingIcon = {
-                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = LoginColors.Primary)
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = LoginColors.Primary,
-                        focusedLabelColor = LoginColors.Primary,
-                        cursorColor = LoginColors.Primary
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
 
@@ -668,9 +668,9 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
                     maxLines = 6,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = LoginColors.Primary,
-                        focusedLabelColor = LoginColors.Primary,
-                        cursorColor = LoginColors.Primary
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
             }
@@ -679,17 +679,17 @@ fun PremiumCommentDialog(onDismiss: () -> Unit, onSubmit: (String, String) -> Un
             Button(
                 onClick = { onSubmit(commentText, chapterText) },
                 enabled = commentText.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = LoginColors.Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(12.dp),
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
-            ) { Text(stringResource(R.string.bookdetail_action_publish), fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LoginColors.OnPrimary) }
+            ) { Text(stringResource(R.string.bookdetail_action_publish), fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onPrimary) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.bookdetail_action_cancel), color = LoginColors.OnSurfaceVariant, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.bookdetail_action_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             }
         },
-        containerColor = LoginColors.Surface,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(16.dp),
         tonalElevation = 10.dp
     )

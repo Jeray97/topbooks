@@ -53,7 +53,7 @@ fun CategoriesScreen(
     }
 
     Scaffold(
-        containerColor = LoginColors.Background
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -71,7 +71,7 @@ fun CategoriesScreen(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",
-                        tint = LoginColors.Primary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -81,7 +81,7 @@ fun CategoriesScreen(
                     fontFamily = GuardianCity,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = LoginColors.Primary
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -92,7 +92,7 @@ fun CategoriesScreen(
                 fontFamily = GuardianCity,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = LoginColors.Primary
+                color = MaterialTheme.colorScheme.primary
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -100,7 +100,7 @@ fun CategoriesScreen(
             Text(
                 text = "Explora todos los géneros disponibles",
                 fontSize = 16.sp,
-                color = LoginColors.OnSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
@@ -136,8 +136,8 @@ fun CategoryItem(
             .fillMaxWidth()
             .shadow(2.dp, RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp))
-            .background(LoginColors.SurfaceContainerLow)
-            .border(1.dp, LoginColors.OutlineVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
             .clickable { onClick() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -162,7 +162,7 @@ fun CategoryItem(
             text = category.name,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            color = LoginColors.OnSurface,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.topbooks.ui.theme.*
 
@@ -27,7 +28,7 @@ fun CategoryDetailContentBackgroundShape(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ColorBackgorundComponente)
+            .background(ColorBackgorundComponente())
     ) {
         // Lienzo para dibujar la forma curva por detrás del contenido
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -35,7 +36,7 @@ fun CategoryDetailContentBackgroundShape(
             val canvasHeight = size.height
 
             drawOval(
-                color = ColorCategoryDetailContentBackgroundShape,
+                color = Color(0xFFD9AD9A),
                 // Configuramos el tamaño del óvalo para que sea el doble de ancho que la pantalla
                 size = Size(
                     width = canvasWidth * 2f,

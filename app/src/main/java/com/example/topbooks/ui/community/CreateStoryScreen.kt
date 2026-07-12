@@ -33,6 +33,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -88,7 +89,7 @@ fun CreateStoryScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         Column(
@@ -104,7 +105,7 @@ fun CreateStoryScreen(
                 fontFamily = GuardianCity,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
-                color = ColorArcDarkBrown
+                color = ColorArcDarkBrown()
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -113,7 +114,7 @@ fun CreateStoryScreen(
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
-                    color = ColorTextPrimary
+                    color = ColorTextPrimary()
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -152,14 +153,14 @@ fun CreateStoryScreen(
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
-                    color = ColorTextPrimary
+                    color = ColorTextPrimary()
                 )
                 Button(
                     onClick = { showBookSearch = true },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (selectedBook != null) ColorArcMediumBrown else Color.White,
-                        contentColor = if (selectedBook != null) Color.White else ColorArcMediumBrown
+                        containerColor = if (selectedBook != null) ColorArcMediumBrown() else Color.White,
+                        contentColor = if (selectedBook != null) Color.White else ColorArcMediumBrown()
                     ),
                     shape = RoundedCornerShape(12.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
@@ -179,7 +180,7 @@ fun CreateStoryScreen(
                         fontFamily = CenturyGotic,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
-                        color = ColorTextPrimary
+                        color = ColorTextPrimary()
                     )
                     OutlinedTextField(
                         value = storyText,
@@ -198,8 +199,8 @@ fun CreateStoryScreen(
                         maxLines = 5,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = ColorArcMediumBrown,
-                            unfocusedBorderColor = ColorArcMediumBrown.copy(alpha = 0.3f)
+                            focusedBorderColor = ColorArcMediumBrown(),
+                            unfocusedBorderColor = ColorArcMediumBrown().copy(alpha = 0.3f)
                         )
                     )
                 }
@@ -211,7 +212,7 @@ fun CreateStoryScreen(
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
-                    color = ColorTextPrimary
+                    color = ColorTextPrimary()
                 )
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -245,7 +246,7 @@ fun CreateStoryScreen(
                     .height(56.dp),
                 enabled = selectedBook != null && !state.isCreating,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ColorArcDarkBrown,
+                    containerColor = ColorArcDarkBrown(),
                     contentColor = Color.White,
                     disabledContainerColor = Color.LightGray
                 ),
@@ -293,10 +294,10 @@ private fun StoryTypeCard(
         modifier = modifier
             .height(80.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) ColorArcMediumBrown else Color.White)
+            .background(if (isSelected) ColorArcMediumBrown() else Color.White)
             .border(
                 width = 1.dp,
-                color = if (isSelected) ColorArcMediumBrown else ColorArcMediumBrown.copy(alpha = 0.3f),
+                color = if (isSelected) ColorArcMediumBrown() else ColorArcMediumBrown().copy(alpha = 0.3f),
                 shape = RoundedCornerShape(12.dp)
             )
             .clickable(onClick = onClick)
@@ -310,7 +311,7 @@ private fun StoryTypeCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) Color.White else ColorArcMediumBrown,
+                tint = if (isSelected) Color.White else ColorArcMediumBrown(),
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -318,7 +319,7 @@ private fun StoryTypeCard(
                 text = label,
                 fontFamily = CenturyGotic,
                 fontSize = 11.sp,
-                color = if (isSelected) Color.White else ColorTextPrimary
+                color = if (isSelected) Color.White else ColorTextPrimary()
             )
         }
     }
@@ -337,7 +338,7 @@ private fun ColorPickerItem(
             .background(parseColor(color))
             .border(
                 width = if (isSelected) 3.dp else 1.dp,
-                color = if (isSelected) ColorArcDarkBrown else Color.LightGray,
+                color = if (isSelected) ColorArcDarkBrown() else Color.LightGray,
                 shape = CircleShape
             )
             .clickable(onClick = onClick)
@@ -378,7 +379,7 @@ private fun SearchBookDialog(
                 text = "Buscar libro",
                 fontFamily = GuardianCity,
                 fontWeight = FontWeight.Bold,
-                color = ColorArcDarkBrown
+                color = ColorArcDarkBrown()
             )
         },
         text = {
@@ -393,7 +394,7 @@ private fun SearchBookDialog(
                     placeholder = { Text("Título o autor...", fontFamily = CenturyGotic) },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorArcMediumBrown
+                        focusedBorderColor = ColorArcMediumBrown()
                     )
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -402,7 +403,7 @@ private fun SearchBookDialog(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = ColorArcMediumBrown)
+                        CircularProgressIndicator(color = ColorArcMediumBrown())
                     }
                 } else {
                     searchResults.take(5).forEach { book ->
@@ -419,7 +420,7 @@ private fun SearchBookDialog(
                                     fontFamily = CenturyGotic,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 14.sp,
-                                    color = ColorTextPrimary
+                                    color = ColorTextPrimary()
                                 )
                                 Text(
                                     text = book.authors.joinToString(),
@@ -439,7 +440,7 @@ private fun SearchBookDialog(
                 Text("Cancelar", fontFamily = CenturyGotic)
             }
         },
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(24.dp)
     )
 }

@@ -63,7 +63,7 @@ fun CategoryDetailContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(LoginColors.Background)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Box(
             modifier = Modifier
@@ -72,7 +72,7 @@ fun CategoryDetailContent(
                 .background(
                     brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                         colors = listOf(
-                            LoginColors.PrimaryFixedDim.copy(alpha = 0.12f),
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f),
                             Color.Transparent
                         ),
                         startY = 0f,
@@ -101,7 +101,7 @@ fun CategoryDetailContent(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = LoginColors.Primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -111,7 +111,7 @@ fun CategoryDetailContent(
                         fontFamily = GuardianCity,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = LoginColors.Primary
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -123,7 +123,7 @@ fun CategoryDetailContent(
 
                 Text(
                     text = categoryName,
-                    color = LoginColors.Primary,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 32.sp,
                     fontFamily = GuardianCity,
                     fontWeight = FontWeight.Bold,
@@ -134,7 +134,7 @@ fun CategoryDetailContent(
 
                 Text(
                     text = "Descubre los mejores libros de esta categoría",
-                    color = LoginColors.OnSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 16.sp,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -146,7 +146,7 @@ fun CategoryDetailContent(
                     contentAlignment = Alignment.Center
                 ) {
                     when (state) {
-                        is Resource.Loading -> CircularProgressIndicator(color = LoginColors.Primary)
+                        is Resource.Loading -> CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
 
                         is Resource.Success -> {
                             val books = state.data
@@ -154,7 +154,7 @@ fun CategoryDetailContent(
                             if (books.isEmpty()) {
                                 Text(
                                     "No hay libros disponibles.",
-                                    color = LoginColors.OnSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 16.sp
                                 )
                             } else {
@@ -174,7 +174,7 @@ fun CategoryDetailContent(
 
                         is Resource.Error -> Text(
                             text = "Error: ${state.exception.message}",
-                            color = LoginColors.OnSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 16.sp
                         )
 

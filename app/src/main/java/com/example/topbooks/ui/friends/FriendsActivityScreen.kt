@@ -55,7 +55,7 @@ fun FriendsActivityScreen(
     val state by viewModel.uiState.collectAsState()
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         Column(
@@ -69,7 +69,7 @@ fun FriendsActivityScreen(
                 fontFamily = CenturyGotic,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = ColorTituloTopBooks,
+                color = ColorTituloTopBooks(),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
             )
 
@@ -78,7 +78,7 @@ fun FriendsActivityScreen(
                 is Resource.Loading -> {
                     // Spinner de carga centrado
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = ColorArcMediumBrown)
+                        CircularProgressIndicator(color = ColorArcMediumBrown())
                     }
                 }
                 is Resource.Success -> {
@@ -115,7 +115,7 @@ fun FriendsActivityScreen(
 @Composable
 fun FriendActivityCard(item: FriendActivityItem, onBookClick: (String) -> Unit) {
     // Cambiamos sutilmente el color del "globo" si la reseña es muy positiva (4 o 5 estrellas)
-    val bubbleColor = if (item.rating >= 4) ColorHeaderBeige.copy(alpha = 0.9f) else ColorArcMediumBrown.copy(alpha = 0.2f)
+    val bubbleColor = if (item.rating >= 4) ColorHeaderBeige().copy(alpha = 0.9f) else ColorArcMediumBrown().copy(alpha = 0.2f)
 
     Row(
         modifier = Modifier
@@ -161,7 +161,7 @@ fun FriendActivityCard(item: FriendActivityItem, onBookClick: (String) -> Unit) 
                 Text(
                     text = stringResource(R.string.friends_activity_commented, item.friendName),
                     fontSize = 13.sp,
-                    color = ColorArcDarkBrown,
+                    color = ColorArcDarkBrown(),
                     fontWeight = FontWeight.Bold
                 )
 
@@ -211,7 +211,7 @@ fun FriendActivityCard(item: FriendActivityItem, onBookClick: (String) -> Unit) 
                             text = item.friendName.split(" ").first(), // Solo mostramos el primer nombre para no saturar
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ColorArcDarkBrown
+                            color = ColorArcDarkBrown()
                         )
                     }
 
@@ -247,7 +247,7 @@ fun EmptyActivityMessage(modifier: Modifier = Modifier) {
         Icon(
             painter = painterResource(R.drawable.social),
             contentDescription = null,
-            tint = ColorArcMediumBrown.copy(alpha = 0.4f),
+            tint = ColorArcMediumBrown().copy(alpha = 0.4f),
             modifier = Modifier.size(80.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,9 +58,11 @@ import com.example.topbooks.ui.theme.ColorTextPrimary
 import com.example.topbooks.ui.theme.GuardianCity
 
 private val SUB_TEXT = Color(0xFF8D5B4C)
-private val CARD_BG = Color.White
+@Composable
+private fun CARD_BG() = MaterialTheme.colorScheme.surface
 private val CARD_BORDER = Color(0xFFECDDD2)
-private val TAB_INACTIVE_BG = Color.White.copy(alpha = 0.6f)
+@Composable
+private fun TAB_INACTIVE_BG() = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
 private val TAB_ACTIVE_BG = Color(0xFF8D5B4C)
 
 @Composable
@@ -71,11 +74,11 @@ fun ClubListScreen(
     val state by viewModel.uiState.collectAsState()
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onCreateClubClick,
-                containerColor = ColorArcDarkBrown,
+                containerColor = ColorArcDarkBrown(),
                 contentColor = Color.White,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("Crear club", fontFamily = CenturyGotic) }
@@ -95,7 +98,7 @@ fun ClubListScreen(
                         fontFamily = GuardianCity,
                         fontWeight = FontWeight.Bold,
                         fontSize = 24.sp,
-                        color = ColorArcDarkBrown
+                        color = ColorArcDarkBrown()
                     )
                     Text(
                         text = "Lee, comparte y discute con otros lectores",
@@ -141,7 +144,7 @@ fun ClubListScreen(
                             .padding(40.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = ColorArcMediumBrown)
+                        CircularProgressIndicator(color = ColorArcMediumBrown())
                     }
                 }
             } else {
@@ -220,11 +223,11 @@ private fun ClubTabPill(
     onClick: () -> Unit
 ) {
     val bgColor by animateColorAsState(
-        if (isActive) TAB_ACTIVE_BG else TAB_INACTIVE_BG,
+        if (isActive) TAB_ACTIVE_BG else TAB_INACTIVE_BG(),
         label = "tabBg"
     )
     val textColor by animateColorAsState(
-        if (isActive) ColorBackGroundGeneral else SUB_TEXT,
+        if (isActive) ColorBackGroundGeneral() else SUB_TEXT,
         label = "tabText"
     )
 
@@ -263,7 +266,7 @@ private fun ClubCard(club: Club, onClick: () -> Unit, modifier: Modifier = Modif
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(CARD_BG)
+            .background(CARD_BG())
             .border(1.dp, CARD_BORDER, RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
             .padding(14.dp)
@@ -283,13 +286,13 @@ private fun ClubCard(club: Club, onClick: () -> Unit, modifier: Modifier = Modif
                     modifier = Modifier
                         .size(width = 48.dp, height = 72.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(ColorArcMediumBrown.copy(alpha = 0.2f)),
+                        .background(ColorArcMediumBrown().copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Book,
                         contentDescription = null,
-                        tint = ColorArcMediumBrown,
+                        tint = ColorArcMediumBrown(),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -303,7 +306,7 @@ private fun ClubCard(club: Club, onClick: () -> Unit, modifier: Modifier = Modif
                     fontFamily = GuardianCity,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = ColorTextPrimary,
+                    color = ColorTextPrimary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -359,7 +362,7 @@ private fun ClubCard(club: Club, onClick: () -> Unit, modifier: Modifier = Modif
                 text = club.description,
                 fontFamily = CenturyGotic,
                 fontSize = 12.sp,
-                color = ColorTextPrimary.copy(alpha = 0.7f),
+                color = ColorTextPrimary().copy(alpha = 0.7f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 lineHeight = 18.sp
@@ -375,7 +378,7 @@ private fun ClubCard(club: Club, onClick: () -> Unit, modifier: Modifier = Modif
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFF6E6DD))
+                            .background(ColorBackGroundGeneral())
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(

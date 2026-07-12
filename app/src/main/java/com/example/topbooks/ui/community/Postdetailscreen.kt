@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -87,9 +88,10 @@ import com.example.topbooks.ui.theme.GuardianCity
  * ============================================================================= */
 
 private val SUB_TEXT = Color(0xFF8D5B4C)
-private val LIKE_COLOR = ColorJournalRomance
+private val LIKE_COLOR = Color(0xFFFF4081)
 private val SAVE_COLOR = Color(0xFFB9836B)
-private val CARD_BG = Color.White
+@Composable
+private fun CARD_BG() = MaterialTheme.colorScheme.surface
 private val CARD_BORDER = Color(0xFFECDDD2)
 private val ACCENT_BEIGE = Color(0xFFF6E6DD)
 private val FRIEND_RING_GRADIENT = listOf(Color(0xFFB9836B), Color(0xFF8D5B4C))
@@ -115,7 +117,7 @@ fun PostDetailScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = { TopBar(onBackClick = onBackClick) },
         bottomBar = {
             if (state.post != null) {
@@ -162,7 +164,7 @@ fun PostDetailScreen(
 @Composable
 private fun LoadingState(modifier: Modifier) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = ColorArcMediumBrown)
+        CircularProgressIndicator(color = ColorArcMediumBrown())
     }
 }
 
@@ -283,7 +285,7 @@ private fun MainPostCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(CARD_BG)
+            .background(CARD_BG())
             .border(1.dp, CARD_BORDER, RoundedCornerShape(18.dp))
             .padding(14.dp)
     ) {
@@ -305,7 +307,7 @@ private fun MainPostCard(
                         text = post.body,
                         fontFamily = CenturyGotic,
                         fontSize = 14.sp,
-                        color = ColorTextPrimary,
+                        color = ColorTextPrimary(),
                         lineHeight = 22.sp
                     )
                 }
@@ -373,7 +375,7 @@ private fun PostDetailHeader(post: Post, onAuthorClick: () -> Unit) {
                     fontFamily = CenturyGotic,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = ColorTextPrimary,
+                    color = ColorTextPrimary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
@@ -491,7 +493,7 @@ private fun BookStripDetail(book: PostBook, rating: Int?, onClick: () -> Unit) {
                 fontFamily = CenturyGotic,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = ColorTextPrimary,
+                color = ColorTextPrimary(),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -511,7 +513,7 @@ private fun BookStripDetail(book: PostBook, rating: Int?, onClick: () -> Unit) {
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
-                            tint = ColorJournalStar,
+                            tint = ColorJournalStar(),
                             modifier = Modifier.size(14.dp)
                         )
                     }
@@ -539,7 +541,7 @@ private fun QuoteBlock(post: Post) {
             fontFamily = GuardianCity,
             fontStyle = FontStyle.Italic,
             fontSize = 16.sp,
-            color = ColorTextPrimary,
+            color = ColorTextPrimary(),
             lineHeight = 24.sp
         )
         post.quoteSource?.let {
@@ -594,7 +596,7 @@ private fun ReactionsRow(
 private fun ReactionPill(reaction: Reaction, onClick: () -> Unit) {
     val bg = if (reaction.reactedByMe) Color(0xFFFFE5EE) else ACCENT_BEIGE
     val border = if (reaction.reactedByMe) Color(0xFFFFC2D6) else CARD_BORDER
-    val fg = if (reaction.reactedByMe) Color(0xFFC73670) else ColorTextPrimary
+    val fg = if (reaction.reactedByMe) Color(0xFFC73670) else ColorTextPrimary()
 
     Row(
         modifier = Modifier
@@ -667,7 +669,7 @@ private fun EmojiPicker(emojis: List<String>, onPick: (String) -> Unit) {
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White)
+                                    .background(MaterialTheme.colorScheme.surface)
                                     .clickable { onPick(emoji) },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -806,7 +808,7 @@ private fun ReplyCard(
     onLikeClick: () -> Unit,
     onAuthorClick: () -> Unit
 ) {
-    val bg = if (reply.isFromOriginalAuthor) AUTHOR_REPLY_BG else CARD_BG
+    val bg = if (reply.isFromOriginalAuthor) AUTHOR_REPLY_BG else CARD_BG()
     val border = if (reply.isFromOriginalAuthor) AUTHOR_REPLY_BORDER else CARD_BORDER
 
     // Sangría a la izquierda + línea conectora horizontal sutil al inicio
@@ -834,7 +836,7 @@ private fun ReplyCard(
                     fontFamily = CenturyGotic,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
-                    color = ColorTextPrimary,
+                    color = ColorTextPrimary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
@@ -856,7 +858,7 @@ private fun ReplyCard(
                 text = reply.body,
                 fontFamily = CenturyGotic,
                 fontSize = 12.sp,
-                color = ColorTextPrimary,
+                color = ColorTextPrimary(),
                 lineHeight = 19.sp
             )
             Spacer(Modifier.height(8.dp))
@@ -941,7 +943,7 @@ private fun ReplyComposeBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .navigationBarsPadding()
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -952,7 +954,7 @@ private fun ReplyComposeBar(
             modifier = Modifier
                 .size(30.dp)
                 .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(COMMUNITY_RING, ColorArcDarkBrown)))
+                .background(Brush.linearGradient(listOf(COMMUNITY_RING, ColorArcDarkBrown())))
         )
 
         // Input expandible
@@ -981,9 +983,9 @@ private fun ReplyComposeBar(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
-                cursorColor = ColorArcDarkBrown,
-                focusedTextColor = ColorTextPrimary,
-                unfocusedTextColor = ColorTextPrimary
+                cursorColor = ColorArcDarkBrown(),
+                focusedTextColor = ColorTextPrimary(),
+                unfocusedTextColor = ColorTextPrimary()
             )
         )
 
@@ -992,7 +994,7 @@ private fun ReplyComposeBar(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(if (text.isNotBlank() && !isSending) ColorArcDarkBrown else COMMUNITY_RING)
+                .background(if (text.isNotBlank() && !isSending) ColorArcDarkBrown() else COMMUNITY_RING)
                 .clickable(enabled = text.isNotBlank() && !isSending, onClick = onSendClick),
             contentAlignment = Alignment.Center
         ) {

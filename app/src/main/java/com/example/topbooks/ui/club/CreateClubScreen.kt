@@ -126,7 +126,7 @@ fun CreateClubScreen(
     var selectedGenres by remember { mutableStateOf(setOf<String>()) }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = { TopBar(onBackClick = onBackClick) }
     ) { padding ->
         Column(
@@ -142,7 +142,7 @@ fun CreateClubScreen(
                 fontFamily = GuardianCity,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
-                color = ColorArcDarkBrown
+                color = ColorArcDarkBrown()
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -151,7 +151,7 @@ fun CreateClubScreen(
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
-                    color = ColorTextPrimary
+                    color = ColorTextPrimary()
                 )
                 OutlinedTextField(
                     value = name,
@@ -160,8 +160,8 @@ fun CreateClubScreen(
                     placeholder = { Text("Ej: Club de fantasía épica", fontFamily = CenturyGotic) },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorArcMediumBrown,
-                        unfocusedBorderColor = ColorArcMediumBrown.copy(alpha = 0.3f)
+                        focusedBorderColor = ColorArcMediumBrown(),
+                        unfocusedBorderColor = ColorArcMediumBrown().copy(alpha = 0.3f)
                     )
                 )
             }
@@ -172,7 +172,7 @@ fun CreateClubScreen(
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
-                    color = ColorTextPrimary
+                    color = ColorTextPrimary()
                 )
                 OutlinedTextField(
                     value = description,
@@ -183,8 +183,8 @@ fun CreateClubScreen(
                     maxLines = 5,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ColorArcMediumBrown,
-                        unfocusedBorderColor = ColorArcMediumBrown.copy(alpha = 0.3f)
+                        focusedBorderColor = ColorArcMediumBrown(),
+                        unfocusedBorderColor = ColorArcMediumBrown().copy(alpha = 0.3f)
                     )
                 )
             }
@@ -195,7 +195,7 @@ fun CreateClubScreen(
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
-                    color = ColorTextPrimary
+                    color = ColorTextPrimary()
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -235,19 +235,19 @@ fun CreateClubScreen(
                         fontFamily = CenturyGotic,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
-                        color = ColorTextPrimary
+                        color = ColorTextPrimary()
                     )
                     Text(
                         text = if (isPublic) "Cualquiera puede unirse" else "Solo con invitación",
                         fontFamily = CenturyGotic,
                         fontSize = 11.sp,
-                        color = Color(0xFF8D5B4C)
+                        color = ColorArcDarkBrown()
                     )
                 }
                 Icon(
                     imageVector = if (isPublic) Icons.Default.Public else Icons.Default.Lock,
                     contentDescription = null,
-                    tint = ColorArcMediumBrown,
+                    tint = ColorArcMediumBrown(),
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -256,7 +256,7 @@ fun CreateClubScreen(
                     onCheckedChange = { isPublic = it },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
-                        checkedTrackColor = ColorArcMediumBrown
+                        checkedTrackColor = ColorArcMediumBrown()
                     )
                 )
             }
@@ -267,7 +267,7 @@ fun CreateClubScreen(
                     fontFamily = CenturyGotic,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
-                    color = ColorTextPrimary
+                    color = ColorTextPrimary()
                 )
                 val allGenres = listOf(
                     "Romance", "Fantasía", "Thriller", "Ciencia ficción",
@@ -285,10 +285,10 @@ fun CreateClubScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isSelected) ColorArcMediumBrown else Color.White)
+                                    .background(if (isSelected) ColorArcMediumBrown() else Color.White)
                                     .border(
                                         width = 1.dp,
-                                        color = if (isSelected) ColorArcMediumBrown else ColorArcMediumBrown.copy(alpha = 0.3f),
+                                        color = if (isSelected) ColorArcMediumBrown() else ColorArcMediumBrown().copy(alpha = 0.3f),
                                         shape = RoundedCornerShape(10.dp)
                                     )
                                     .clickable {
@@ -305,7 +305,7 @@ fun CreateClubScreen(
                                     text = genre,
                                     fontFamily = CenturyGotic,
                                     fontSize = 10.sp,
-                                    color = if (isSelected) Color.White else ColorTextPrimary,
+                                    color = if (isSelected) Color.White else ColorTextPrimary(),
                                     maxLines = 1
                                 )
                             }
@@ -334,7 +334,7 @@ fun CreateClubScreen(
                     .height(56.dp),
                 enabled = name.isNotBlank() && !state.isCreating,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ColorArcDarkBrown,
+                    containerColor = ColorArcDarkBrown(),
                     contentColor = Color.White,
                     disabledContainerColor = Color.LightGray
                 ),
@@ -377,10 +377,10 @@ private fun FrequencyCard(
         modifier = modifier
             .height(72.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) ColorArcMediumBrown else Color.White)
+            .background(if (isSelected) ColorArcMediumBrown() else Color.White)
             .border(
                 width = 1.dp,
-                color = if (isSelected) ColorArcMediumBrown else ColorArcMediumBrown.copy(alpha = 0.3f),
+                color = if (isSelected) ColorArcMediumBrown() else ColorArcMediumBrown().copy(alpha = 0.3f),
                 shape = RoundedCornerShape(12.dp)
             )
             .clickable(onClick = onClick)
@@ -394,7 +394,7 @@ private fun FrequencyCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) Color.White else ColorArcMediumBrown,
+                tint = if (isSelected) Color.White else ColorArcMediumBrown(),
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -402,7 +402,7 @@ private fun FrequencyCard(
                 text = label,
                 fontFamily = CenturyGotic,
                 fontSize = 11.sp,
-                color = if (isSelected) Color.White else ColorTextPrimary
+                color = if (isSelected) Color.White else ColorTextPrimary()
             )
         }
     }

@@ -63,7 +63,7 @@ fun FriendsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LoginColors.Background)
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
         Text(
@@ -71,7 +71,7 @@ fun FriendsScreen(
             fontFamily = GuardianCity,
             fontSize = 40.sp,
             fontWeight = FontWeight.Bold,
-            color = LoginColors.Primary.copy(alpha = 0.9f),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
@@ -81,22 +81,22 @@ fun FriendsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            placeholder = { Text(stringResource(R.string.friends_search_hint), color = LoginColors.OutlineVariant) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = LoginColors.Primary) },
+            placeholder = { Text(stringResource(R.string.friends_search_hint), color = MaterialTheme.colorScheme.outlineVariant) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             trailingIcon = {
                 if (uiState.searchQuery.isNotEmpty()) {
                     IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.friends_action_clear), tint = LoginColors.Outline)
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.friends_action_clear), tint = MaterialTheme.colorScheme.outline)
                     }
                 }
             },
             shape = RoundedCornerShape(12.dp),
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = LoginColors.Surface,
-                focusedContainerColor = LoginColors.Surface,
-                unfocusedBorderColor = LoginColors.Primary,
-                focusedBorderColor = LoginColors.SecondaryContainer
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedBorderColor = MaterialTheme.colorScheme.primary,
+                focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer
             )
         )
 
@@ -119,7 +119,7 @@ fun FriendsScreen(
                         .padding(bottom = 16.dp)
                         .clickable { onNavigateToClubs() },
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = LoginColors.Primary)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Row(
                         modifier = Modifier
@@ -130,7 +130,7 @@ fun FriendsScreen(
                         Icon(
                             imageVector = Icons.Default.Groups,
                             contentDescription = null,
-                            tint = LoginColors.OnPrimary,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
@@ -139,18 +139,18 @@ fun FriendsScreen(
                                 text = "Clubes de lectura",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = LoginColors.OnPrimary
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                             Text(
                                 text = "Lee y discute con otros lectores",
                                 fontSize = 14.sp,
-                                color = LoginColors.PrimaryFixedDim.copy(alpha = 0.9f)
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
                             )
                         }
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                             contentDescription = null,
-                            tint = LoginColors.OnPrimary,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -177,7 +177,7 @@ fun FriendsScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = user.displayName,
-                                    color = LoginColors.OnSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 14.sp,
                                     textAlign = TextAlign.Center,
                                     maxLines = 1,
@@ -211,7 +211,7 @@ fun FriendsScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = user.displayName,
-                                    color = LoginColors.OnSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 14.sp,
                                     textAlign = TextAlign.Center,
                                     maxLines = 1,

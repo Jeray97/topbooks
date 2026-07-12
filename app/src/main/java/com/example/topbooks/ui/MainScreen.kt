@@ -115,7 +115,7 @@ fun MainScreen(
             bottomBar = {
                 NavigationBar(
                     modifier = Modifier.navigationBarsPadding(),
-                    containerColor = ColorArcMediumBrown,
+                    containerColor = ColorArcMediumBrown(),
                     tonalElevation = 0.dp
                 ) {
                     items.forEach { item ->
@@ -136,7 +136,7 @@ fun MainScreen(
                                         painter = painterResource(id = item.icon),
                                         contentDescription = stringResource(id = item.title),
                                         modifier = Modifier.size(24.dp),
-                                        tint = ColorArcMediumBrown
+                                        tint = ColorArcMediumBrown()
                                     )
                                 }
                             },
@@ -348,14 +348,14 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
-                                .background(ColorHeaderBeige, CircleShape)
+                                .background(ColorHeaderBeige(), CircleShape)
                                 .padding(12.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = stepData.highlightIcon,
                                 contentDescription = null,
-                                tint = ColorArcMediumBrown,
+                                tint = ColorArcMediumBrown(),
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -367,7 +367,7 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
                         fontFamily = GuardianCity,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ColorArcDarkBrown,
+                        color = ColorArcDarkBrown(),
                         textAlign = TextAlign.Center
                     )
                     Spacer(Modifier.height(12.dp))
@@ -384,7 +384,7 @@ fun SpotlightTourOverlay(onFinish: () -> Unit) {
                         onClick = {
                             if (currentStep < 6) currentStep++ else onFinish()
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown),
+                        colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown()),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth().height(50.dp)
                     ) {

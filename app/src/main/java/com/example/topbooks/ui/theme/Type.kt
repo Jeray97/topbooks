@@ -8,7 +8,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.topbooks.R
 
-// 1. Definición de familias
+val PlayfairDisplay = FontFamily(
+    Font(R.font.playfair_display, FontWeight.Normal),
+    Font(R.font.playfair_display_semibold, FontWeight.SemiBold),
+    Font(R.font.playfair_display_bold, FontWeight.Bold)
+)
+
+val Literata = FontFamily(
+    Font(R.font.literata, FontWeight.Normal),
+    Font(R.font.literata, FontWeight.Medium)
+)
+
 val GuardianCity = FontFamily(
     Font(R.font.guardian_city_font, FontWeight.Normal)
 )
@@ -17,30 +27,66 @@ val CenturyGotic = FontFamily(
     Font(R.font.century_gothic_font, FontWeight.Normal)
 )
 
-// 2. Configuración de Tipografía
 val Typography = Typography(
-    // Títulos: Aquí usamos GuardianCity porque queremos que destaque
-    titleLarge = TextStyle(
-        fontFamily = GuardianCity,
+    displayLarge = TextStyle(
+        fontFamily = PlayfairDisplay,
         fontWeight = FontWeight.Bold,
+        fontSize = 48.sp,
+        lineHeight = 56.sp,
+        letterSpacing = (-0.02).sp
+    ),
+    displayMedium = TextStyle(
+        fontFamily = PlayfairDisplay,
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp,
+        lineHeight = 44.sp
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = PlayfairDisplay,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 32.sp,
+        lineHeight = 40.sp
+    ),
+    headlineMedium = TextStyle(
+        fontFamily = PlayfairDisplay,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 24.sp,
+        lineHeight = 32.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = PlayfairDisplay,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp
     ),
-
-    // Cuerpo de texto (Inputs, descripciones, etc):
-    // Usamos CenturyGotic
+    titleMedium = TextStyle(
+        fontFamily = PlayfairDisplay,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 18.sp,
+        lineHeight = 24.sp
+    ),
     bodyLarge = TextStyle(
-        fontFamily = CenturyGotic,
+        fontFamily = Literata,
+        fontWeight = FontWeight.Normal,
+        fontSize = 18.sp,
+        lineHeight = 28.sp
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = Literata,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 24.sp
     ),
-
-    // Etiquetas (Labels de los text fields)
+    labelMedium = TextStyle(
+        fontFamily = Literata,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.05.sp
+    ),
     labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = Literata,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,

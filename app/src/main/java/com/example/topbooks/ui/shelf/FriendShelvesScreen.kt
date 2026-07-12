@@ -64,7 +64,7 @@ fun FriendShelvesScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackGroundGeneral,
+        containerColor = ColorBackGroundGeneral(),
         topBar = {
             TopAppBar(
                 title = {
@@ -73,29 +73,29 @@ fun FriendShelvesScreen(
                             text = "Estanterías de",
                             fontFamily = CenturyGotic,
                             fontSize = 14.sp,
-                            color = ColorArcDarkBrown
+                            color = ColorArcDarkBrown()
                         )
                         Text(
                             text = friendName,
                             fontFamily = GuardianCity,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ColorArcDarkBrown
+                            color = ColorArcDarkBrown()
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = ColorArcDarkBrown)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = ColorArcDarkBrown())
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorBackGroundGeneral)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorBackGroundGeneral())
             )
         }
     ) { padding ->
         if (state.isLoading) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = ColorArcMediumBrown)
+                CircularProgressIndicator(color = ColorArcMediumBrown())
             }
         } else if (state.shelves.isEmpty()) {
             Box(
@@ -106,7 +106,7 @@ fun FriendShelvesScreen(
                     Icon(
                         imageVector = Icons.Default.Public,
                         contentDescription = null,
-                        tint = ColorArcMediumBrown,
+                        tint = ColorArcMediumBrown(),
                         modifier = Modifier.size(64.dp)
                     )
                     Spacer(Modifier.height(16.dp))
@@ -115,7 +115,7 @@ fun FriendShelvesScreen(
                         fontFamily = GuardianCity,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ColorArcDarkBrown
+                        color = ColorArcDarkBrown()
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -188,7 +188,7 @@ fun FriendShelfRow(
             Icon(
                 imageVector = Icons.Default.Public,
                 contentDescription = "Pública",
-                tint = ColorArcMediumBrown,
+                tint = ColorArcMediumBrown(),
                 modifier = Modifier.size(20.dp)
             )
             Spacer(Modifier.size(8.dp))
@@ -198,7 +198,7 @@ fun FriendShelfRow(
                     fontFamily = GuardianCity,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ColorArcDarkBrown
+                    color = ColorArcDarkBrown()
                 )
                 Row {
                     Text(

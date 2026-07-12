@@ -1,6 +1,9 @@
 package com.example.topbooks.ui.config
 
 import android.widget.Toast
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,9 +18,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
@@ -26,6 +31,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -40,6 +47,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.topbooks.R
 import com.example.topbooks.data.preferences.SettingsManager
 import com.example.topbooks.ui.components.TopBar
+import com.example.topbooks.ui.theme.AthenaeumNoirColors
 import com.example.topbooks.ui.theme.ColorArcDarkBrown
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
 import com.example.topbooks.utils.CategoryProvider
@@ -80,7 +88,7 @@ fun ConfigScreen(
 
     Scaffold(
         topBar = { TopBar(onBackClick = onBackClick) },
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -92,7 +100,7 @@ fun ConfigScreen(
                 text = stringResource(R.string.conf_title),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = ColorArcDarkBrown,
+                color = ColorArcDarkBrown(),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp)
             )
 
@@ -125,12 +133,9 @@ fun ConfigScreen(
                     onClick = { showLanguageDialog = true }
                 )
                 HorizontalDivider(color = ColorPremiumDivider, modifier = Modifier.padding(horizontal = 16.dp))
-                ConfigSwitchItem(
-                    icon = Icons.Default.Palette,
-                    title = stringResource(R.string.conf_dark_mode),
-                    description = stringResource(R.string.conf_dark_mode_desc),
-                    isChecked = darkModeEnabled,
-                    onCheckedChange = { viewModel.toggleDarkMode(it) }
+                DarkModeToggleItem(
+                    isDarkMode = darkModeEnabled,
+                    onToggle = { viewModel.toggleDarkMode(it) }
                 )
                 HorizontalDivider(color = ColorPremiumDivider, modifier = Modifier.padding(horizontal = 16.dp))
                 ConfigSwitchItem(
@@ -214,7 +219,7 @@ fun ConfigScreen(
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 32.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.elevatedCardColors(containerColor = Color.White),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
             ) {
                 ConfigActionItem(
@@ -290,7 +295,7 @@ fun ConfigScreen(
                         }
                     }
                 },
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 confirmButton = {
                     Button(
                         onClick = {
@@ -340,14 +345,14 @@ fun LanguageSelectionDialog(currentLang: String, onDismiss: () -> Unit, onLangua
                     modifier = Modifier.fillMaxWidth().clickable { onLanguageSelected("es") }.padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = currentLang == "es", onClick = { onLanguageSelected("es") }, colors = RadioButtonDefaults.colors(selectedColor = ColorArcMediumBrown))
+                    RadioButton(selected = currentLang == "es", onClick = { onLanguageSelected("es") }, colors = RadioButtonDefaults.colors(selectedColor = ColorArcMediumBrown()))
                     Text("Español", modifier = Modifier.padding(start = 8.dp), fontSize = 16.sp)
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { onLanguageSelected("en") }.padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = currentLang == "en", onClick = { onLanguageSelected("en") }, colors = RadioButtonDefaults.colors(selectedColor = ColorArcMediumBrown))
+                    RadioButton(selected = currentLang == "en", onClick = { onLanguageSelected("en") }, colors = RadioButtonDefaults.colors(selectedColor = ColorArcMediumBrown()))
                     Text("English", modifier = Modifier.padding(start = 8.dp), fontSize = 16.sp)
                 }
             }
@@ -355,7 +360,7 @@ fun LanguageSelectionDialog(currentLang: String, onDismiss: () -> Unit, onLangua
         confirmButton = {
             TextButton(onClick = onDismiss) { Text("Cancelar", color = ColorPremiumTextSecondary) }
         },
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(24.dp)
     )
 }
@@ -394,7 +399,7 @@ fun EditGenresDialog(
                             selectedGenres = if (isSel) selectedGenres - genre else selectedGenres + genre
                         },
                         shape = RoundedCornerShape(8.dp),
-                        color = if (isSel) ColorArcMediumBrown else Color.White,
+                        color = if (isSel) ColorArcMediumBrown() else Color.White,
                         modifier = Modifier.height(40.dp),
                         shadowElevation = if(isSel) 4.dp else 1.dp,
                         border = if(!isSel) androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(0.4f)) else null
@@ -402,7 +407,7 @@ fun EditGenresDialog(
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = displayName,
-                                color = if (isSel) Color.White else ColorArcDarkBrown,
+                                color = if (isSel) Color.White else ColorArcDarkBrown(),
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 12.sp
                             )
@@ -415,7 +420,7 @@ fun EditGenresDialog(
             Button(
                 onClick = { onSave(selectedGenres.toList()) },
                 enabled = selectedGenres.isNotEmpty() && !isUpdating,
-                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown)
+                colors = ButtonDefaults.buttonColors(containerColor = ColorArcMediumBrown())
             ) {
                 if (isUpdating) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
@@ -429,7 +434,7 @@ fun EditGenresDialog(
                 Text("Cancelar", color = ColorPremiumTextSecondary)
             }
         },
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(24.dp)
     )
 }
@@ -466,7 +471,7 @@ fun VerificationWarningCard(onResendClick: () -> Unit) {
 @Composable
 fun ConfigSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(modifier = Modifier.padding(vertical = 12.dp)) {
-        Text(text = title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
+        Text(text = title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown(), modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
         ElevatedCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White), elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)) {
             Column(content = content)
         }
@@ -477,7 +482,7 @@ fun ConfigSection(title: String, content: @Composable ColumnScope.() -> Unit) {
  * Fila interactiva para acciones directas.
  */
 @Composable
-fun ConfigActionItem(icon: ImageVector, title: String, description: String, titleColor: Color = ColorArcDarkBrown, iconColor: Color = ColorArcDarkBrown, onClick: () -> Unit) {
+fun ConfigActionItem(icon: ImageVector, title: String, description: String, titleColor: Color = ColorArcDarkBrown(), iconColor: Color = ColorArcDarkBrown(), onClick: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 16.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, Modifier.size(24.dp), tint = iconColor)
         Spacer(Modifier.width(16.dp))
@@ -495,12 +500,79 @@ fun ConfigActionItem(icon: ImageVector, title: String, description: String, titl
 @Composable
 fun ConfigSwitchItem(icon: ImageVector, title: String, description: String, isChecked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().clickable { onCheckedChange(!isChecked) }.padding(horizontal = 16.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, Modifier.size(24.dp), tint = ColorArcDarkBrown)
+        Icon(icon, null, Modifier.size(24.dp), tint = ColorArcDarkBrown())
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = ColorArcDarkBrown, fontWeight = FontWeight.Medium)
+            Text(title, style = MaterialTheme.typography.titleMedium, color = ColorArcDarkBrown(), fontWeight = FontWeight.Medium)
             Text(description, style = MaterialTheme.typography.bodySmall, color = ColorPremiumTextSecondary)
         }
-        Switch(checked = isChecked, onCheckedChange = onCheckedChange, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ColorArcDarkBrown, uncheckedThumbColor = Color.White, uncheckedTrackColor = Color(0xFFE0E0E0), uncheckedBorderColor = Color.Transparent))
+        Switch(checked = isChecked, onCheckedChange = onCheckedChange, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ColorArcDarkBrown(), uncheckedThumbColor = Color.White, uncheckedTrackColor = Color(0xFFE0E0E0), uncheckedBorderColor = Color.Transparent))
+    }
+}
+
+@Composable
+fun DarkModeToggleItem(isDarkMode: Boolean, onToggle: (Boolean) -> Unit) {
+    val iconRotation by animateFloatAsState(
+        targetValue = if (isDarkMode) 360f else 0f,
+        animationSpec = tween(durationMillis = 500),
+        label = "iconRotation"
+    )
+    val iconScale by animateFloatAsState(
+        targetValue = if (isDarkMode) 1.2f else 1f,
+        animationSpec = tween(durationMillis = 300),
+        label = "iconScale"
+    )
+    val iconColor by animateColorAsState(
+        targetValue = if (isDarkMode) AthenaeumNoirColors.Primary else ColorArcDarkBrown(),
+        animationSpec = tween(durationMillis = 300),
+        label = "iconColor"
+    )
+    val trackColor by animateColorAsState(
+        targetValue = if (isDarkMode) AthenaeumNoirColors.PrimaryContainer else Color(0xFFE0E0E0),
+        animationSpec = tween(durationMillis = 300),
+        label = "trackColor"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle(!isDarkMode) }
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+            contentDescription = null,
+            modifier = Modifier
+                .size(24.dp)
+                .rotate(iconRotation)
+                .scale(iconScale),
+            tint = iconColor
+        )
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.conf_dark_mode),
+                style = MaterialTheme.typography.titleMedium,
+                color = ColorArcDarkBrown(),
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = if (isDarkMode) "Modo oscuro activado" else "Modo claro activado",
+                style = MaterialTheme.typography.bodySmall,
+                color = ColorPremiumTextSecondary
+            )
+        }
+        Switch(
+            checked = isDarkMode,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = AthenaeumNoirColors.Primary,
+                checkedTrackColor = trackColor,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = Color(0xFFE0E0E0),
+                uncheckedBorderColor = Color.Transparent
+            )
+        )
     }
 }

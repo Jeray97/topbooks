@@ -142,14 +142,14 @@ fun QRScannerScreen(
                                 viewModel.dismissBookInfo()
                                 onBookFound(book.id)
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = ColorArcDarkBrown)
+                            colors = ButtonDefaults.buttonColors(containerColor = ColorArcDarkBrown())
                         ) {
                             Text(stringResource(R.string.scanner_action_view_details))
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { viewModel.dismissBookInfo() }) {
-                            Text(stringResource(R.string.scanner_action_keep_scanning), color = ColorArcMediumBrown)
+                            Text(stringResource(R.string.scanner_action_keep_scanning), color = ColorArcMediumBrown())
                         }
                     }
                 )
@@ -163,7 +163,7 @@ fun QRScannerScreen(
                     confirmButton = {
                         Button(
                             onClick = { viewModel.dismissError() },
-                            colors = ButtonDefaults.buttonColors(containerColor = ColorArcDarkBrown)
+                            colors = ButtonDefaults.buttonColors(containerColor = ColorArcDarkBrown())
                         ) {
                             Text(stringResource(R.string.scanner_action_accept))
                         }
@@ -180,7 +180,7 @@ fun QRScannerScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = ColorArcMediumBrown)
+                        CircularProgressIndicator(color = ColorArcMediumBrown())
                         Spacer(modifier = Modifier.height(16.dp))
                         Text("Buscando en bibliotecas...", color = Color.White)
                     }
@@ -246,7 +246,7 @@ fun ScannerOverlay() {
         drawPath(path, Color.Black.copy(alpha = 0.6f))
 
         // 2. DIBUJAMOS LAS ESQUINAS DE ENFOQUE
-        val cornerColor = ColorArcMediumBrown
+        val cornerColor = Color(0xFFC89B8C)
 
         // Arriba - Izquierda
         drawLine(cornerColor, Offset(left, top), Offset(left + cornerLength, top), strokeWidth)
@@ -264,7 +264,7 @@ fun ScannerOverlay() {
         // 3. DIBUJAMOS EL LÁSER ANIMADO
         val laserY = top + (laserPosition * rectHeight)
         drawLine(
-            color = ColorArcMediumBrown.copy(alpha = 0.8f),
+            color = Color(0xFFC89B8C).copy(alpha = 0.8f),
             start = Offset(left + 8.dp.toPx(), laserY),
             end = Offset(right - 8.dp.toPx(), laserY),
             strokeWidth = 2.dp.toPx()

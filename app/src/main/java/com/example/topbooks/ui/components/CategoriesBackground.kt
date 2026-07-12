@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -41,7 +42,7 @@ fun CategoriesBackground(
     val density = LocalDensity.current
 
     // Lista de colores que se irán alternando para cada capa/ola
-    val colorCycle = listOf(ColorArcDarkBrown, ColorArcMediumBrown, ColorArcLightBeige, ColorArcWhite)
+    val colorCycle = listOf(ColorArcDarkBrown(), ColorArcMediumBrown(), ColorArcLightBeige(), ColorArcWhite())
 
     // Calculamos las filas necesarias (redondeando hacia arriba con ceil)
     val rows = ceil(categoryCount / columnCount.toFloat()).toInt()
@@ -49,7 +50,7 @@ fun CategoriesBackground(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(ColorHeaderBeige) // Color de fondo base (cielo)
+            .background(ColorHeaderBeige()) // Color de fondo base (cielo)
     ) {
         // Lienzo de dibujo de bajo nivel
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -70,7 +71,7 @@ fun CategoriesBackground(
             for (i in 0 until rows + 1) { // +1 extra para asegurar que el fondo cubra hasta abajo
 
                 // Ciclo de colores: Si es la última franja extra de relleno, forzamos un color oscuro
-                val color = if (i >= rows) ColorArcDarkBrown else colorCycle[i % colorCycle.size]
+                val color = if (i >= rows) Color(0xFF8D5B4C) else colorCycle[i % colorCycle.size]
 
                 // CÁLCULO EXACTO: Posición Y (altura) de la ola basada en el desplazamiento y la altura de la fila
                 val topPos = startOffsetPx + (i * rowHeightPx)
