@@ -20,7 +20,9 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LockReset
@@ -28,7 +30,10 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -51,6 +56,7 @@ import com.example.topbooks.ui.theme.AthenaeumNoirColors
 import com.example.topbooks.ui.theme.ColorArcDarkBrown
 import com.example.topbooks.ui.theme.ColorArcMediumBrown
 import com.example.topbooks.utils.CategoryProvider
+import kotlinx.coroutines.launch
 
 val ColorPremiumDivider = Color(0xFFEEEEEE)
 val ColorPremiumTextSecondary = Color(0xFF757575)
@@ -65,6 +71,7 @@ fun ConfigScreen(
     viewModel: ConfigViewModel = viewModel(factory = ConfigViewModel.Factory(SettingsManager(LocalContext.current)))
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     val isEmailVerified by viewModel.isEmailVerified.collectAsStateWithLifecycle()
     val darkModeEnabled by viewModel.darkModeEnabled.collectAsStateWithLifecycle()
@@ -80,6 +87,8 @@ fun ConfigScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showGenresDialog by remember { mutableStateOf(false) }
+    var showSuggestionDialog by remember { mutableStateOf(false) }
+    var isSubmittingSuggestion by remember { mutableStateOf(false) }
 
     // Verificamos el estado del email silenciosamente al entrar
     LaunchedEffect(Unit) {
@@ -192,7 +201,29 @@ fun ConfigScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            // --- SECCIÓN: COMUNIDAD ---
+            ConfigSection(title = "Comunidad") {
+                ConfigActionItem(
+                    icon = Icons.Default.Feedback,
+                    title = "Buzón de sugerencias",
+                    description = "Ayúdanos a mejorar TopBooks",
+                    onClick = { showSuggestionDialog = true }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- ESLOGAN ---
+            Text(
+                text = "Creada por lectores, para lectores",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = stringResource(R.string.conf_topbooks_version),
@@ -324,6 +355,27 @@ fun ConfigScreen(
                 }
             )
         }
+
+        if (showSuggestionDialog) {
+            SuggestionDialog(
+                onDismiss = { showSuggestionDialog = false },
+                onSubmit = { category, title, message ->
+                    isSubmittingSuggestion = true
+                    val repository = com.example.topbooks.data.repository.SuggestionRepository()
+                    coroutineScope.launch {
+                        val result = repository.submitSuggestion(category, title, message)
+                        isSubmittingSuggestion = false
+                        showSuggestionDialog = false
+                        if (result.isSuccess) {
+                            Toast.makeText(context, "¡Gracias por tu sugerencia!", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "Error al enviar: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                },
+                isSubmitting = isSubmittingSuggestion
+            )
+        }
     }
 }
 
@@ -399,10 +451,10 @@ fun EditGenresDialog(
                             selectedGenres = if (isSel) selectedGenres - genre else selectedGenres + genre
                         },
                         shape = RoundedCornerShape(8.dp),
-                        color = if (isSel) ColorArcMediumBrown() else Color.White,
+                        color = if (isSel) ColorArcMediumBrown() else MaterialTheme.colorScheme.surfaceContainer,
                         modifier = Modifier.height(40.dp),
                         shadowElevation = if(isSel) 4.dp else 1.dp,
-                        border = if(!isSel) androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(0.4f)) else null
+                        border = if(!isSel) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(0.4f)) else null
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
@@ -448,17 +500,17 @@ fun VerificationWarningCard(onResendClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFF3E0)),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)),
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color(0xFFE65100))
+            Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.error)
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = stringResource(R.string.conf_email_not_verified_title), style = MaterialTheme.typography.titleMedium, color = Color(0xFFE65100), fontWeight = FontWeight.Bold)
-                Text(text = stringResource(R.string.conf_email_not_verified_desc), style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
+                Text(text = stringResource(R.string.conf_email_not_verified_title), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                Text(text = stringResource(R.string.conf_email_not_verified_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = onResendClick, contentPadding = PaddingValues(0.dp)) {
-                    Text(stringResource(R.string.conf_email_resend_button), fontWeight = FontWeight.Bold, color = Color(0xFFE65100))
+                    Text(stringResource(R.string.conf_email_resend_button), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -472,7 +524,7 @@ fun VerificationWarningCard(onResendClick: () -> Unit) {
 fun ConfigSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(modifier = Modifier.padding(vertical = 12.dp)) {
         Text(text = title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = ColorArcDarkBrown(), modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
-        ElevatedCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White), elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)) {
+        ElevatedCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)) {
             Column(content = content)
         }
     }
@@ -575,4 +627,136 @@ fun DarkModeToggleItem(isDarkMode: Boolean, onToggle: (Boolean) -> Unit) {
             )
         )
     }
+}
+
+/**
+ * Diálogo para enviar sugerencias al buzón.
+ */
+@Composable
+fun SuggestionDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (String, String, String) -> Unit,
+    isSubmitting: Boolean
+) {
+    var selectedCategory by remember { mutableStateOf("Mejora") }
+    var title by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+    var showCategoryDropdown by remember { mutableStateOf(false) }
+
+    val categories = listOf("Bug", "Mejora", "Contenido", "Otro")
+
+    AlertDialog(
+        onDismissRequest = { if (!isSubmitting) onDismiss() },
+        title = { 
+            Text(
+                "Buzón de sugerencias",
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            ) 
+        },
+        text = {
+            Column {
+                Text(
+                    "Tu opinión nos ayuda a mejorar TopBooks. Cuéntanos qué te gustaría ver en la app.",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Selector de categoría
+                Text(
+                    "Categoría",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Box {
+                    OutlinedButton(
+                        onClick = { showCategoryDropdown = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(selectedCategory)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(
+                            Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showCategoryDropdown,
+                        onDismissRequest = { showCategoryDropdown = false }
+                    ) {
+                        categories.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category) },
+                                onClick = {
+                                    selectedCategory = category
+                                    showCategoryDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Campo de título
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Título breve") },
+                    placeholder = { Text("Ej: Añadir modo nocturno automático") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Campo de mensaje
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    label = { Text("Descripción detallada") },
+                    placeholder = { Text("Describe tu sugerencia con detalle...") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(selectedCategory, title, message) },
+                enabled = title.isNotBlank() && message.isNotBlank() && !isSubmitting,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Enviar")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isSubmitting) {
+                Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(16.dp)
+    )
 }
