@@ -1,5 +1,7 @@
 package com.example.topbooks.ui.book
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -399,7 +401,10 @@ fun BookDetailScreen(
                         )
                     }
 
-                    // 2. Sinopsis
+                    // 2. Sección de compra (enlaces de afiliado)
+                    item { BookPurchaseSection(book, context) }
+
+                    // 3. Sinopsis
                     item { SynopsisSection(book.description) }
 
                     // 3. Título de Sección de Reseñas
@@ -498,6 +503,99 @@ fun StatusButton(label: String, isActive: Boolean, activeIcon: ImageVector, inac
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = label, fontSize = 11.sp, fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal, color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
+ * Sección de compra con enlaces de afiliado a tiendas online.
+ * Muestra botones para comprar el libro en Casa del Libro y Fnac.
+ */
+@Composable
+fun BookPurchaseSection(book: Book, context: android.content.Context) {
+    // IDs de afiliado - Reemplazar con tus IDs reales
+    val CASA_DEL_LIBRO_AFFILIATE_ID = "TU_ID_CASA_DEL_LIBRO"
+    val FNAC_AFFILIATE_ID = "TU_ID_FNAC"
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        Text(
+            text = "Dónde comprar",
+            fontFamily = GuardianCity,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        
+        // Botón Casa del Libro
+        OutlinedButton(
+            onClick = {
+                val encodedTitle = URLEncoder.encode(book.title, StandardCharsets.UTF_8.toString())
+                val url = "https://www.casadellibro.com/libros?query=$encodedTitle&affiliate=$CASA_DEL_LIBRO_AFFILIATE_ID"
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                context.startActivity(intent)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.ShoppingCart,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Casa del Libro",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        
+        // Botón Fnac
+        OutlinedButton(
+            onClick = {
+                val encodedTitle = URLEncoder.encode(book.title, StandardCharsets.UTF_8.toString())
+                val url = "https://www.fnac.es/SearchResult/ResultList.aspx?Search=$encodedTitle&affiliate=$FNAC_AFFILIATE_ID"
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                context.startActivity(intent)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.Store,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Fnac",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        
+        // Nota informativa
+        Text(
+            text = "Los enlaces pueden contener afiliados. Al comprar a través de estos enlaces, apoyas el desarrollo de la app.",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+            textAlign = TextAlign.Center
+        )
     }
 }
 
