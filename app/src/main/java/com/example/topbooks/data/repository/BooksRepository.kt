@@ -255,14 +255,14 @@ class BooksRepository(context: Context? = null) {
     /**
      * Búsqueda híbrida y paralela.
      */
-    suspend fun searchHybrid(query: String): Result<List<Book>> = coroutineScope {
+    suspend fun searchHybrid(query: String, maxResults: Int = 20): Result<List<Book>> = coroutineScope {
         try {
 
             // 1. BUSCAR PRIMERO EN FIREBASE
             val localBooks = fetchFromFirebase(query)
 
             if (localBooks.size >= 8) {
-                return@coroutineScope Result.success(localBooks.take(20))
+                return@coroutineScope Result.success(localBooks.take(maxResults))
             }
 
             val lang = Locale.getDefault().language

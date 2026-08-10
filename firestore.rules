@@ -139,5 +139,23 @@ service cloud.firestore {
       allow update: if isAuth();
       allow delete: if isAuth() && resource.data.userId == request.auth.uid;
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // SUGGESTIONS (buzón de sugerencias)
+    // ═══════════════════════════════════════════════════════════
+
+    match /suggestions/{suggestionId} {
+      // Los usuarios autenticados pueden leer sus propias sugerencias
+      allow read: if isAuth() && resource.data.userId == request.auth.uid;
+      
+      // Los usuarios autenticados pueden crear sugerencias
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      
+      // Los usuarios pueden actualizar sus propias sugerencias (por si quieren editar)
+      allow update: if isAuth() && resource.data.userId == request.auth.uid;
+      
+      // Los usuarios pueden eliminar sus propias sugerencias
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
   }
 }

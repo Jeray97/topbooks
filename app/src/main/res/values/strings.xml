@@ -185,6 +185,9 @@
 
     <!-- Colección -->
     <string name="progress_title">Mi Progreso</string>
+    <string name="progress_stat_books_read">LIBROS LEÍDOS</string>
+    <string name="progress_stat_journals">DIARIOS</string>
+    <string name="progress_stat_goal">OBJETIVO</string>
     <string name="progress_section_journals">Mis Diarios</string>
     <string name="progress_section_favorites">Mis Favoritos</string>
     <string name="progress_section_pending">Mis Pendientes</string>
@@ -192,6 +195,15 @@
     <string name="progress_desc_add">Añadir</string>
     <string name="progress_desc_see_all">Ver todo</string>
     <string name="progress_empty_message">No hay libros aquí aún.</string>
+    <string name="progress_goal_not_set">Sin objetivo</string>
+    <string name="progress_goal_percentage">%1$d%%</string>
+    <string name="progress_goal_dialog_title">Establecer objetivo anual</string>
+    <string name="progress_goal_dialog_message">¿Cuántos libros quieres leer este año?</string>
+    <string name="progress_goal_dialog_hint">Número de libros</string>
+    <string name="progress_goal_dialog_save">Guardar</string>
+    <string name="progress_goal_dialog_cancel">Cancelar</string>
+    <string name="progress_goal_completed">¡Objetivo completado! 🎉</string>
+    <string name="progress_goal_in_progress">%1$d de %2$d libros</string>
 
     <!-- Reviews -->
     <string name="reviews_title_thread">Hilo de conversación</string>

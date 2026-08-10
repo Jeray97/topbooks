@@ -1,9 +1,15 @@
 package com.example.topbooks.ui.home
 
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
+import com.example.topbooks.data.local.AppDatabase
 import com.example.topbooks.data.model.Book
+import com.example.topbooks.data.recommendation.RecommendationEngine
 import com.example.topbooks.data.repository.*
 import com.example.topbooks.utils.Resource
 import com.google.firebase.auth.FirebaseAuth
@@ -34,10 +40,34 @@ data class FriendBookRecommendation(
  * para evitar llamadas redundantes a la API en recomposiciones o cambios de configuración.
  */
 class HomeViewModel(
-    private val booksRepository: BooksRepository = BooksRepository(),
-    private val communityRepository: CommunityRepository = CommunityRepositoryImpl(),
-    private val userRepository: UserRepository = UserRepositoryImpl()
+    private val booksRepository: BooksRepository,
+    private val communityRepository: CommunityRepository,
+    private val userRepository: UserRepository,
+    private val recommendationEngine: RecommendationEngine?
 ) : ViewModel() {
+
+    class Factory(private val context: Application) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+            val database = AppDatabase.getInstance(context)
+            val booksRepository = BooksRepository(context)
+            val communityRepository = CommunityRepositoryImpl()
+            val userRepository = UserRepositoryImpl()
+            val recommendationEngine = RecommendationEngine(
+                booksRepository = booksRepository,
+                communityRepository = communityRepository,
+                userRepository = userRepository,
+                database = database
+            )
+
+            @Suppress("UNCHECKED_CAST")
+            return HomeViewModel(
+                booksRepository = booksRepository,
+                communityRepository = communityRepository,
+                userRepository = userRepository,
+                recommendationEngine = recommendationEngine
+            ) as T
+        }
+    }
 
     // --- ESTADOS DE UI (STATEFLOW) ---
     private val _categoryBooks = MutableStateFlow<Resource<List<Book>>>(Resource.Loading)
@@ -71,16 +101,22 @@ class HomeViewModel(
     }
 
     /**
-     * MOTOR DE RECOMENDACIÓN PERSONALIZADO (Algoritmo en Cascada):
-     * 1. Busca libros de la misma categoría que los "Favoritos" actuales del usuario.
-     * 2. Busca libros basados en los "Géneros Favoritos" marcados en el perfil.
-     * 3. Rellena con "Libros Populares" globales si falta contenido.
-     * 4. Usa un "Fallback" general si to-do lo anterior falla.
+     * MOTOR DE RECOMENDACIÓN PERSONALIZADO (Optimizado - 75% API/DB, 25% Local):
+     * Usa RecommendationEngine con caché de 7 días para minimizar llamadas a API.
+     * Si el engine no está disponible, usa el algoritmo en cascada original.
      */
     private fun fetchPersonalizedRecommendations(fallbackQuery: String) {
         viewModelScope.launch {
             _recommendedBooks.value = Resource.Loading
             try {
+                // Si tenemos el motor optimizado, usarlo
+                if (recommendationEngine != null) {
+                    val recommendations = recommendationEngine.getRecommendations(fallbackQuery)
+                    _recommendedBooks.value = Resource.Success(recommendations)
+                    return@launch
+                }
+
+                // Fallback: Algoritmo original en cascada
                 val uid = FirebaseAuth.getInstance().currentUser?.uid
                 val db = FirebaseFirestore.getInstance()
                 val personalizedBooks = mutableListOf<Book>()
@@ -140,6 +176,18 @@ class HomeViewModel(
                 Log.e("HomeVM", "Error recomendaciones: ${e.message}")
                 _recommendedBooks.value = Resource.Error(e)
             }
+        }
+    }
+
+    /**
+     * Invalida el caché de recomendaciones.
+     * Llamar cuando el usuario añada/quite libros de favoritos o leídos.
+     */
+    fun invalidateRecommendationsCache() {
+        viewModelScope.launch {
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+            recommendationEngine?.invalidateCache(uid)
+            Log.d("HomeVM", "Caché de recomendaciones invalidado")
         }
     }
 

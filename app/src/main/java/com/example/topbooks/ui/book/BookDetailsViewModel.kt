@@ -1,10 +1,15 @@
 package com.example.topbooks.ui.book
 
+import android.app.Application
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
+import com.example.topbooks.data.local.AppDatabase
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.model.Review
+import com.example.topbooks.data.recommendation.RecommendationEngine
 import com.example.topbooks.data.repository.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,8 +48,38 @@ class BookDetailViewModel(
     private val progressRepository: ProgressRepository = ProgressRepositoryImpl(),
     private val userRepository: UserRepository = UserRepositoryImpl(),
     private val authRepository: AuthRepository = AuthRepositoryImpl(),
-    private val feedRepository: SocialFeedRepository = SocialFeedRepositoryImpl()
+    private val feedRepository: SocialFeedRepository = SocialFeedRepositoryImpl(),
+    private val recommendationEngine: RecommendationEngine? = null
 ) : ViewModel() {
+
+    class Factory(private val context: Application) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+            val database = AppDatabase.getInstance(context)
+            val booksRepository = BooksRepository(context)
+            val progressRepository = ProgressRepositoryImpl()
+            val userRepository = UserRepositoryImpl()
+            val authRepository = AuthRepositoryImpl()
+            val feedRepository = SocialFeedRepositoryImpl()
+            val communityRepository = CommunityRepositoryImpl()
+            
+            val recommendationEngine = RecommendationEngine(
+                booksRepository = booksRepository,
+                communityRepository = communityRepository,
+                userRepository = userRepository,
+                database = database
+            )
+
+            @Suppress("UNCHECKED_CAST")
+            return BookDetailViewModel(
+                booksRepository = booksRepository,
+                progressRepository = progressRepository,
+                userRepository = userRepository,
+                authRepository = authRepository,
+                feedRepository = feedRepository,
+                recommendationEngine = recommendationEngine
+            ) as T
+        }
+    }
 
     // 2. INICIALIZAMOS EL STATEFLOW
     private val _uiState = MutableStateFlow(BookDetailState())
@@ -151,6 +186,9 @@ class BookDetailViewModel(
                 } else {
                     progressRepository.deleteUserSubdocument("favorites", book.id)
                 }
+                
+                // Invalidar caché de recomendaciones cuando cambia favoritos
+                invalidateRecommendationsCache()
             } catch (e: Exception) {
                 // Si hay error de red, revertimos el botón a su estado original
                 Log.e("BookDetailVM", "Error al cambiar favorito: ${e.message}")
@@ -187,6 +225,9 @@ class BookDetailViewModel(
                     progressRepository.saveBookmark(book, "", "", "", false)
                     _uiState.update { it.copy(savedInList = "Pendientes") }
                 }
+                
+                // Invalidar caché de recomendaciones cuando cambia listas
+                invalidateRecommendationsCache()
             } catch (e: Exception) {
                 Log.e("BookDetailVM", "Error añadiendo a lista: ${e.message}")
             }
@@ -204,6 +245,9 @@ class BookDetailViewModel(
 
             progressRepository.deleteUserSubdocument(collection, bookId)
             _uiState.update { it.copy(savedInList = null) }
+            
+            // Invalidar caché de recomendaciones cuando cambia listas
+            invalidateRecommendationsCache()
         }
     }
 
@@ -318,6 +362,18 @@ class BookDetailViewModel(
                 .onSuccess { reviews ->
                     _uiState.update { it.copy(reviews = reviews) }
                 }
+        }
+    }
+
+    /**
+     * Invalida el caché de recomendaciones para forzar una regeneración.
+     * Llamar cuando el usuario modifique favoritos, leídos o pendientes.
+     */
+    private fun invalidateRecommendationsCache() {
+        viewModelScope.launch {
+            val uid = userRepository.getCurrentUserId() ?: return@launch
+            recommendationEngine?.invalidateCache(uid)
+            Log.d("BookDetailVM", "Caché de recomendaciones invalidado")
         }
     }
 }

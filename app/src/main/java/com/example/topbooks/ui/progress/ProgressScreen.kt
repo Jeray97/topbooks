@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -20,9 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,9 +43,10 @@ fun ProgressScreen(
     onAddJournalClick: () -> Unit,
     onJournalClick: (String) -> Unit,
     onNavigateToShelves: () -> Unit = {},
-    viewModel: ProgressViewModel = viewModel()
+    viewModel: ProgressViewModel = viewModel(factory = ProgressViewModel.Factory(LocalContext.current))
 ) {
     val state by viewModel.uiState.collectAsState()
+    var showGoalDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.loadProgressData()
@@ -71,9 +75,17 @@ fun ProgressScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(32.dp)
             ) {
-                StatItem(value = "${state.read.size}", label = "BOOKS READ")
-                StatItem(value = "${state.journals.size}", label = "JOURNALS")
-                StatItem(value = "85%", label = "GOAL")
+                StatItem(value = "${state.read.size}", label = stringResource(R.string.progress_stat_books_read))
+                StatItem(value = "${state.journals.size}", label = stringResource(R.string.progress_stat_journals))
+                StatItem(
+                    value = if (state.readingGoal.hasGoal()) {
+                        stringResource(R.string.progress_goal_percentage, state.readingGoal.getProgressPercentage())
+                    } else {
+                        stringResource(R.string.progress_goal_not_set)
+                    },
+                    label = stringResource(R.string.progress_stat_goal),
+                    onClick = { showGoalDialog = true }
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -177,11 +189,25 @@ fun ProgressScreen(
             }
         }
     }
+
+    // Diálogo para establecer el objetivo de lectura
+    if (showGoalDialog) {
+        ReadingGoalDialog(
+            currentGoal = state.readingGoal.targetBooks,
+            onDismiss = { showGoalDialog = false },
+            onConfirm = { targetBooks ->
+                viewModel.saveReadingGoal(targetBooks)
+                showGoalDialog = false
+            }
+        )
+    }
 }
 
 @Composable
-fun StatItem(value: String, label: String) {
-    Column {
+fun StatItem(value: String, label: String, onClick: (() -> Unit)? = null) {
+    Column(
+        modifier = if (onClick != null) Modifier.clickable { onClick() } else Modifier
+    ) {
         Text(
             text = value,
             fontFamily = GuardianCity,
@@ -196,6 +222,52 @@ fun StatItem(value: String, label: String) {
             letterSpacing = 1.sp
         )
     }
+}
+
+@Composable
+fun ReadingGoalDialog(
+    currentGoal: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var goalText by remember { mutableStateOf(if (currentGoal > 0) currentGoal.toString() else "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.progress_goal_dialog_title)) },
+        text = {
+            Column {
+                Text(stringResource(R.string.progress_goal_dialog_message))
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = goalText,
+                    onValueChange = { goalText = it.filter { char -> char.isDigit() } },
+                    label = { Text(stringResource(R.string.progress_goal_dialog_hint)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val targetBooks = goalText.toIntOrNull() ?: 0
+                    if (targetBooks > 0) {
+                        onConfirm(targetBooks)
+                    }
+                },
+                enabled = goalText.toIntOrNull()?.let { it > 0 } ?: false
+            ) {
+                Text(stringResource(R.string.progress_goal_dialog_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.progress_goal_dialog_cancel))
+            }
+        }
+    )
 }
 
 @Composable

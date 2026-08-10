@@ -1,5 +1,6 @@
 package com.example.topbooks.ui.book
 
+import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -76,7 +77,7 @@ fun BookDetailScreen(
     onNavigateToJournal: (String, String, String, String, String) -> Unit,
     onNavigateToReviews: (String) -> Unit = {},
     onNavigateToCreatePost: (String, String) -> Unit = { _, _ -> },
-    viewModel: BookDetailViewModel = viewModel()
+    viewModel: BookDetailViewModel = viewModel(factory = BookDetailViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val state by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState() // Para controlar el scroll de la página

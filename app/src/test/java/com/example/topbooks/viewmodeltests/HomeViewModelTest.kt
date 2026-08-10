@@ -41,7 +41,7 @@ class HomeViewModelTest {
         val mockFirestore = mockk<FirebaseFirestore>(relaxed = true)
         every { FirebaseFirestore.getInstance() } returns mockFirestore
 
-        viewModel = HomeViewModel(booksRepo, communityRepo, userRepo)
+        viewModel = HomeViewModel(booksRepo, communityRepo, userRepo, null)
     }
 
     @After

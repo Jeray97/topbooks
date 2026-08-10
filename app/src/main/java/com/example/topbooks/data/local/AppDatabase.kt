@@ -7,8 +7,8 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(
-    entities = [BookEntity::class, PostEntity::class, UserEntity::class],
-    version = 1,
+    entities = [BookEntity::class, PostEntity::class, UserEntity::class, RecommendationEntity::class],
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -16,6 +16,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
     abstract fun postDao(): PostDao
     abstract fun userDao(): UserDao
+    abstract fun recommendationDao(): RecommendationDao
 
     companion object {
         @Volatile
