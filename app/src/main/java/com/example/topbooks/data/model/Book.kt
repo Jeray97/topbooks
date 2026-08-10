@@ -26,8 +26,8 @@ package com.example.topbooks.data.model
  * @property seriesEditorName Nombre del usuario que editó la saga.
  * @property seriesEditorAvatar URL del avatar del usuario que editó la saga.
  * @property seriesEditDate Fecha (en milisegundos) en la que se realizó la edición.
- * @property seriesUpvotes Cantidad de votos positivos de la comunidad para aprobar la edición.
- * @property seriesDownvotes Cantidad de votos negativos de la comunidad para rechazar la edición.
+ * @property seriesUpvotes Cantidad de votos positivos del libro.
+ * @property seriesDownvotes Cantidad de votos negativos del libro.
  * @property seriesVoters Lista de IDs de los usuarios que ya han emitido su voto en esta edición.
  */
 data class Book(
@@ -49,6 +49,7 @@ data class Book(
     val seriesName: String = "",
     val seriesIndex: Int = 0,
     val provider: String = "Desconocido",
+    val purchaseUrl: String? = null,
 
     // Sistema social: Edición colaborativa de Sagas
     val seriesEditorUid: String? = null,
@@ -59,7 +60,6 @@ data class Book(
     val seriesDownvotes: Int = 0,
     val seriesVoters: List<String> = emptyList()
 ) {
-
     /**
      * Propiedad calculada que determina si el libro forma parte de una saga.
      * * Funcionamiento: Comprueba si la variable [seriesName] tiene algún texto.

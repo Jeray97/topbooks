@@ -10,6 +10,7 @@ import com.example.topbooks.data.local.toDomain
 import com.example.topbooks.data.local.toEntity
 import com.example.topbooks.data.model.Book
 import com.example.topbooks.data.network.RetrofitClient
+import com.example.topbooks.data.network.SupabaseBookDto
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.async
@@ -22,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import java.net.URL
+import com.example.topbooks.data.network.SupabaseRetrofitClient
 
 /**
  * Repositorio central encargado de la gestión, búsqueda y filtrado de Libros.
@@ -633,16 +635,108 @@ class BooksRepository(context: Context? = null) {
         }
     }
 
+    private fun SupabaseBookDto.toDomain(): Book? {
+        val title = product_name?.trim().orEmpty()
+
+        if (title.isBlank()) return null
+
+        val authors = author
+            ?.split(",")
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
+
+        val imageUrl = large_image?.takeIf { it.isNotBlank() }
+            ?: aw_image_url?.takeIf { it.isNotBlank() }
+            ?: merchant_image_url?.takeIf { it.isNotBlank() }
+            ?: ""
+
+        val cleanDescription =
+            com.example.topbooks.utils.HtmlCleaner.clean(
+                description.orEmpty()
+            )
+
+        val purchaseUrl = aw_deep_link?.takeIf { it.isNotBlank() }
+            ?: merchant_deep_link?.takeIf { it.isNotBlank() }
+            ?: ""
+
+        return Book(
+            id = isbn?.takeIf { it.isNotBlank() } ?: title,
+            title = title,
+            authors = authors,
+            description = cleanDescription,
+            imageUrl = imageUrl,
+            provider = "Casa del Libro",
+            purchaseUrl = purchaseUrl
+        )
+    }
     /**
      * Búsqueda estricta y directa por ISBN con patrón "Best-Effort" (Mejor Esfuerzo).
      */
     suspend fun getBookByIsbn(isbn: String): Result<Book?> = coroutineScope {
         try {
+            val normalizedIsbn = isbn
+                .filter { it.isDigit() || it == 'X' || it == 'x' }
+
+            if (normalizedIsbn.isBlank()) {
+                return@coroutineScope Result.success(null)
+            }
+
+            // ================================================================
+            // 1. SUPABASE / CASA DEL LIBRO
+            // ================================================================
+            try {
+                val supabaseApiKey = BuildConfig.SUPABASE_ANON_KEY
+
+                val supabaseResponse = SupabaseRetrofitClient.instance.getBookByIsbn(
+                    apiKey = supabaseApiKey,
+                    authorization = "Bearer $supabaseApiKey",
+                    isbn = "eq.$normalizedIsbn",
+                    limit = 1
+                )
+
+                if (supabaseResponse.isSuccessful) {
+                    val supabaseBook = supabaseResponse.body()
+                        ?.firstOrNull()
+                        ?.toDomain()
+
+                    if (supabaseBook != null) {
+                        Log.d(
+                            "BooksRepository",
+                            "ISBN encontrado en Supabase: $normalizedIsbn"
+                        )
+
+                        return@coroutineScope Result.success(supabaseBook)
+                    }
+
+                    Log.d(
+                        "BooksRepository",
+                        "ISBN no encontrado en Supabase: $normalizedIsbn"
+                    )
+                } else {
+                    Log.e(
+                        "BooksRepository",
+                        "Supabase error ${supabaseResponse.code()}: " +
+                                supabaseResponse.errorBody()?.string()
+                    )
+                }
+
+            } catch (e: Exception) {
+                // Supabase no debe impedir que funcionen los otros proveedores.
+                Log.e(
+                    "BooksRepository",
+                    "Error consultando Supabase",
+                    e
+                )
+            }
+
+            // ================================================================
+            // 2. GOOGLE BOOKS
+            // ================================================================
             var bookWithoutCover: Book? = null
 
-            // 1. Búsqueda estricta en Google Books
             val googleResponse = apiService.searchBooksGoogle(
-                query = "isbn:$isbn",
+                query = "isbn:$normalizedIsbn",
                 apiKey = API_KEY,
                 startIndex = 0,
                 maxResults = 2,
@@ -651,7 +745,10 @@ class BooksRepository(context: Context? = null) {
 
             if (googleResponse.isSuccessful) {
                 val items = googleResponse.body()?.items?.map { it.toDomain() }
-                val validBook = items?.find { it.title.isNotEmpty() && it.title != "Sin título" }
+
+                val validBook = items?.find {
+                    it.title.isNotEmpty() && it.title != "Sin título"
+                }
 
                 if (validBook != null) {
                     if (validBook.imageUrl.isNotEmpty()) {
@@ -662,9 +759,11 @@ class BooksRepository(context: Context? = null) {
                 }
             }
 
-            // 2. Búsqueda flexible en Google Books
+            // ================================================================
+            // 3. GOOGLE BOOKS - BÚSQUEDA FLEXIBLE
+            // ================================================================
             val fallbackResponse = apiService.searchBooksGoogle(
-                query = isbn,
+                query = normalizedIsbn,
                 apiKey = API_KEY,
                 startIndex = 0,
                 maxResults = 2,
@@ -673,7 +772,14 @@ class BooksRepository(context: Context? = null) {
 
             if (fallbackResponse.isSuccessful) {
                 val items = fallbackResponse.body()?.items?.map { it.toDomain() }
-                val bestBook = items?.filter { it.title.isNotEmpty() && it.title != "Sin título" }?.maxByOrNull { it.imageUrl.length }
+
+                val bestBook = items
+                    ?.filter {
+                        it.title.isNotEmpty() && it.title != "Sin título"
+                    }
+                    ?.maxByOrNull {
+                        it.imageUrl.length
+                    }
 
                 if (bestBook != null) {
                     if (bestBook.imageUrl.isNotEmpty()) {
@@ -684,12 +790,20 @@ class BooksRepository(context: Context? = null) {
                 }
             }
 
-            // 3. Open Library
-            val olResponse = apiService.searchBooksOpenLibrary(query = "isbn:$isbn", limit = 2)
+            // ================================================================
+            // 4. OPEN LIBRARY
+            // ================================================================
+            val olResponse = apiService.searchBooksOpenLibrary(
+                query = "isbn:$normalizedIsbn",
+                limit = 2
+            )
 
             if (olResponse.isSuccessful) {
                 val docs = olResponse.body()?.docs?.map { it.toDomain() }
-                val olBook = docs?.firstOrNull { it.title.isNotEmpty() }
+
+                val olBook = docs?.firstOrNull {
+                    it.title.isNotEmpty()
+                }
 
                 if (olBook != null) {
                     if (olBook.imageUrl.isNotEmpty()) {
@@ -700,7 +814,9 @@ class BooksRepository(context: Context? = null) {
                 }
             }
 
-            // 4. PLAN B
+            // ================================================================
+            // 5. PLAN B
+            // ================================================================
             if (bookWithoutCover != null) {
                 return@coroutineScope Result.success(bookWithoutCover)
             }
@@ -712,3 +828,4 @@ class BooksRepository(context: Context? = null) {
         }
     }
 }
+

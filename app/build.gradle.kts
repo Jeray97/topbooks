@@ -15,15 +15,18 @@ val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localProperties.load(FileInputStream(localPropertiesFile))
 }
+
 // Guardamos la clave en una variable segura
 val googleBooksApiKey: String = localProperties.getProperty("GOOGLE_BOOKS_API_KEY") ?: ""
+val supabaseUrl: String = localProperties.getProperty("SUPABASE_URL") ?: ""
+
+val supabaseAnonKey: String = localProperties.getProperty("SUPABASE_ANON_KEY") ?: ""
 
 android {
     namespace = "com.example.topbooks"
     compileSdk {
         version = release(36)
     }
-
     defaultConfig {
         applicationId = "com.example.topbooks"
         minSdk = 24
@@ -34,8 +37,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "API_KEY", "\"$googleBooksApiKey\"")
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
     }
-
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -53,13 +57,14 @@ android {
             excludes += "META-INF/LICENSE-notice.md"
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
     }
     buildFeatures {
         compose = true
@@ -92,7 +97,7 @@ dependencies {
     // ACTUALIZADO: 2.8.5 añade soporte estable para Type-Safe Navigation y corrige cierres en el backstack
     implementation("androidx.navigation:navigation-compose:2.8.5")
 
-    // --- FIREBASE  ---
+    // --- FIREBASE ---
     // ACTUALIZADO: 33.7.0 actualiza los binarios internos nativos a 16KB y mejora seguridad
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics")
@@ -152,5 +157,6 @@ dependencies {
 
     // ACTUALIZADO: 0.36.0 para mantener compatibilidad de permisos con las nuevas versiones de Compose
     implementation("com.google.accompanist:accompanist-permissions:0.36.0")
+
     implementation("com.google.guava:guava:31.1-android")
 }

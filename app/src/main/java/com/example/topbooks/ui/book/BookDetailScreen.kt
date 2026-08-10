@@ -513,9 +513,8 @@ fun StatusButton(label: String, isActive: Boolean, activeIcon: ImageVector, inac
  */
 @Composable
 fun BookPurchaseSection(book: Book, context: android.content.Context) {
-    // IDs de afiliado - Reemplazar con tus IDs reales
-    val CASA_DEL_LIBRO_AFFILIATE_ID = "TU_ID_CASA_DEL_LIBRO"
-    val FNAC_AFFILIATE_ID = "TU_ID_FNAC"
+    // IDs de afiliado
+    val FNAC_AFFILIATE_ID = "ID_FNAC"
     
     Column(
         modifier = Modifier
@@ -534,10 +533,12 @@ fun BookPurchaseSection(book: Book, context: android.content.Context) {
         // Botón Casa del Libro
         OutlinedButton(
             onClick = {
-                val encodedTitle = URLEncoder.encode(book.title, StandardCharsets.UTF_8.toString())
-                val url = "https://www.casadellibro.com/libros?query=$encodedTitle&affiliate=$CASA_DEL_LIBRO_AFFILIATE_ID"
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                context.startActivity(intent)
+                val url = book.purchaseUrl
+
+                if (!url.isNullOrBlank()) {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    context.startActivity(intent)
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
